@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
 :root {
+  --bg-page: #ffffff;
+  --bg-section: #f8fafc;
+  --border: #e2e8f0;
+  --text-primary: #0f172a;
+  --text-secondary: #64748b;
+  --accent: #6366f1;
+  --accent-teal: #06b6d4;
+  --accent-purple: #a855f7;
   --background: #ffffff;
-  --foreground: #171717;
+  --foreground: #0f172a;
 }
 
 @theme inline {
@@ -12,15 +20,287 @@
   --font-mono: var(--font-geist-mono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+body {
+  background: var(--bg-page);
+  color: var(--text-primary);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+/* Subtle dot grid (hero) — light */
+.bg-dot-grid-light {
+  background-color: #ffffff;
+  background-image: radial-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* Glass header — light */
+.glass-header {
+  background: rgba(255, 255, 255, 0.72);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Card with gradient top accent */
+.card-accent-top {
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  border-top: 3px solid transparent;
+  border-image: linear-gradient(90deg, #6366f1, #06b6d4) 1;
+  border-image-slice: 1 0 0 0;
+}
+/* Fallback top border without border-image issues on rounded cards */
+.card-gradient-border {
+  position: relative;
+  border: 1px solid #e2e8f0;
+  border-radius: 0.75rem;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.06);
+}
+.card-gradient-border::before {
+  content: "";
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 3px;
+  border-radius: 0.75rem 0.75rem 0 0;
+  background: linear-gradient(90deg, #6366f1, #a855f7, #06b6d4);
+  pointer-events: none;
+}
+
+.btn-gradient {
+  background: linear-gradient(135deg, #6366f1, #7c3aed, #06b6d4);
+  color: #fff;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+.btn-gradient:hover {
+  box-shadow:
+    0 8px 32px rgba(99, 102, 241, 0.4),
+    0 4px 16px rgba(6, 182, 212, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+  transform: translateY(-1px);
+}
+
+.btn-gradient-teal {
+  background: linear-gradient(135deg, #6366f1, #7c3aed, #06b6d4);
+  color: #fff;
+  transition: box-shadow 0.25s ease, transform 0.2s ease;
+}
+.btn-gradient-teal:hover {
+  box-shadow:
+    0 8px 32px rgba(99, 102, 241, 0.4),
+    0 4px 16px rgba(6, 182, 212, 0.3),
+    0 0 0 1px rgba(255, 255, 255, 0.15) inset;
+  transform: translateY(-1px);
+}
+
+.text-heading-gradient {
+  background: linear-gradient(135deg, #6366f1, #06b6d4);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+@keyframes not-found-emoji-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+.not-found-emoji-float {
+  animation: not-found-emoji-float 2.8s ease-in-out infinite;
+}
+
+@keyframes loading-progress-slow {
+  from { width: 0%; }
+  to { width: 94%; }
+}
+
+@keyframes tip-card-enter {
+  from { opacity: 0; transform: scale(0.98); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes tip-card-exit {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.98); }
+}
+
+.animate-loading-progress {
+  width: 0%;
+  animation: loading-progress-slow 60s linear forwards;
+}
+
+.animate-tip-card-in {
+  animation: tip-card-enter 0.5s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.animate-tip-card-out {
+  animation: tip-card-exit 0.45s ease forwards;
+}
+
+@keyframes testimonial-marquee {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(-50%);
+  }
+}
+
+.animate-testimonial-marquee {
+  animation: testimonial-marquee 45s linear infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-testimonial-marquee {
+    animation: none;
+  }
+}
+
+/* Landing — hero mesh + floating cards (app/page.tsx) */
+@keyframes landing-mesh-move {
+  0%,
+  100% {
+    transform: translate(0%, 0%) scale(1);
+  }
+  33% {
+    transform: translate(2%, -2%) scale(1.03);
+  }
+  66% {
+    transform: translate(-2%, 1%) scale(0.98);
+  }
+}
+
+.landing-hero-mesh {
+  background:
+    radial-gradient(ellipse 70% 50% at 50% 30%, rgba(99, 102, 241, 0.22), transparent),
+    radial-gradient(ellipse 50% 40% at 85% 15%, rgba(6, 182, 212, 0.18), transparent),
+    radial-gradient(ellipse 45% 35% at 10% 75%, rgba(168, 85, 247, 0.12), transparent);
+  animation: landing-mesh-move 20s ease-in-out infinite;
+}
+
+.landing-hero-dots {
+  background-color: #ffffff;
+  background-image: radial-gradient(rgba(99, 102, 241, 0.08) 1px, transparent 1px);
+  background-size: 28px 28px;
+}
+
+.landing-hero-blob {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.35) 0%, rgba(6, 182, 212, 0.2) 45%, transparent 70%);
+  filter: blur(64px);
+  animation: landing-mesh-move 14s ease-in-out infinite reverse;
+}
+
+@keyframes landing-float-y {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-10px);
+  }
+}
+
+.landing-float-card {
+  animation: landing-float-y 5.5s ease-in-out infinite;
+}
+
+.landing-float-card-delay-1 {
+  animation-delay: -1.8s;
+}
+
+.landing-float-card-delay-2 {
+  animation-delay: -3.6s;
+}
+
+.landing-btn-glow,
+.ds-btn-glow {
+  box-shadow:
+    0 4px 20px rgba(99, 102, 241, 0.35),
+    0 2px 8px rgba(6, 182, 212, 0.2);
+  transition:
+    box-shadow 0.25s ease,
+    transform 0.2s ease;
+}
+
+.landing-btn-glow:hover,
+.ds-btn-glow:hover {
+  box-shadow:
+    0 8px 32px rgba(99, 102, 241, 0.45),
+    0 4px 16px rgba(6, 182, 212, 0.35),
+    0 0 0 1px rgba(255, 255, 255, 0.2) inset;
+  transform: translateY(-1px);
+}
+
+/* App-wide design system: cards, page */
+.ds-page {
+  background-color: #f8f8ff;
+}
+
+.ds-card {
+  border-radius: 1rem;
+  border: 1px solid #eaeaf2;
+  background: #ffffff;
+  box-shadow: 0 4px 24px -8px rgba(15, 23, 42, 0.06);
+}
+
+.ds-card-interactive {
+  transition: box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.ds-card-interactive:hover {
+  border-color: transparent;
+  box-shadow:
+    0 0 0 1px rgba(99, 102, 241, 0.22),
+    0 8px 40px -12px rgba(99, 102, 241, 0.16),
+    0 8px 40px -12px rgba(6, 182, 212, 0.1);
+}
+
+.ds-input {
+  border-radius: 0.75rem;
+  border: 1px solid #eaeaf2;
+  background: #fff;
+  color: #1a1a2e;
+}
+.ds-input:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+.ds-icon-ring {
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.12), rgba(6, 182, 212, 0.12));
+  border: 1px solid rgba(99, 102, 241, 0.15);
+}
+
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-hero-mesh,
+  .landing-hero-blob,
+  .landing-float-card,
+  .landing-float-card-delay-1,
+  .landing-float-card-delay-2 {
+    animation: none;
+  }
+
+  .landing-btn-glow:hover,
+  .ds-btn-glow:hover {
+    transform: none;
+  }
+
+  .btn-gradient:hover {
+    transform: none;
+  }
 }

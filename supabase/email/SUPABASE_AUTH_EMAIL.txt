@@ -1,0 +1,20 @@
+Unemployed Club — Supabase authentication email branding
+=========================================================
+
+The transactional email "Sender name" (From name) is set in the Supabase Dashboard; it is not stored in SQL migrations in this repo.
+
+Do this in production:
+
+1. Supabase Dashboard → Project Settings → Authentication (or "Auth").
+
+2. If you use custom SMTP (recommended for production):
+   - Configure SMTP, then set the sender display name to exactly:
+     Unemployed Club
+
+3. Supabase Dashboard → Authentication → Email templates:
+   - Open each template (Confirm signup, Magic link, Recovery, Email change, etc.).
+   - Replace any generic product text with "Unemployed Club" so recipients recognize your brand.
+
+4. Optional: set Support / Site URL copy in Authentication → URL Configuration to match your marketing domain.
+
+After saving, new auth emails will show "Unemployed Club" as the sender name (with your configured From address).
