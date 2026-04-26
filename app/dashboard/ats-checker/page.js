@@ -54,6 +54,9 @@ function CollapsibleSection({ title, children, defaultOpen = false }) {
 export default function AtsCheckerPage() {
   const [file, setFile] = useState(null)
   const [jobDescription, setJobDescription] = useState('')
+  const [showAtsHandoffBanner, setShowAtsHandoffBanner] = useState(false)
+  const [savedResumeName, setSavedResumeName] = useState('')
+  const [highlightUpload, setHighlightUpload] = useState(false)
   const [jobUrl, setJobUrl] = useState('')
   const [fetchJobLoading, setFetchJobLoading] = useState(false)
   const [fetchJobError, setFetchJobError] = useState(null)
@@ -88,6 +91,8 @@ export default function AtsCheckerPage() {
   useEffect(() => {
     if (typeof window === 'undefined') return
     try {
+      const params = new URLSearchParams(window.location.search)
+      const fromHomepage = params.get('from') === 'homepage'
       const r = sessionStorage.getItem('ats-prefill-resume')
       const j = sessionStorage.getItem('ats-prefill-job')
       if (r?.trim()) {
@@ -98,6 +103,27 @@ export default function AtsCheckerPage() {
         setJobDescription(j)
         sessionStorage.removeItem('ats-prefill-job')
       }
+
+      if (fromHomepage) {
+        const homepageJobDescription = localStorage.getItem('ats_job_description')
+        const homepageResumeName = localStorage.getItem('ats_resume_name')
+
+        if (homepageJobDescription?.trim()) {
+          setJobDescription(homepageJobDescription)
+        }
+        if (homepageResumeName?.trim()) {
+          setSavedResumeName(homepageResumeName.trim())
+        }
+
+        const hasSavedAtsContext = Boolean(homepageJobDescription?.trim() || homepageResumeName?.trim())
+        if (hasSavedAtsContext) {
+          setShowAtsHandoffBanner(true)
+          setHighlightUpload(true)
+        }
+      }
+
+      localStorage.removeItem('ats_job_description')
+      localStorage.removeItem('ats_resume_name')
     } catch {
       /* ignore */
     }
@@ -122,6 +148,7 @@ export default function AtsCheckerPage() {
     const droppedFile = e.dataTransfer.files[0]
     if (isAcceptedFile(droppedFile)) {
       setFile(droppedFile)
+      setHighlightUpload(false)
       setError(null)
     } else {
       setFile(null)
@@ -133,6 +160,7 @@ export default function AtsCheckerPage() {
     const selectedFile = e.target.files[0]
     if (isAcceptedFile(selectedFile)) {
       setFile(selectedFile)
+      setHighlightUpload(false)
       setError(null)
     } else {
       setFile(null)
@@ -252,6 +280,28 @@ export default function AtsCheckerPage() {
   return (
     <div className="relative mx-auto max-w-6xl min-w-0">
       <AtsScoreLoadingOverlay active={loading} progress={atsProgress} headline="Your ATS score is being calculated..." />
+      {showAtsHandoffBanner && (
+        <div className="mb-5 flex items-start justify-between gap-4 rounded-xl border border-[#c7d2fe] bg-[#eef2ff] px-4 py-3 text-sm text-[#3730a3]">
+          <div>
+            <p className="font-medium">
+              Almost there! We saved your job description. Just upload your resume one more time to see your ATS score.
+            </p>
+            {savedResumeName && (
+              <p className="mt-1 text-xs text-[#4f46e5]">
+                Last selected resume: <span className="font-medium">{savedResumeName}</span>
+              </p>
+            )}
+          </div>
+          <button
+            type="button"
+            onClick={() => setShowAtsHandoffBanner(false)}
+            className="inline-flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-[#c7d2fe] text-[#4f46e5] transition-colors hover:bg-white"
+            aria-label="Dismiss message"
+          >
+            ×
+          </button>
+        </div>
+      )}
       <h1 className="text-2xl font-semibold bg-gradient-to-r from-[#06b6d4] to-white bg-clip-text text-transparent mb-8">ATS Score Checker</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
@@ -264,7 +314,7 @@ export default function AtsCheckerPage() {
             onClick={() => !loading && document.getElementById('ats-file-input').click()}
             className={`border-2 border-dashed rounded-xl p-8 text-center cursor-pointer transition-all ${
               isDragging ? 'border-[#06b6d4] bg-[#06b6d4]/10 shadow-[0_0_24px_rgba(6,182,212,0.2)]' : 'border-[#eaeaf2] hover:border-[#06b6d4]/50 bg-[#f8f8ff]/50'
-            } ${loading ? 'pointer-events-none opacity-70' : ''}`}
+            } ${highlightUpload && !file ? 'border-[#6366f1] bg-[#eef2ff] ring-2 ring-[#6366f1]/30 shadow-[0_0_30px_rgba(99,102,241,0.35)]' : ''} ${loading ? 'pointer-events-none opacity-70' : ''}`}
           >
             <input
               id="ats-file-input"

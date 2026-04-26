@@ -151,6 +151,102 @@ const FAQ_ITEMS = [
   },
 ] as const
 
+const ATS_POPULAR_ROLES = [
+  'Software Engineer',
+  'Product Manager',
+  'Data Analyst',
+  'Marketing Manager',
+  'UX Designer',
+  'Business Analyst',
+  'Project Manager',
+  'Sales Manager',
+  'Financial Analyst',
+  'HR Manager',
+  'Graphic Designer',
+  'Content Writer',
+  'DevOps Engineer',
+  'Customer Success Manager',
+  'Operations Manager',
+] as const
+
+const ATS_ROLE_DESCRIPTIONS: Record<(typeof ATS_POPULAR_ROLES)[number], string> = {
+  'Software Engineer': `We are looking for a passionate and experienced Software Engineer to join our growing engineering team. In this role you will design, develop, test and maintain scalable software applications that serve millions of users. You will collaborate closely with product managers, designers and other engineers to deliver high quality features on time.
+
+The ideal candidate has strong proficiency in Python, JavaScript or TypeScript, experience building RESTful APIs and microservices, and a solid understanding of cloud platforms such as AWS or Google Cloud. You should be comfortable working in an agile environment and have experience with CI/CD pipelines, Docker and version control systems like Git.
+
+Requirements: Bachelor's degree in Computer Science or related field, 3+ years of software development experience, strong problem solving skills, excellent communication and collaboration abilities, experience with SQL and NoSQL databases.`,
+  'Product Manager': `We are seeking a strategic and data-driven Product Manager to lead the development of our core product offerings. You will own the product roadmap, define requirements, prioritize features and work cross-functionally with engineering, design, marketing and sales teams to bring products to market. You will be the voice of the customer and ensure we are solving real problems.
+
+The ideal candidate has a deep understanding of user centered design, experience running A/B tests and analyzing product metrics, and the ability to communicate complex ideas clearly to both technical and non-technical stakeholders. Experience in SaaS or consumer tech is strongly preferred.
+
+Requirements: 3+ years of product management experience, strong analytical and strategic thinking skills, proficiency with tools like Jira, Figma and Google Analytics, excellent written and verbal communication, track record of shipping successful products.`,
+  'Data Analyst': `We are looking for a detail-oriented Data Analyst to help us turn raw data into actionable business insights. You will work closely with leadership, marketing and operations teams to analyze trends, build dashboards and support data-driven decision making across the organization. You will play a key role in shaping our analytics infrastructure.
+
+The ideal candidate is highly proficient in SQL and Excel, has experience with data visualization tools like Tableau or Power BI, and can clearly communicate findings to non-technical stakeholders. Experience with Python or R for statistical analysis is a strong plus.
+
+Requirements: Bachelor's degree in Statistics, Mathematics, Economics or related field, 2+ years of data analysis experience, strong attention to detail and critical thinking skills, ability to manage multiple projects simultaneously, experience with large datasets and relational databases.`,
+  'Marketing Manager': `We are looking for a creative and results-driven Marketing Manager to lead our marketing strategy and execution. You will be responsible for developing integrated marketing campaigns across digital and traditional channels, managing our brand presence, generating leads and measuring campaign performance. You will work closely with the sales and product teams to align messaging and drive revenue growth.
+
+The ideal candidate has hands-on experience with SEO, SEM, email marketing, social media and content strategy. You should be comfortable analyzing marketing data and making data-driven decisions to optimize campaigns. Experience with tools like HubSpot, Google Ads and Mailchimp is preferred.
+
+Requirements: 3+ years of marketing experience, strong written and verbal communication skills, experience managing marketing budgets, proficiency with digital marketing platforms and analytics tools, ability to manage multiple campaigns simultaneously.`,
+  'UX Designer': `We are seeking a talented and empathetic UX Designer to create intuitive and delightful user experiences for our products. You will conduct user research, develop personas, create wireframes and prototypes, and collaborate with product and engineering teams to ship polished interfaces. You will be an advocate for the user at every stage of the design process.
+
+The ideal candidate has a strong portfolio demonstrating end-to-end UX work, deep proficiency in Figma or Sketch, and experience conducting usability testing and translating insights into design improvements. You should be comfortable working in fast-paced agile environments and iterating quickly based on feedback.
+
+Requirements: 2+ years of UX design experience, strong portfolio of web and mobile projects, experience with user research methods, proficiency in Figma and prototyping tools, excellent collaboration and communication skills.`,
+  'Business Analyst': `We are looking for an analytical and detail-oriented Business Analyst to help identify business needs and translate them into actionable solutions. You will work with stakeholders across the organization to document requirements, map processes, analyze data and support the implementation of new systems and workflows. Your work will directly impact operational efficiency and strategic decision making.
+
+The ideal candidate has strong experience gathering and documenting business requirements, creating process flow diagrams and working with both technical and non-technical teams. Experience with SQL, Excel and project management tools is essential.
+
+Requirements: 2+ years of business analysis experience, strong analytical and problem solving skills, excellent communication and presentation abilities, experience with Agile or Scrum methodologies, proficiency in Microsoft Office Suite and data analysis tools.`,
+  'Project Manager': `We are seeking an experienced and organized Project Manager to lead cross-functional projects from initiation to completion. You will be responsible for defining project scope, creating detailed project plans, managing timelines and budgets, coordinating resources and communicating progress to stakeholders. You will ensure projects are delivered on time, within scope and within budget.
+
+The ideal candidate thrives in a fast-paced environment, has strong leadership skills and is comfortable managing multiple projects simultaneously. Experience with project management tools like Jira, Asana or Monday.com is required. PMP certification is a strong asset.
+
+Requirements: 3+ years of project management experience, strong organizational and time management skills, excellent communication and stakeholder management abilities, experience with Agile and Waterfall methodologies, proven track record of delivering complex projects successfully.`,
+  'Sales Manager': `We are looking for a motivated and results-oriented Sales Manager to lead and grow our sales team. You will be responsible for developing sales strategies, setting targets, coaching team members and building strong relationships with key clients. You will work closely with marketing and product teams to align on go-to-market strategy and ensure consistent revenue growth.
+
+The ideal candidate has a proven track record in B2B sales, strong leadership and coaching abilities, and deep experience with CRM platforms like Salesforce. You should be data-driven, comfortable analyzing sales metrics and able to identify opportunities for pipeline growth.
+
+Requirements: 3+ years of sales management experience, demonstrated ability to meet and exceed revenue targets, strong negotiation and closing skills, experience managing and mentoring sales teams, proficiency with CRM tools and sales analytics.`,
+  'Financial Analyst': `We are seeking a detail-oriented Financial Analyst to support our finance team with planning, analysis and reporting. You will be responsible for building financial models, preparing monthly and quarterly reports, supporting the budgeting process and providing insights to leadership to support strategic decision making. You will play a critical role in helping the business understand its financial performance.
+
+The ideal candidate has strong Excel and financial modeling skills, experience with ERP systems and a solid understanding of accounting principles. CPA or CFA designation is preferred. You should be comfortable working with large datasets and presenting findings clearly to senior leadership.
+
+Requirements: Bachelor's degree in Finance, Accounting or related field, 2+ years of financial analysis experience, advanced Excel skills including pivot tables and financial modeling, strong attention to detail and analytical thinking, excellent written and verbal communication skills.`,
+  'HR Manager': `We are looking for an experienced and people-focused HR Manager to oversee all aspects of human resources for our organization. You will be responsible for talent acquisition, employee onboarding, performance management, compensation and benefits administration, employee relations and HR compliance. You will play a key role in building a positive and inclusive workplace culture.
+
+The ideal candidate has strong knowledge of employment law and HR best practices, excellent interpersonal and conflict resolution skills, and experience implementing HR systems and processes. SHRM or CHRP certification is strongly preferred.
+
+Requirements: 3+ years of HR management experience, deep knowledge of employment standards and labour law, experience with HRIS platforms, strong communication and relationship building skills, proven ability to handle sensitive and confidential matters with discretion.`,
+  'Graphic Designer': `We are seeking a creative and versatile Graphic Designer to bring our brand to life across digital and print channels. You will create visually compelling designs for marketing campaigns, social media, website assets, presentations and branded materials. You will work closely with the marketing team to ensure all creative output is on brand and meets project objectives.
+
+The ideal candidate has a strong eye for design, deep proficiency in Adobe Creative Suite including Photoshop, Illustrator and InDesign, and experience working in a fast-paced marketing environment. Motion graphics or video editing experience is a plus.
+
+Requirements: 2+ years of graphic design experience, strong portfolio demonstrating range and creativity, proficiency in Adobe Creative Suite and Figma, excellent attention to detail and time management, ability to manage multiple design projects simultaneously.`,
+  'Content Writer': `We are looking for a talented Content Writer to create engaging and informative content that attracts and retains our target audience. You will write blog posts, website copy, email campaigns, social media content, case studies and whitepapers. You will work closely with the marketing and SEO teams to ensure all content is optimized for search and aligned with our brand voice.
+
+The ideal candidate is an exceptional writer with strong research skills, a solid understanding of SEO best practices and the ability to adapt their writing style for different audiences and platforms. Experience writing for B2B or SaaS companies is preferred.
+
+Requirements: 2+ years of content writing experience, excellent writing, editing and proofreading skills, strong understanding of SEO and keyword strategy, ability to meet deadlines in a fast-paced environment, experience with CMS platforms like WordPress.`,
+  'DevOps Engineer': `We are seeking a skilled DevOps Engineer to help us build, maintain and scale our cloud infrastructure and deployment pipelines. You will be responsible for managing CI/CD pipelines, automating infrastructure provisioning, monitoring system performance and ensuring high availability and security of our production environments. You will work closely with software engineers to streamline the development and deployment process.
+
+The ideal candidate has hands-on experience with AWS or Azure, strong scripting skills in Python or Bash, and deep experience with containerization technologies like Docker and Kubernetes. Experience with infrastructure as code tools like Terraform is strongly preferred.
+
+Requirements: 3+ years of DevOps or infrastructure engineering experience, strong knowledge of cloud platforms, experience with CI/CD tools like Jenkins or GitHub Actions, proficiency with Docker and Kubernetes, excellent problem solving and troubleshooting skills.`,
+  'Customer Success Manager': `We are looking for a passionate and customer-focused Customer Success Manager to ensure our clients achieve maximum value from our product. You will be responsible for onboarding new customers, building strong relationships, identifying expansion opportunities and working proactively to reduce churn. You will serve as the primary point of contact for your portfolio of accounts.
+
+The ideal candidate has excellent communication and relationship management skills, a proactive approach to problem solving and a genuine passion for helping customers succeed. Experience with CRM tools and customer success platforms like Gainsight or Intercom is preferred.
+
+Requirements: 2+ years of customer success or account management experience, strong communication and interpersonal skills, ability to manage a large portfolio of accounts, experience with CRM and customer success tools, proven ability to meet retention and expansion targets.`,
+  'Operations Manager': `We are seeking an experienced Operations Manager to oversee and optimize our day-to-day business operations. You will be responsible for managing cross-functional teams, improving operational processes, tracking key performance metrics and ensuring the organization runs efficiently and effectively. You will work closely with leadership to execute on strategic initiatives.
+
+The ideal candidate has strong leadership and problem solving skills, experience designing and implementing operational processes and a data-driven approach to decision making. Experience in a high-growth startup or scale-up environment is a strong asset.
+
+Requirements: 3+ years of operations management experience, strong analytical and organizational skills, experience with project management and workflow tools, excellent leadership and team management abilities, proven track record of improving operational efficiency and performance.`,
+}
+
 function GradientText({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <span
@@ -812,6 +908,11 @@ export default function LandingPage() {
   const router = useRouter()
   const [loading, setLoading] = useState(true)
   const [openFaq, setOpenFaq] = useState<number | null>(0)
+  const [atsResumeFile, setAtsResumeFile] = useState<File | null>(null)
+  const [atsDragActive, setAtsDragActive] = useState(false)
+  const [atsJobDescription, setAtsJobDescription] = useState('')
+  const [atsCheckerStep, setAtsCheckerStep] = useState<'upload' | 'job' | 'gate'>('upload')
+  const [atsSelectedRole, setAtsSelectedRole] = useState<(typeof ATS_POPULAR_ROLES)[number] | null>(null)
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -821,6 +922,16 @@ export default function LandingPage() {
   }, [router])
 
   if (loading) return <div className="min-h-screen bg-white" />
+
+  const handleAtsUpload = (file: File | null) => {
+    if (!file) return
+    const fileName = file.name.toLowerCase()
+    const isAllowed =
+      fileName.endsWith('.pdf') || fileName.endsWith('.doc') || fileName.endsWith('.docx')
+    if (!isAllowed) return
+    setAtsResumeFile(file)
+    setAtsCheckerStep('job')
+  }
 
   return (
     <div className="min-h-screen overflow-x-hidden bg-white text-[#1a1a2e]">
@@ -863,6 +974,170 @@ export default function LandingPage() {
             </div>
             <div className="flex w-full min-w-0 justify-center lg:justify-end">
               <HeroDashboardMock />
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Free ATS checker */}
+      <section className="bg-[#f8f7ff] px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
+        <div className="mx-auto max-w-5xl text-center">
+          <div className="mb-4 inline-flex rounded-full bg-white px-4 py-2 text-[11px] font-extrabold uppercase tracking-[0.2em] text-[#6366f1]">
+            FREE TOOL
+          </div>
+          <h2 className="text-3xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-4xl lg:text-5xl">
+            Check your ATS score <span className="bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent">for free</span>
+          </h2>
+          <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
+            See how your resume performs before you apply. No signup needed to start.
+          </p>
+        </div>
+
+        <div className="mx-auto mt-12 w-full max-w-4xl">
+          <div className="relative min-h-[620px] rounded-[20px] border border-[#eaeaf2] bg-white p-6 shadow-[0_16px_50px_-20px_rgba(99,102,241,0.25)] sm:min-h-[640px] sm:p-10 md:min-h-[560px]">
+            <div
+              className={`absolute inset-0 px-6 py-6 transition-opacity duration-500 sm:px-10 sm:py-10 ${
+                atsCheckerStep === 'upload' ? 'opacity-100' : 'pointer-events-none opacity-0'
+              }`}
+            >
+              <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-xl bg-gradient-to-br from-[#6366f1] to-[#06b6d4] text-white">
+                  <svg className="h-7 w-7" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+                  </svg>
+                </div>
+                <h3 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">Upload your resume</h3>
+                <p className="mt-2 text-sm text-[#5c5c7a]">PDF, DOC or DOCX accepted</p>
+
+                <label
+                  htmlFor="ats-upload-input"
+                  onDragOver={(e) => {
+                    e.preventDefault()
+                    setAtsDragActive(true)
+                  }}
+                  onDragLeave={() => setAtsDragActive(false)}
+                  onDrop={(e) => {
+                    e.preventDefault()
+                    setAtsDragActive(false)
+                    handleAtsUpload(e.dataTransfer.files?.[0] || null)
+                  }}
+                  className={`mt-6 block w-full cursor-pointer rounded-2xl border-2 border-dashed p-8 text-center transition-all ${
+                    atsDragActive
+                      ? 'border-[#6366f1] bg-[#eef2ff]'
+                      : 'border-[#c7d2fe] bg-[#fafaff] hover:border-[#6366f1]'
+                  }`}
+                >
+                  <input
+                    id="ats-upload-input"
+                    type="file"
+                    accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                    className="hidden"
+                    onChange={(e) => handleAtsUpload(e.target.files?.[0] || null)}
+                  />
+                  <p className="text-sm font-semibold text-[#1a1a2e]">Drop your resume here or click to upload</p>
+                </label>
+
+                {atsResumeFile ? (
+                  <div className="mt-4 flex items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700">
+                    <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-emerald-600 text-white">✓</span>
+                    <span className="truncate font-medium">{atsResumeFile.name}</span>
+                  </div>
+                ) : null}
+              </div>
+            </div>
+
+            <div
+              className={`absolute inset-0 px-6 py-6 transition-opacity duration-500 sm:px-10 sm:py-10 ${
+                atsCheckerStep === 'job' ? 'opacity-100' : 'pointer-events-none opacity-0'
+              }`}
+            >
+              <div className="mx-auto flex h-full max-w-4xl flex-col rounded-2xl border border-[#eaeaf2] bg-white p-4 sm:p-6">
+                <div className="mb-4">
+                  <p className="text-sm font-bold text-[#1a1a2e]">Step 2 — Select a role or paste your own job description</p>
+                </div>
+
+                <div className="grid flex-1 min-h-0 grid-cols-1 gap-4 md:grid-cols-[35%_65%] md:gap-0">
+                  <div className="md:border-r md:border-[#eaeaf2] md:pr-4">
+                    <p className="mb-3 text-[11px] font-bold uppercase tracking-wider text-[#6366f1]">POPULAR ROLES</p>
+                    <div className="max-h-[300px] space-y-2 overflow-y-auto pr-1">
+                      {ATS_POPULAR_ROLES.map((role) => {
+                        const selected = atsSelectedRole === role
+                        return (
+                          <button
+                            key={role}
+                            type="button"
+                            onClick={() => {
+                              setAtsSelectedRole(role)
+                              setAtsJobDescription(ATS_ROLE_DESCRIPTIONS[role])
+                            }}
+                            className={`w-full rounded-lg px-4 py-2.5 text-left text-sm font-semibold transition-all ${
+                              selected
+                                ? 'border border-transparent bg-gradient-to-r from-[#6366f1] to-[#06b6d4] text-white'
+                                : 'border border-[#6366f1] bg-white text-[#6366f1]'
+                            }`}
+                          >
+                            {role}
+                          </button>
+                        )
+                      })}
+                    </div>
+                  </div>
+                  <div className="flex min-h-0 flex-col gap-4 md:pl-4">
+                    <textarea
+                      rows={8}
+                      value={atsJobDescription}
+                      onChange={(e) => {
+                        setAtsSelectedRole(null)
+                        setAtsJobDescription(e.target.value)
+                      }}
+                      placeholder="Job description will appear here when you select a role, or paste your own..."
+                      className="h-[300px] w-full resize-none rounded-xl border border-[#d1d5db] bg-white px-4 py-3 text-[#1a1a2e] outline-none transition-all placeholder:text-[#9ca3af] focus:border-[#6366f1] focus:ring-2 focus:ring-[#6366f1]/20"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setAtsCheckerStep('gate')}
+                      className="inline-flex h-[52px] w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] px-6 text-sm font-bold text-white shadow-[0_10px_28px_-8px_rgba(99,102,241,0.4)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-8px_rgba(99,102,241,0.5)]"
+                    >
+                      Check My Score <span aria-hidden>→</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div
+              className={`absolute inset-0 px-6 py-6 transition-opacity duration-500 sm:px-10 sm:py-10 ${
+                atsCheckerStep === 'gate' ? 'opacity-100' : 'pointer-events-none opacity-0'
+              }`}
+            >
+              <div className="mx-auto flex h-full max-w-2xl flex-col items-center justify-center text-center">
+                <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-r from-[#6366f1] to-[#06b6d4] text-white">
+                  <span className="text-2xl" aria-hidden>🔒</span>
+                </div>
+                <h3 className="text-2xl font-bold tracking-tight text-[#1a1a2e]">Your ATS score is ready!</h3>
+                <p className="mt-2 max-w-xl text-sm leading-relaxed text-[#5c5c7a]">
+                  Create a free account to see your full score, missing keywords and how to improve.
+                </p>
+                <Link
+                  href="/signup?redirect=ats"
+                  onClick={() => {
+                    try {
+                      if (atsResumeFile?.name) {
+                        localStorage.setItem('ats_resume_name', atsResumeFile.name)
+                      }
+                      if (atsJobDescription.trim()) {
+                        localStorage.setItem('ats_job_description', atsJobDescription.trim())
+                      }
+                    } catch {
+                      /* ignore */
+                    }
+                  }}
+                  className="mt-5 inline-flex min-h-11 w-full max-w-md items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] px-6 py-3 text-sm font-bold text-white shadow-[0_10px_28px_-8px_rgba(99,102,241,0.4)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-8px_rgba(99,102,241,0.5)]"
+                >
+                  See My Full Score <span aria-hidden>→</span>
+                </Link>
+                <p className="mt-3 text-xs text-[#9ca3af]">Free forever. No credit card needed.</p>
+              </div>
             </div>
           </div>
         </div>

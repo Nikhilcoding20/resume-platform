@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -8,10 +8,17 @@ import AuthGoogleButton, { AuthDividerOr } from '@/app/components/AuthGoogleButt
 
 export default function LoginPage() {
   const router = useRouter()
+  const [redirectAts, setRedirectAts] = useState(false)
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const isAtsRedirect = new URLSearchParams(window.location.search).get('redirect') === 'ats'
+    setRedirectAts(isAtsRedirect)
+  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -23,7 +30,8 @@ export default function LoginPage() {
       setError(error.message)
       return
     }
-    router.push('/dashboard')
+    const redirectTo = redirectAts ? '/dashboard/ats-checker?from=homepage' : '/dashboard'
+    router.push(redirectTo)
   }
 
   return (
@@ -83,7 +91,13 @@ export default function LoginPage() {
             {loading ? 'Signing in…' : 'Log in'}
           </button>
           <p className="text-center text-sm text-[#5c5c7a]">
-            No account? <Link href="/signup" className="font-semibold text-[#6366f1] hover:text-[#a855f7] transition-colors">Sign up</Link>
+            No account?{' '}
+            <Link
+              href={redirectAts ? '/signup?redirect=ats' : '/signup'}
+              className="font-semibold text-[#6366f1] hover:text-[#a855f7] transition-colors"
+            >
+              Sign up
+            </Link>
           </p>
         </form>
       </div>
