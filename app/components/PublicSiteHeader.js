@@ -64,32 +64,6 @@ export default function PublicSiteHeader() {
             Reviews
           </Link>
         </nav>
-        <div className="hidden items-center justify-center gap-4 border-t border-[#eaeaf2] py-2 lg:flex">
-          <a
-            href="https://www.linkedin.com/company/unemployed-club/about/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] font-semibold uppercase tracking-wide text-[#8b8ba3] transition-colors hover:text-[#6366f1]"
-          >
-            LinkedIn
-          </a>
-          <a
-            href="https://www.facebook.com/people/Unemployed-Club/61560755183488/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] font-semibold uppercase tracking-wide text-[#8b8ba3] transition-colors hover:text-[#6366f1]"
-          >
-            Facebook
-          </a>
-          <a
-            href="https://www.instagram.com/unemployedclub.co/"
-            target="_blank"
-            rel="noopener noreferrer"
-            className="text-[11px] font-semibold uppercase tracking-wide text-[#8b8ba3] transition-colors hover:text-[#6366f1]"
-          >
-            Instagram
-          </a>
-        </div>
       </div>
     </header>
   )
