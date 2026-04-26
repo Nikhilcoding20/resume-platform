@@ -19,6 +19,11 @@ export const metadata: Metadata = {
     'Build ATS-friendly resumes, generate cover letters, ace interviews and find jobs — all in one place. Leave the club faster with Unemployed Club.',
   keywords:
     'resume builder, ATS checker, cover letter generator, interview prep, job board, AI resume, career tools',
+  icons: {
+    icon: '/favicon.png',
+    shortcut: '/favicon.png',
+    apple: '/favicon.png',
+  },
   metadataBase: new URL('https://unemployedclub.com'),
   openGraph: {
     title: 'Unemployed Club — AI-Powered Career Platform',
