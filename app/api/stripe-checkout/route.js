@@ -13,10 +13,12 @@ export async function POST(request) {
     return jsonError('Stripe is not configured.', 500)
   }
 
-  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, '')
-  if (!siteUrl) {
-    return jsonError('NEXT_PUBLIC_SITE_URL is not set.', 500)
+  console.log('[stripe-checkout] NEXT_PUBLIC_SITE_URL:', process.env.NEXT_PUBLIC_SITE_URL)
+  let siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://unemployedclub.com'
+  if (siteUrl.includes('localhost')) {
+    siteUrl = 'https://unemployedclub.com'
   }
+  siteUrl = siteUrl.replace(/\/$/, '')
 
   let body
   try {
