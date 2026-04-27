@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
 
+export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
 
 function planFromPriceId(priceId) {
