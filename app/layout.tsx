@@ -20,7 +20,7 @@ export const metadata: Metadata = {
   keywords:
     'resume builder, ATS checker, cover letter generator, interview prep, job board, AI resume, career tools',
   verification: {
-    google: 'google3786b1d2867332cb',
+    google: 'n_K5Kf3Vx6D9xDjoXSKibLJsscwWVsB7PQpSxtpA_UI',
   },
   icons: {
     icon: '/favicon.png',
