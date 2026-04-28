@@ -8,43 +8,43 @@ import PublicSiteHeader from '@/app/components/PublicSiteHeader'
 
 const FEATURE_TOOLKIT_CARDS = [
   {
-    title: 'AI Resume Builder',
-    description: 'Generate tailored, ATS-optimized resumes in minutes using Claude AI',
+    title: 'Resume Builder',
+    description: 'Create polished, ATS-friendly resumes tailored to specific roles.',
     Icon: IconDoc,
     cta: 'Build Resume',
     href: '/signup',
   },
   {
-    title: 'Cover Letter Generator',
-    description: 'Harvard-style cover letters personalized to every job you apply for',
+    title: 'Cover Letter Builder',
+    description: 'Generate personalized cover letters that match your resume and target role.',
     Icon: IconLetter,
     cta: 'Write Cover Letter',
     href: '/signup',
   },
   {
-    title: 'ATS Checker',
-    description: "See exactly how your resume scores and what keywords you're missing",
+    title: 'Resume Analysis',
+    description: 'Review keyword alignment, formatting, and role fit before submitting.',
     Icon: IconChart,
     cta: 'Check Score',
     href: '/signup',
   },
   {
-    title: 'AI Interview Coach',
-    description: 'Practice with real interview questions and get scored on your answers',
+    title: 'Interview Practice',
+    description: 'Practice behavioral and role-specific questions with structured feedback.',
     Icon: IconMic,
     cta: 'Practice Interviews',
     href: '/signup',
   },
   {
-    title: 'Job Board',
-    description: 'Search thousands of real jobs from LinkedIn, Indeed and more in one place',
+    title: 'Job Opportunities',
+    description: 'Save roles, compare opportunities, and manage applications in one place.',
     Icon: IconBriefcase,
     cta: 'Find Jobs',
     href: '/signup',
   },
   {
-    title: 'Daily Career Tips',
-    description: 'Bite-sized advice in your dashboard so you stay sharp between applications',
+    title: 'Career Guidance',
+    description: 'Get practical recommendations to improve your search strategy.',
     Icon: IconBulb,
     cta: 'Get Advice',
     href: '/signup',
@@ -55,7 +55,7 @@ const HOW_IT_WORKS_CARDS = [
   {
     num: '01',
     title: 'Sign Up Free',
-    description: 'Create your account and get started in under 30 seconds.',
+    description: 'Create your workspace and set your target roles.',
     checks: ['No credit card required'] as const,
     Icon: IconUserPlus,
     cta: { label: 'Create Account', href: '/signup', variant: 'solid' as const, arrow: true },
@@ -63,7 +63,7 @@ const HOW_IT_WORKS_CARDS = [
   {
     num: '02',
     title: 'Build Your Resume',
-    description: 'Use AI to create a professional resume that gets noticed.',
+    description: 'Build a tailored resume with clean formatting and role-specific content.',
     checks: ['AI-powered writing', 'ATS optimized', 'Cover letters included'] as const,
     Icon: IconSparklesDoc,
     cta: { label: 'Try Resume Builder', href: '/dashboard/build-resume', variant: 'outline' as const },
@@ -71,7 +71,7 @@ const HOW_IT_WORKS_CARDS = [
   {
     num: '03',
     title: 'Apply to Jobs',
-    description: 'Find jobs that match your skills and apply with confidence.',
+    description: 'Track opportunities, prepare documents, and manage each application.',
     checks: ['Curated job matches', 'One-click apply', 'Track your applications'] as const,
     Icon: IconSearch,
     cta: { label: 'Browse Jobs', href: '/dashboard/jobs', variant: 'outline' as const },
@@ -79,7 +79,7 @@ const HOW_IT_WORKS_CARDS = [
   {
     num: '04',
     title: 'Get Hired',
-    description: 'Prepare, practice, and land your next job.',
+    description: 'Prepare for interviews and improve your chances with every application.',
     checks: ['Interview practice', 'Expert tips & guides', 'Job search support'] as const,
     Icon: IconBriefcaseWithCheck,
     cta: { label: 'Start Your Journey', href: '/signup', variant: 'solid' as const, arrow: false as const },
@@ -89,35 +89,35 @@ const HOW_IT_WORKS_CARDS = [
 const REVIEWS = [
   {
     quote:
-      'I was tweaking my resume for every backend role and still getting filtered out before a human saw it. Pasting the job description here surfaced keywords I had skipped and tightened bullets without inventing experience. Two recruiters reached out the same week after I updated.',
+      'The resume analysis helped me identify gaps I was missing and tailor my resume more clearly for each role. It made my applications sharper and easier for recruiters to review.',
     name: 'Nikhil G.',
     title: 'Software Developer',
     initials: 'NG',
   },
   {
     quote:
-      'Our ATS score always felt like a black box. The checker flagged weak headline copy and skills the posting actually asked for—stuff I would have glossed over. Maybe twenty minutes of edits later, replies started feeling less like a coin flip.',
+      'Using the platform gave me a clearer process for each application. I was able to align my resume and cover letter with job requirements much more consistently.',
     name: 'Varun L.',
     title: 'Marketing Specialist',
     initials: 'VL',
   },
   {
     quote:
-      'I am picky about how I sound on paper; most AI drafts feel plastic. This kept my real metrics and launches but made the story clearer for PM roles. I finally got past screening at a company I had applied to twice with the old file.',
+      'I appreciated how structured everything felt. The suggestions were practical, and I could quickly adapt my resume for product roles without starting from scratch each time.',
     name: 'Eduardo H.',
     title: 'Product Manager',
     initials: 'EH',
   },
   {
     quote:
-      'My portfolio link was buried and my summary read like a template I had recycled for years. Rewriting through Unemployed Club helped me lead with impact and mirror each posting without keyword stuffing. First real interview landed about two weeks after.',
+      'The interview prep and resume feedback helped me present my experience more clearly. I felt more prepared in interviews and more confident in the quality of my applications.',
     name: 'Tanisha H.',
     title: 'UX Designer',
     initials: 'TH',
   },
   {
     quote:
-      'I live in campaign dashboards, not Word docs—formatting resumes was eating my nights. Having a version tuned to each paid-social role saved time, and the ATS notes caught spacing and section quirks I did not know screeners cared about.',
+      'Having my resumes, applications, and notes in one place made my job search far more organized. It saved time and helped me stay focused on higher-quality applications.',
     name: 'Burhanuddin K.',
     title: 'Digital Marketer',
     initials: 'BK',
@@ -126,28 +126,28 @@ const REVIEWS = [
 
 const FAQ_ITEMS = [
   {
-    q: 'Is Unemployed Club really free?',
-    a: 'Yes. You can create a free account and use core features to build and improve your resume. Upgrade when you want higher limits, premium templates, or advanced interview and job tools.',
+    q: 'Is there a free plan?',
+    a: 'Yes, you can start for free and access core resume building and analysis tools. Upgrade when you need more.',
   },
   {
-    q: 'How does the AI resume builder work?',
-    a: 'You upload your current resume or start fresh, then paste the job description. Our AI (powered by Claude) aligns your skills, keywords, and bullet points to that role while keeping your facts accurate.',
+    q: 'How does resume analysis work?',
+    a: 'Upload your resume and paste a job description. We analyze keyword alignment, formatting, and role fit and show you where to improve.',
   },
   {
-    q: 'What is an ATS score?',
-    a: 'Applicant Tracking Systems scan resumes for keywords, structure, and formatting. Your ATS score estimates how well your resume matches a job posting so you can fix gaps before you apply.',
+    q: 'Can I tailor my resume for different jobs?',
+    a: 'Yes. You can create multiple versions of your resume and tailor each one to a specific role and company.',
+  },
+  {
+    q: 'Does this guarantee interviews or job offers?',
+    a: 'No. Unemployed Club helps improve your application quality and keep your search organized. Results depend on many factors.',
   },
   {
     q: 'Can I cancel anytime?',
-    a: 'Absolutely. Manage your subscription from your account. If you cancel a paid plan, you keep access through the end of your billing period.',
+    a: 'Yes, cancel anytime from your account settings. You keep access until the end of your billing period.',
   },
   {
-    q: 'How is this different from other resume builders?',
-    a: 'Unemployed Club is an all-in-one workspace: AI resumes, ATS checks, cover letters, interview practice, and job search—designed to work together instead of juggling five different tools.',
-  },
-  {
-    q: 'How quickly can I get hired?',
-    a: 'It depends on your market, experience, and how consistently you apply. Many members report more interviews within a few weeks of optimizing their resume and applications with our tools.',
+    q: 'What file types are supported?',
+    a: 'We support PDF, DOC, and DOCX for resume uploads.',
   },
 ] as const
 
@@ -948,27 +948,27 @@ export default function LandingPage() {
                 <span className="text-[#6366f1]" aria-hidden>
                   ✦
                 </span>
-                AI-Powered Career Platform
+                Career Management Platform
               </div>
               <h1 className="mb-6 text-[1.65rem] font-extrabold leading-[1.15] tracking-tight text-[#1a1a2e] sm:text-4xl lg:text-[2.65rem] lg:leading-[1.12]">
                 The club we don&apos;t want you to be a part of for a{' '}
                 <GradientText>long time.</GradientText>
               </h1>
               <p className="mb-8 max-w-xl text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
-                Unemployed Club helps you build AI-powered resumes, crush ATS systems, ace interviews and land your dream role — fast.
+                A career platform that helps job seekers build stronger resumes, optimize applications, prepare for interviews, and track their job search in one place.
               </p>
               <div className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center">
                 <Link
                   href="/signup"
                   className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl border-0 bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] px-6 py-3 text-center text-sm font-extrabold text-white shadow-[0_8px_28px_-6px_rgba(99,102,241,0.55),0_4px_14px_-4px_rgba(6,182,212,0.35)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_12px_36px_-6px_rgba(99,102,241,0.6),0_6px_18px_-4px_rgba(6,182,212,0.4)] sm:w-auto sm:text-base"
                 >
-                  Get Started Free <span aria-hidden>→</span>
+                  Start Free <span aria-hidden>→</span>
                 </Link>
                 <a
                   href="#how-it-works"
                   className="inline-flex min-h-11 w-full items-center justify-center rounded-xl border border-[#eaeaf2] bg-white px-6 py-3 text-center text-sm font-semibold text-[#1a1a2e] transition-colors hover:bg-[#f8f8ff] sm:w-auto sm:text-base"
                 >
-                  See How It Works
+                  View Platform
                 </a>
               </div>
             </div>
@@ -986,10 +986,10 @@ export default function LandingPage() {
             FREE TOOL
           </div>
           <h2 className="text-3xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-4xl lg:text-5xl">
-            Check your ATS score <span className="bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent">for free</span>
+            Analyze your resume <span className="bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent">before you apply</span>
           </h2>
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
-            See how your resume performs before you apply. No signup needed to start.
+            Upload your resume to identify formatting issues, missing keywords, and opportunities to improve alignment with the role.
           </p>
         </div>
 
@@ -1034,7 +1034,7 @@ export default function LandingPage() {
                     className="hidden"
                     onChange={(e) => handleAtsUpload(e.target.files?.[0] || null)}
                   />
-                  <p className="text-sm font-semibold text-[#1a1a2e]">Drop your resume here or click to upload</p>
+                  <p className="text-sm font-semibold text-[#1a1a2e]">Upload your resume — PDF, DOC, or DOCX accepted</p>
                 </label>
 
                 {atsResumeFile ? (
@@ -1152,10 +1152,10 @@ export default function LandingPage() {
               Your toolkit for success
             </div>
             <h2 className="text-2xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-3xl lg:text-4xl">
-              Everything you need to <GradientText>get hired</GradientText>
+              Everything you need to <GradientText>run a smarter job search</GradientText>
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
-              A complete set of tools to help you go from unemployed to employed - all in one place.
+              Build tailored applications, prepare for interviews, and stay organized across every opportunity.
             </p>
           </div>
           <div className="grid grid-cols-1 auto-rows-fr gap-6 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-8">
@@ -1190,10 +1190,10 @@ export default function LandingPage() {
               Your path to a new job
             </div>
             <h2 className="text-2xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-3xl lg:text-4xl">
-              Get <GradientText>hired</GradientText> in 4 simple steps
+              From resume to interview — <GradientText>organized in 4 steps</GradientText>
             </h2>
             <p className="mt-4 text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
-              Everything you need to go from unemployed to employed. Fast, simple, and actually works.
+              Build tailored applications, prepare for interviews, and stay organized across every opportunity.
             </p>
           </div>
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4 lg:gap-6">
@@ -1251,17 +1251,16 @@ export default function LandingPage() {
           <div className="min-w-0 lg:col-span-2">
             <span className="mb-3 inline-block text-xs font-extrabold uppercase tracking-widest text-[#6366f1]">BUILD</span>
             <h2 className="mb-4 text-2xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-3xl lg:text-4xl">
-              AI Resume <GradientText>Builder</GradientText>
+              <GradientText>Resume Builder</GradientText>
             </h2>
             <p className="mb-8 text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
-              Paste any job description and watch your resume reshape itself — keywords, impact metrics, and structure tuned for ATS
-              and hiring managers.
+              Paste a job description and refine your resume with role-specific keywords, measurable achievements, and ATS-friendly formatting.
             </p>
             <Link
               href="/signup"
               className="inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] px-8 py-3.5 text-center text-base font-extrabold text-white shadow-[0_12px_36px_-8px_rgba(99,102,241,0.45)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_16px_44px_-8px_rgba(99,102,241,0.5)] sm:w-auto"
             >
-              Start building <span aria-hidden>→</span>
+              Build Resume <span aria-hidden>→</span>
             </Link>
           </div>
           <div className="min-w-0 lg:col-span-3">
@@ -1286,7 +1285,7 @@ export default function LandingPage() {
               See your score, missing keywords, and formatting risks before you submit. Fix gaps in minutes—not after another silent rejection.
             </p>
             <Link href="/signup" className="btn-gradient landing-btn-glow inline-flex min-h-11 w-full items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-white sm:w-auto">
-              Check your resume
+              Analyze Resume
             </Link>
           </div>
         </div>
@@ -1302,10 +1301,10 @@ export default function LandingPage() {
               Interview <GradientText>Prep</GradientText>
             </h2>
             <p className="mb-6 text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
-              Answer real behavioral and role-specific questions, then get scored feedback on clarity, structure, and relevance—like a coach in your pocket.
+              Practice role-specific interview questions and get structured feedback on clarity, relevance, and answer quality.
             </p>
             <Link href="/signup" className="btn-gradient landing-btn-glow inline-flex min-h-11 w-full items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-white sm:w-auto">
-              Practice now
+              Practice Interviews
             </Link>
           </div>
           <div className="min-w-0">
@@ -1321,14 +1320,13 @@ export default function LandingPage() {
           <div className="min-w-0">
             <span className="mb-3 inline-block text-xs font-bold uppercase tracking-widest text-[#6366f1]">JOB BOARD</span>
             <h2 className="mb-4 text-2xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-3xl lg:text-4xl">
-              Find your perfect job in <GradientText>one place</GradientText>
+              Manage every opportunity in <GradientText>one place</GradientText>
             </h2>
             <p className="mb-6 text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
-              Search thousands of real jobs from LinkedIn, Indeed and more — all without leaving Unemployed Club. Find a role you
-              love and build a tailored resume for it in one click.
+              Save jobs, organize applications, and tailor your resume for each role from a single workspace.
             </p>
             <Link href="/signup" className="btn-gradient landing-btn-glow inline-flex min-h-11 w-full items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-white sm:w-auto">
-              Browse jobs
+              Explore Jobs
             </Link>
           </div>
           <div className="min-w-0">
@@ -1347,14 +1345,13 @@ export default function LandingPage() {
           <div className="order-1 min-w-0 lg:order-2">
             <span className="mb-3 inline-block text-xs font-bold uppercase tracking-widest text-[#06b6d4]">COVER LETTER</span>
             <h2 className="mb-4 text-2xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-3xl lg:text-4xl">
-              Cover letters that <GradientText>actually get read</GradientText>
+              Tailored cover letters for <GradientText>every role</GradientText>
             </h2>
             <p className="mb-6 text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
-              Stop sending the same generic cover letter. Our AI writes a personalized Harvard-style cover letter for every job you
-              apply for — professional, tailored and ready in seconds.
+              Create personalized cover letters based on your resume, target role, and company details.
             </p>
             <Link href="/signup" className="btn-gradient landing-btn-glow inline-flex min-h-11 w-full items-center justify-center rounded-xl px-5 py-2.5 text-sm font-semibold text-white sm:w-auto">
-              Generate a letter
+              Create Cover Letter
             </Link>
           </div>
         </div>
@@ -1444,7 +1441,7 @@ export default function LandingPage() {
         <div className="relative z-[1] mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <p className="mb-3 text-center text-sm font-semibold tracking-wide text-[#5c5c7a]">⭐ Early member reviews</p>
           <h2 className="mb-12 text-center text-2xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-3xl lg:text-4xl">
-            What our <GradientText>members say</GradientText>
+            Trusted by job seekers <GradientText>building better applications</GradientText>
           </h2>
           <div className="flex w-full flex-col items-center gap-6 lg:gap-8">
             <div className="grid w-full grid-cols-1 auto-rows-fr gap-6 md:grid-cols-2 md:gap-6 lg:grid-cols-3 lg:gap-8">
@@ -1508,7 +1505,7 @@ export default function LandingPage() {
             Ready to quit the club?
           </h2>
           <p className="mx-auto mb-8 max-w-xl text-sm font-medium leading-relaxed text-white drop-shadow-[0_1px_8px_rgba(15,23,42,0.25)] sm:text-lg">
-            Your resume won&apos;t fix itself. Let&apos;s get you out of here.
+            Build stronger applications and stay organized from resume to interview.
           </p>
           <Link
             href="/signup"
