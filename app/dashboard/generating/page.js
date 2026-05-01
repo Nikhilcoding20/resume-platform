@@ -7,10 +7,17 @@ import { supabase } from '@/lib/supabase'
 import { persistGeneratedResume } from '@/lib/persistGeneratedResume'
 import UpgradeLimitModal from '@/app/components/UpgradeLimitModal'
 
+async function generateResumeApiHeaders() {
+  const { data: { session } } = await supabase.auth.getSession()
+  const headers = { 'Content-Type': 'application/json' }
+  if (session?.access_token) {
+    headers.Authorization = `Bearer ${session.access_token}`
+  }
+  return headers
+}
+
 const JOB_DESCRIPTION_KEY = 'job-description'
 const TEMPLATE_KEY = 'selected-template'
-
-const APP_BRAND = 'Unemployed Club'
 
 /** Strip characters that can cause JSON/URI/display issues. */
 function sanitizeString(str) {
@@ -184,9 +191,6 @@ function GeneratingLoadingUI({ tips, progress }) {
 
   return (
     <div className="fixed inset-0 z-[200] flex min-h-screen flex-col bg-white" aria-busy="true" aria-live="polite">
-      <header className="bg-white/90 backdrop-blur-md border-b border-[#eaeaf2] py-4 flex justify-center items-center gap-2">
-        <span className="text-sm font-semibold bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] bg-clip-text text-transparent">{APP_BRAND}</span>
-      </header>
       <div className="shrink-0 px-4 py-5 sm:px-8 bg-[#f8f8ff] border-b border-[#eaeaf2]">
         <h1 className="text-lg sm:text-xl font-extrabold bg-gradient-to-r from-[#6366f1] via-[#a855f7] to-[#06b6d4] bg-clip-text text-transparent text-center">
           Getting you closer to your dream job!
@@ -201,17 +205,11 @@ function GeneratingLoadingUI({ tips, progress }) {
 
                 <div className="absolute left-3 sm:left-4 top-2 bottom-2 flex items-center gap-1.5">
                   <div className="h-full w-1.5 rounded-full bg-white shadow-sm" />
-                  <div className="flex flex-col items-start leading-none">
-                    <span className="text-[9px] font-black tracking-[0.22em] text-slate-700">START</span>
-                    <span className="mt-0.5 text-[8px] text-slate-500">0%</span>
-                  </div>
+                  <span className="text-[9px] font-black leading-none tracking-[0.22em] text-slate-700">START</span>
                 </div>
 
                 <div className="absolute right-3 sm:right-4 top-2 bottom-2 flex items-center gap-1.5">
-                  <div className="flex flex-col items-end leading-none">
-                    <span className="text-[9px] font-black tracking-[0.22em] text-slate-700">FINISH</span>
-                    <span className="mt-0.5 text-[8px] text-slate-500">100%</span>
-                  </div>
+                  <span className="text-[9px] font-black leading-none tracking-[0.22em] text-slate-700">FINISH</span>
                   <div className="flex items-center gap-1">
                     <div className="h-full w-1.5 rounded-full bg-white shadow-sm" />
                     <div className="grid h-5 w-5 grid-cols-2 overflow-hidden rounded-sm border border-slate-700 shadow-sm">
@@ -410,7 +408,7 @@ export default function GeneratingPage() {
       try {
         const res = await fetch('/api/generate-resume', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: await generateResumeApiHeaders(),
           body: JSON.stringify({
             profile: profileData,
             jobDescription: sanitizeString(jobDescription),
@@ -565,7 +563,7 @@ export default function GeneratingPage() {
       }
       const res = await fetch('/api/generate-resume', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await generateResumeApiHeaders(),
         body: JSON.stringify({
           profile,
           jobDescription: sanitizeString(jobDescription),
@@ -688,7 +686,7 @@ export default function GeneratingPage() {
       }
       const res = await fetch('/api/generate-resume', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: await generateResumeApiHeaders(),
         body: JSON.stringify({
           profile,
           jobDescription: sanitizeString(jobDescription),
@@ -999,6 +997,12 @@ export default function GeneratingPage() {
               >
                 Make Changes
               </button>
+              <Link
+                href="/dashboard"
+                className="flex-1 py-3.5 bg-white border-[1.5px] border-[#e5e7eb] text-slate-900 font-semibold rounded-xl text-center transition-colors text-[14px] hover:bg-slate-50"
+              >
+                Back to Dashboard
+              </Link>
             </div>
             {showMakeChanges && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">

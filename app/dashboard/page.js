@@ -277,18 +277,6 @@ export default function DashboardPage() {
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'there'
 
-  const scoreColor = (score) => {
-    if (score >= 70) return 'text-[#06b6d4]'
-    if (score >= 50) return 'text-[#a855f7]'
-    return 'text-red-400'
-  }
-
-  const scoreRingColor = (score) => {
-    if (score >= 70) return 'stroke-[#06b6d4]'
-    if (score >= 50) return 'stroke-[#a855f7]'
-    return 'stroke-red-400'
-  }
-
   const calculateProfileCompletion = () => {
     if (!profile) return 0
     let score = 0
@@ -584,29 +572,29 @@ export default function DashboardPage() {
           </h1>
           <p className="text-base text-white sm:text-lg">Let&apos;s get your resume ready for your next big opportunity.</p>
         </div>
-        <div className="relative z-10 flex w-full max-w-md shrink-0 items-center justify-center gap-4 rounded-2xl border border-[#eaeaf2] bg-white p-4 shadow-md shadow-[0_0_32px_rgba(168,85,247,0.25)] sm:p-5 md:w-auto md:max-w-none md:justify-start">
-          <div className="relative w-20 h-20 drop-shadow-[0_0_16px_rgba(168,85,247,0.5)]">
-            <svg className="w-full h-full -rotate-90" viewBox="0 0 100 100">
-              <circle cx="50" cy="50" r="45" fill="none" stroke="#eaeaf2" strokeWidth="8" />
+        <div className="relative z-10 flex w-full shrink-0 items-center justify-center gap-4 sm:gap-5 md:w-auto md:justify-end">
+          <div className="relative h-20 w-20">
+            <svg className="h-full w-full -rotate-90" viewBox="0 0 100 100" aria-hidden>
+              <circle cx="50" cy="50" r="45" fill="none" stroke="rgba(255,255,255,0.35)" strokeWidth="8" />
               <circle
                 cx="50"
                 cy="50"
                 r="45"
                 fill="none"
+                stroke="rgba(255,255,255,0.95)"
                 strokeWidth="8"
                 strokeLinecap="round"
-                className={scoreRingColor(atsScore)}
                 strokeDasharray={`${atsScore * 2.83} 283`}
-                style={{ filter: 'drop-shadow(0 0 6px currentColor)' }}
+                style={{ filter: 'drop-shadow(0 0 4px rgba(255,255,255,0.45))' }}
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
-              <span className={`text-xl font-bold ${scoreColor(atsScore)}`}>{atsScore}</span>
+              <span className="text-xl font-bold text-white">{atsScore}</span>
             </div>
           </div>
-          <div>
-            <p className="text-sm font-semibold text-[#6366f1] uppercase tracking-wider">ATS Score</p>
-            <p className="text-[#1a1a2e] font-medium">Current Resume Match</p>
+          <div className="text-left">
+            <p className="text-sm font-semibold uppercase tracking-wider text-white">ATS Score</p>
+            <p className="font-medium text-white/90">Current Resume Match</p>
           </div>
         </div>
       </div>

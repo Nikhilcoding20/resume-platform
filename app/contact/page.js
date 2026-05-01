@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import PublicHeader from '@/app/components/PublicHeader'
+import PublicOrDashboardHeader from '@/app/components/PublicOrDashboardHeader'
 
 const initial = { name: '', email: '', subject: '', message: '' }
 
@@ -44,7 +44,7 @@ export default function ContactPage() {
 
   return (
     <div className="min-h-screen bg-white">
-      <PublicHeader />
+      <PublicOrDashboardHeader />
 
       <section className="bg-[#f8f7ff] px-4 py-16 sm:px-6 sm:py-20 lg:px-8">
         <div className="mx-auto max-w-5xl text-center">

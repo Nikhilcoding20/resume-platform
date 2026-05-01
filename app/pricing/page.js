@@ -2,7 +2,7 @@
 
 import { Fragment, useState } from 'react'
 import Link from 'next/link'
-import PublicHeader from '@/app/components/PublicHeader'
+import PublicOrDashboardHeader from '@/app/components/PublicOrDashboardHeader'
 
 const COL_PRO = 'bg-[#f5f3ff]'
 
@@ -169,7 +169,7 @@ function PricingFaqAccordion() {
 export default function PublicPricingPage() {
   return (
     <div className="min-h-screen bg-white pb-20">
-      <PublicHeader />
+      <PublicOrDashboardHeader />
       <div className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
         <h1 className="text-center text-3xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-4xl">
           Compare{' '}

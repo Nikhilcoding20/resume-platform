@@ -1,8 +1,7 @@
 import Link from 'next/link'
 
 /**
- * Same sticky header as the public homepage: logo, section nav, Log In / Get Started Free.
- * Section links target the landing page anchors so they work from any route.
+ * Sticky public header: logo left; Pricing, Log In, Get Started Free grouped on the right.
  */
 export default function PublicSiteHeader() {
   return (
@@ -13,57 +12,33 @@ export default function PublicSiteHeader() {
             <img src="/logo.png" alt="" width={160} height={36} className="h-9 w-auto max-h-9" />
           </Link>
           <nav
-            className="absolute left-1/2 hidden -translate-x-1/2 items-center gap-8 lg:flex"
-            aria-label="Page sections"
+            className="flex min-w-0 shrink items-center gap-3"
+            aria-label="Account and pricing"
           >
             <Link
-              href="/#features"
-              className="text-sm font-medium text-[#5c5c7a] transition-colors hover:text-[#1a1a2e]"
-            >
-              Features
-            </Link>
-            <Link
               href="/pricing"
-              className="text-sm font-medium text-[#5c5c7a] transition-colors hover:text-[#1a1a2e]"
+              className="shrink-0 text-sm font-medium text-[#5c5c7a] transition-colors hover:text-[#1a1a2e]"
             >
               Pricing
             </Link>
-            <Link
-              href="/#reviews"
-              className="text-sm font-medium text-[#5c5c7a] transition-colors hover:text-[#1a1a2e]"
-            >
-              Reviews
-            </Link>
-          </nav>
-          <div className="flex items-center gap-2 sm:gap-3">
+            <span
+              className="h-5 w-px shrink-0 bg-[#e5e7eb]"
+              aria-hidden
+            />
             <Link
               href="/login"
-              className="rounded-xl border border-[#eaeaf2] bg-white px-3 py-2 text-sm font-semibold text-[#1a1a2e] transition-colors hover:bg-[#f8f8ff] sm:px-4"
+              className="shrink-0 rounded-lg border-[1.5px] border-solid border-[#d1d5db] bg-transparent px-3 py-2 text-sm font-semibold text-[#1a1a2e] transition-colors hover:border-[#6366f1] hover:text-[#6366f1] sm:px-4"
             >
               Log In
             </Link>
             <Link
               href="/signup"
-              className="btn-gradient landing-btn-glow rounded-xl px-3 py-2 text-sm font-semibold text-white sm:px-5"
+              className="shrink-0 rounded-lg bg-[linear-gradient(135deg,#6366f1,#06b6d4)] px-3 py-2 text-sm font-semibold text-white sm:px-5"
             >
               Get Started Free
             </Link>
-          </div>
+          </nav>
         </div>
-        <nav
-          className="flex items-center justify-center gap-6 border-t border-[#eaeaf2] py-2.5 lg:hidden"
-          aria-label="Page sections"
-        >
-          <Link href="/#features" className="text-xs font-semibold text-[#5c5c7a]">
-            Features
-          </Link>
-          <Link href="/pricing" className="text-xs font-semibold text-[#5c5c7a]">
-            Pricing
-          </Link>
-          <Link href="/#reviews" className="text-xs font-semibold text-[#5c5c7a]">
-            Reviews
-          </Link>
-        </nav>
       </div>
     </header>
   )

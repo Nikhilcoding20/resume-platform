@@ -29,6 +29,8 @@ const DATE_POSTED = [
   { value: 'month', label: 'Past month' },
 ]
 
+const FREE_JOB_UNLOCK_COUNT = 2
+
 const COUNTRIES = [
   { value: 'any', label: 'Any country' },
   { value: 'US', label: 'United States' },
@@ -191,46 +193,6 @@ function JobCardSkeleton() {
 const selectClass =
   'w-full px-4 py-2.5 rounded-xl border border-[#eaeaf2] text-[#1a1a2e] text-sm bg-white focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none transition-all appearance-none cursor-pointer'
 
-function ProJobBoardLockOverlay() {
-  return (
-    <div
-      className="fixed inset-0 z-[100] flex items-center justify-center p-4 sm:p-6"
-      role="dialog"
-      aria-modal="true"
-      aria-labelledby="job-board-pro-title"
-    >
-      <div className="absolute inset-0 bg-white/55 backdrop-blur-md" aria-hidden />
-      <div className="relative w-full max-w-md rounded-2xl border border-[#eaeaf2] bg-white p-8 sm:p-10 shadow-[0_24px_80px_-20px_rgba(99,102,241,0.35)] text-center">
-        <div className="text-5xl mb-4" aria-hidden>
-          🔒
-        </div>
-        <h2
-          id="job-board-pro-title"
-          className="text-2xl sm:text-3xl font-extrabold bg-gradient-to-r from-[#7c3aed] via-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent mb-4"
-        >
-          Pro Feature
-        </h2>
-        <p className="text-[#5c5c7a] text-sm sm:text-base leading-relaxed mb-8">
-          Job Board is available on Pro plans only. Upgrade to search thousands of real jobs and get matched resumes
-          in one click.
-        </p>
-        <Link
-          href="/dashboard/pricing"
-          className="block w-full px-8 py-3.5 btn-gradient ds-btn-glow rounded-xl font-semibold text-white shadow-md hover:shadow-lg transition-all text-center mb-4"
-        >
-          Upgrade Now →
-        </Link>
-        <Link
-          href="/dashboard"
-          className="text-sm text-[#9ca3af] hover:text-[#6b7280] underline-offset-2 hover:underline"
-        >
-          Go Back
-        </Link>
-      </div>
-    </div>
-  )
-}
-
 function JobCard({ job, onBuildResume }) {
   return (
     <article
@@ -280,6 +242,35 @@ function JobCard({ job, onBuildResume }) {
   )
 }
 
+function JobCardWithFreeGate({ job, index, userIsPro, onBuildResume }) {
+  const locked = !userIsPro && index >= FREE_JOB_UNLOCK_COUNT
+  if (!locked) {
+    return <JobCard job={job} onBuildResume={onBuildResume} />
+  }
+  return (
+    <div className="relative rounded-2xl overflow-hidden">
+      <div
+        className="pointer-events-none select-none"
+        style={{ filter: 'blur(4px)' }}
+        aria-hidden
+      >
+        <JobCard job={job} onBuildResume={onBuildResume} />
+      </div>
+      <div className="absolute inset-0 flex flex-col items-center justify-center gap-4 rounded-2xl bg-white/45 px-5 py-8 text-center">
+        <p className="text-sm sm:text-base font-semibold text-[#1a1a2e] max-w-[280px] leading-snug">
+          Unlock all jobs — Upgrade to Pro
+        </p>
+        <Link
+          href="/dashboard/pricing"
+          className="inline-flex px-8 py-3 btn-gradient ds-btn-glow rounded-xl font-semibold text-white shadow-md hover:shadow-lg transition-all"
+        >
+          Upgrade to Pro
+        </Link>
+      </div>
+    </div>
+  )
+}
+
 export default function JobsPage() {
   const router = useRouter()
   const [proAccess, setProAccess] = useState('loading')
@@ -325,7 +316,7 @@ export default function JobsPage() {
   }, [])
 
   useEffect(() => {
-    if (proAccess !== 'pro') return
+    if (proAccess === 'loading') return
     let cancelled = false
     async function loadRecommendations() {
       setProfileLoading(true)
@@ -409,7 +400,7 @@ export default function JobsPage() {
 
   const fetchJobs = useCallback(
     async (pageNum, append) => {
-      if (proAccess !== 'pro') return
+      if (proAccess === 'loading') return
       const q = keywords.trim()
       if (!q) {
         setError('Enter a job title or keywords to search.')
@@ -451,7 +442,6 @@ export default function JobsPage() {
   )
 
   const handleRecLoadMore = useCallback(async () => {
-    if (proAccess !== 'pro') return
     const params = recFetchParamsRef.current
     if (!params?.query || !recHasMore || recLoadingMore || recLoading) return
     setRecLoadingMore(true)
@@ -481,7 +471,7 @@ export default function JobsPage() {
     } finally {
       setRecLoadingMore(false)
     }
-  }, [recPage, recHasMore, recLoadingMore, recLoading, proAccess])
+  }, [recPage, recHasMore, recLoadingMore, recLoading])
 
   const handleSearch = (e) => {
     e?.preventDefault?.()
@@ -517,11 +507,11 @@ export default function JobsPage() {
     )
   }
 
+  const userIsPro = proAccess === 'pro'
+
   return (
     <>
-      <div
-        className={`max-w-6xl mx-auto relative ${proAccess === 'free' ? 'blur-[3px] pointer-events-none select-none' : ''}`}
-      >
+      <div className="max-w-6xl mx-auto relative">
       <div className="mb-8">
         <h1 className="text-3xl font-extrabold bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] bg-clip-text text-transparent mb-2">
           Find jobs
@@ -692,8 +682,14 @@ export default function JobsPage() {
               {!recLoading && recommendedJobs.length > 0 && (
                 <>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {recommendedJobs.map((job) => (
-                      <JobCard key={job.id} job={job} onBuildResume={handleBuildResume} />
+                    {recommendedJobs.map((job, index) => (
+                      <JobCardWithFreeGate
+                        key={job.id}
+                        job={job}
+                        index={index}
+                        userIsPro={userIsPro}
+                        onBuildResume={handleBuildResume}
+                      />
                     ))}
                   </div>
                   {recHasMore && (
@@ -726,8 +722,14 @@ export default function JobsPage() {
       {searched && !loading && jobs.length > 0 && (
         <>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-            {jobs.map((job) => (
-              <JobCard key={job.id} job={job} onBuildResume={handleBuildResume} />
+            {jobs.map((job, index) => (
+              <JobCardWithFreeGate
+                key={job.id}
+                job={job}
+                index={index}
+                userIsPro={userIsPro}
+                onBuildResume={handleBuildResume}
+              />
             ))}
           </div>
           {hasMore && (
@@ -736,7 +738,6 @@ export default function JobsPage() {
         </>
       )}
       </div>
-      {proAccess === 'free' ? <ProJobBoardLockOverlay /> : null}
     </>
   )
 }

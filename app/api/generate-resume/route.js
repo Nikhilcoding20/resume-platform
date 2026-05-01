@@ -4,6 +4,7 @@ import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import puppeteer from 'puppeteer'
 import { createClient } from '@supabase/supabase-js'
+import { getUsage, canCreateResumeForUser } from '@/lib/checkUsage'
 
 const PROMPT = `You are a professional resume writer and layout designer. Rewrite this person's resume to perfectly match the following job description. Never invent experience that does not exist. Keep all content ATS-friendly. Naturally include important keywords from the job description.
 
@@ -115,8 +116,19 @@ function escapeHtml(text) {
     .replace(/'/g, '&#039;')
 }
 
+/** Service role client for user_usage insert/update only (bypasses RLS). */
+function createSupabaseServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key?.trim()) return null
+  return createClient(url, key.trim(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
 export async function POST(request) {
   try {
+    const authorizationHeader = request.headers.get('Authorization')
     const body = await request.json()
     const { profile, jobDescription, templateName, includeContent, feedback, previousContent, userId } = body
     const isRegenerate = Boolean(feedback && previousContent && typeof previousContent === 'object')
@@ -126,10 +138,20 @@ export async function POST(request) {
     const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey, {
       global: {
         headers: {
-          Authorization: request.headers.get('Authorization') || '',
+          Authorization: authorizationHeader || '',
         },
       },
     }) : null
+
+    const supabaseService = createSupabaseServiceRoleClient()
+
+    let authUser = null
+    let authUserError = null
+    if (supabase) {
+      const authRes = await supabase.auth.getUser()
+      authUser = authRes.data?.user ?? null
+      authUserError = authRes.error ?? null
+    }
 
     if (!profile || typeof profile !== 'object') {
       return jsonError('Missing or invalid profile data', 400)
@@ -156,45 +178,79 @@ export async function POST(request) {
       return NextResponse.json({ error: 'Missing user context' }, { status: 400 })
     }
 
+    /** Matches user_usage.user_id (text) and RLS auth.uid()::text */
+    const normalizedUserId = String(effectiveUserId)
+
+    let canCreateResumeForUserResult = isRegenerate
+      ? '[skipped: regenerate]'
+      : !supabase
+        ? '[skipped: no supabase client]'
+        : null
+    let resumeCountBeforeGate = null
+
     if (!isRegenerate && supabase) {
       try {
-        const { data: rows, error: usageError } = await supabase
-          .from('user_usage')
-          .select('resumes_generated')
-          .eq('user_id', effectiveUserId)
-          .limit(1)
-
-        if (usageError) {
-          console.error('[generate-resume] usage select error:', usageError)
-        }
-
-        let current = 0
-        if (!rows || rows.length === 0) {
-          await supabase.from('user_usage').insert({
-            user_id: effectiveUserId,
-            resumes_generated: 0,
-            cover_letters_generated: 0,
-          })
-          console.log('[generate-resume] usage init for user', effectiveUserId)
-        } else {
-          current = rows[0]?.resumes_generated ?? 0
-        }
-
-        console.log('[generate-resume] usage check', { user_id: effectiveUserId, resumes_generated: current })
-
-        if (current >= 1) {
-          return NextResponse.json(
-            {
-              error: 'FREE_LIMIT_REACHED',
-              message:
-                "You've used your free resume. Upgrade to generate unlimited resumes tailored to every job.",
-            },
-            { status: 403 }
+        if (!supabaseService) {
+          console.warn(
+            '[generate-resume] SUPABASE_SERVICE_ROLE_KEY missing; user_usage bootstrap upsert uses JWT client (RLS may block)'
           )
         }
+        const usageMutateClient = supabaseService ?? supabase
+
+        const upsertRes = await usageMutateClient
+          .from('user_usage')
+          .upsert(
+            {
+              user_id: normalizedUserId,
+              resumes_generated: 0,
+              cover_letters_generated: 0,
+            },
+            { onConflict: 'user_id', ignoreDuplicates: true }
+          )
+          .select()
+
+        console.log('[generate-resume] user_usage bootstrap upsert full Supabase response', {
+          client: supabaseService ? 'service_role' : 'user_jwt',
+          data: upsertRes.data,
+          error: upsertRes.error,
+          status: upsertRes.status,
+          statusText: upsertRes.statusText,
+          fullResponse: upsertRes,
+        })
+        if (upsertRes.error) {
+          console.error('[generate-resume] usage row bootstrap upsert error:', upsertRes.error)
+        }
+
+        const usage = await getUsage(supabase, normalizedUserId)
+        resumeCountBeforeGate = usage?.resumes ?? null
+        const allowed = await canCreateResumeForUser(supabase, normalizedUserId, usage)
+        canCreateResumeForUserResult = allowed
       } catch (usageErr) {
-        console.error('[generate-resume] usage check failed:', usageErr)
+        console.error('[generate-resume] usage gate failed:', usageErr)
+        canCreateResumeForUserResult = {
+          gateThrew: true,
+          message: usageErr?.message ?? String(usageErr),
+        }
       }
+    }
+
+    console.log('[generate-resume] POST top diagnostic', {
+      authorizationHeader,
+      user: authUser,
+      authUserError,
+      canCreateResumeForUser: canCreateResumeForUserResult,
+      resumeCountBeforeGate,
+    })
+
+    if (!isRegenerate && supabase && canCreateResumeForUserResult === false) {
+      return NextResponse.json(
+        {
+          error: 'FREE_LIMIT_REACHED',
+          message:
+            "You've used your free resume. Upgrade to generate unlimited resumes tailored to every job.",
+        },
+        { status: 403 }
+      )
     }
 
     const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
@@ -320,10 +376,17 @@ export async function POST(request) {
 
       if (!isRegenerate && supabase) {
         try {
+          if (!supabaseService) {
+            console.warn(
+              '[generate-resume] SUPABASE_SERVICE_ROLE_KEY missing; user_usage update uses JWT client (RLS may block)'
+            )
+          }
+          const usageMutateClient = supabaseService ?? supabase
+
           const { data: usageRows, error: usageError } = await supabase
             .from('user_usage')
             .select('resumes_generated')
-            .eq('user_id', effectiveUserId)
+            .eq('user_id', normalizedUserId)
             .limit(1)
 
           if (usageError) {
@@ -331,12 +394,32 @@ export async function POST(request) {
           }
 
           const current = usageRows && usageRows.length > 0 ? usageRows[0]?.resumes_generated ?? 0 : 0
-          await supabase
+          const nextCount = current + 1
+          const updateRes = await usageMutateClient
             .from('user_usage')
-            .update({ resumes_generated: current + 1 })
-            .eq('user_id', effectiveUserId)
+            .update({ resumes_generated: nextCount })
+            .eq('user_id', normalizedUserId)
+            .select('resumes_generated')
 
-          console.log('[generate-resume] usage increment', { user_id: effectiveUserId, resumes_generated: current + 1 })
+          console.log('[generate-resume] user_usage update (increment) full Supabase response', {
+            client: supabaseService ? 'service_role' : 'user_jwt',
+            data: updateRes.data,
+            error: updateRes.error,
+            status: updateRes.status,
+            statusText: updateRes.statusText,
+            fullResponse: updateRes,
+          })
+
+          if (updateRes.error) {
+            console.error('[generate-resume] usage increment update error:', updateRes.error)
+          }
+
+          console.log('[generate-resume] usage increment summary', {
+            userId: normalizedUserId,
+            previousCount: current,
+            resumes_generated: nextCount,
+            rowsUpdated: Array.isArray(updateRes.data) ? updateRes.data.length : 0,
+          })
         } catch (insertErr) {
           console.error('[generate-resume] Failed to track generated resume:', insertErr)
         }

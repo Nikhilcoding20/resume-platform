@@ -1,4 +1,4 @@
-import PublicSiteHeader from '@/app/components/PublicSiteHeader'
+import PublicOrDashboardHeader from '@/app/components/PublicOrDashboardHeader'
 
 export const metadata = {
   title: 'Terms and Conditions — Unemployed Club',
@@ -8,7 +8,7 @@ export const metadata = {
 export default function TermsPage() {
   return (
     <div className="min-h-screen bg-gray-50">
-      <PublicSiteHeader />
+      <PublicOrDashboardHeader />
       <div className="py-16 px-4 sm:px-6 lg:px-8">
         <div className="mx-auto max-w-4xl rounded-2xl border border-[#eaeaf2] bg-white p-8 shadow-[0_4px_24px_-8px_rgba(15,23,42,0.08)] sm:p-10">
           <h1 className="mb-2 text-3xl font-bold text-[#1a1a2e]">Terms and Conditions</h1>

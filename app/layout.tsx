@@ -23,9 +23,9 @@ export const metadata: Metadata = {
     google: 'n_K5Kf3Vx6D9xDjoXSKibLJsscwWVsB7PQpSxtpA_UI',
   },
   icons: {
-    icon: '/favicon.png',
-    shortcut: '/favicon.png',
-    apple: '/favicon.png',
+    icon: [{ url: '/favicon.png', type: 'image/png', sizes: '512x512' }],
+    shortcut: [{ url: '/favicon.png', type: 'image/png', sizes: '512x512' }],
+    apple: [{ url: '/favicon.png', type: 'image/png', sizes: '512x512' }],
   },
   metadataBase: new URL('https://unemployedclub.com'),
   openGraph: {
@@ -53,6 +53,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className="scroll-smooth">
+      <head>
+        <link rel="icon" href="/favicon.png" type="image/png" sizes="512x512" />
+      </head>
       <body
         className={`${geistSans.variable} ${geistMono.variable} flex min-h-screen flex-col overflow-x-hidden bg-white text-[#0f172a] antialiased`}
       >

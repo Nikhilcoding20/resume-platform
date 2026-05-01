@@ -1,5 +1,5 @@
 import Link from 'next/link'
-import PublicHeader from '@/app/components/PublicHeader'
+import PublicOrDashboardHeader from '@/app/components/PublicOrDashboardHeader'
 
 export const metadata = {
   title: 'About Us — Unemployed Club',
@@ -10,7 +10,7 @@ export const metadata = {
 export default function AboutPage() {
   return (
     <div className="min-h-screen bg-white">
-      <PublicHeader />
+      <PublicOrDashboardHeader />
 
       <section className="bg-[#f8f7ff] px-4 py-20 sm:px-6 sm:py-24 lg:px-8">
         <div className="mx-auto max-w-6xl text-center">

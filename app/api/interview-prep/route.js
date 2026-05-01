@@ -16,7 +16,16 @@ JOB DESCRIPTION:
 INTERVIEW TYPE: {interviewType}
 DIFFICULTY LEVEL: {difficulty}
 
-Generate exactly 8 interview questions tailored to the job and the candidate's background. Mix question types appropriately for the interview type (e.g., for Technical include coding/scenario questions; for Behavioral include STAR-format questions; for Mixed include both).
+Generate exactly 8 interview questions total (no more, no fewer). Mix question types appropriately for the interview type (e.g., for Technical include coding/scenario questions; for Behavioral include STAR-format questions; for Mixed include both).
+
+Resume-grounded questions (required): Of the 8 questions, 1–2 must be clearly tied to concrete details in RESUME CONTEXT above—not generic interview filler. Replace 1–2 otherwise-generic questions with these. Each such question should naturally reference something specific from their background, for example:
+- A company or team they worked at (by name, from the resume)
+- A bullet, project, or outcome they described (metrics, scope, tools—use their wording where it helps)
+- A skill, certification, or domain they listed
+
+Phrase them like a real interviewer who read their resume (curious, specific), not like a template ("Tell me about a time you demonstrated leadership"). If resume text is thin, still anchor what you can (e.g., a role title, industry, or tool mentioned) rather than inventing facts.
+
+The remaining 6–7 questions should still connect the role to their profile and the job description as usual.
 
 Also generate a prep guide with:
 - topTopics: array of exactly 5 topics the candidate should prepare (short strings)

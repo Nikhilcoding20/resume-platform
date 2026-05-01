@@ -25,9 +25,15 @@ function mapStripeStatus(stripeStatus) {
   return 'active'
 }
 
-async function syncUserUsagePlan(admin, userId, plan) {
+/** Ensure a user_usage row exists (counts live here; plan is on subscriptions only). */
+async function ensureUserUsageRow(admin, userId) {
   if (!userId) return
-  await admin.from('user_usage').upsert({ user_id: userId, plan }, { onConflict: 'user_id' })
+  const uid = String(userId)
+  const { error } = await admin.from('user_usage').upsert(
+    { user_id: uid, resumes_generated: 0, cover_letters_generated: 0 },
+    { onConflict: 'user_id', ignoreDuplicates: true }
+  )
+  if (error) console.error('[stripe-webhook] ensureUserUsageRow', error)
 }
 
 export async function POST(request) {
@@ -103,11 +109,7 @@ export async function POST(request) {
           { onConflict: 'user_id' }
         )
 
-        if (status === 'active') {
-          await syncUserUsagePlan(admin, userId, plan)
-        } else if (status === 'past_due' || status === 'cancelled') {
-          await syncUserUsagePlan(admin, userId, 'free')
-        }
+        await ensureUserUsageRow(admin, userId)
         break
       }
       case 'customer.subscription.deleted': {
@@ -130,7 +132,7 @@ export async function POST(request) {
               current_period_end: null,
             })
             .eq('user_id', uid)
-          await syncUserUsagePlan(admin, uid, 'free')
+          await ensureUserUsageRow(admin, uid)
         }
         break
       }
@@ -170,7 +172,7 @@ export async function POST(request) {
           },
           { onConflict: 'user_id' }
         )
-        await syncUserUsagePlan(admin, userId, plan)
+        await ensureUserUsageRow(admin, userId)
         break
       }
       case 'invoice.payment_failed': {
@@ -187,7 +189,7 @@ export async function POST(request) {
         await admin.from('subscriptions').update({ status: 'past_due' }).eq('stripe_subscription_id', subId)
 
         if (existing?.user_id) {
-          await syncUserUsagePlan(admin, String(existing.user_id), 'free')
+          await ensureUserUsageRow(admin, String(existing.user_id))
         }
         break
       }

@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { isPro } from '@/lib/subscription'
 import InterviewPremiumLockOverlay from '@/app/components/InterviewPremiumLockOverlay'
+import SavedResumePreviewPanel from '@/app/components/SavedResumePreviewPanel'
 
 const ACCEPTED_TYPES = [
   'application/pdf',
@@ -24,6 +25,7 @@ export default function InterviewSetupPage() {
   const router = useRouter()
   const [resumeSource, setResumeSource] = useState('saved') // 'saved' | 'upload'
   const [profile, setProfile] = useState(null)
+  const [authUser, setAuthUser] = useState(null)
   const [file, setFile] = useState(null)
   const [jobDescription, setJobDescription] = useState('')
   const [jobUrl, setJobUrl] = useState('')
@@ -45,6 +47,7 @@ export default function InterviewSetupPage() {
         router.replace('/login')
         return
       }
+      if (!cancelled) setAuthUser(user)
       const pro = await isPro(supabase, user.id)
       if (cancelled) return
       if (!pro) {
@@ -178,8 +181,8 @@ export default function InterviewSetupPage() {
       <h1 className="text-2xl font-extrabold text-[#1a1a2e] mb-6">
         <span className="bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] bg-clip-text text-transparent">AI</span> Interview Coach
       </h1>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="ds-card ds-card-interactive p-6 hover:shadow-md transition-shadow relative overflow-hidden">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2 lg:items-stretch">
+        <div className="ds-card ds-card-interactive flex h-full min-h-0 flex-col p-6 transition-shadow hover:shadow-md relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#6366f1] to-[#06b6d4]" />
           <h2 className="text-sm font-semibold text-[#5c5c7a] mb-3 mt-1">Resume</h2>
           <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:gap-4">
@@ -204,9 +207,14 @@ export default function InterviewSetupPage() {
               <span className="text-[#1a1a2e]">Upload new resume</span>
             </label>
           </div>
-          {resumeSource === 'saved' && (
-            <p className="text-sm text-[#5c5c7a]">{profile ? `Using: ${profile.full_name || 'Your profile'}` : 'No saved resume. Upload one or add from Build Resume.'}</p>
-          )}
+          {resumeSource === 'saved' &&
+            (profile ? (
+              <div className="shrink-0">
+                <SavedResumePreviewPanel profile={profile} authUser={authUser} />
+              </div>
+            ) : (
+              <p className="text-sm text-[#5c5c7a]">No saved resume. Upload one or add from Build Resume.</p>
+            ))}
           {resumeSource === 'upload' && (
             <div
               onDragOver={handleDragOver}
@@ -232,7 +240,7 @@ export default function InterviewSetupPage() {
           )}
         </div>
 
-        <div className="ds-card ds-card-interactive p-6 hover:shadow-md relative overflow-hidden">
+        <div className="ds-card ds-card-interactive flex h-full min-h-0 flex-col p-6 transition-shadow hover:shadow-md relative overflow-hidden">
           <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#a855f7] to-[#06b6d4]" />
           <h2 className="text-sm font-semibold text-[#5c5c7a] mb-3 mt-1">Job description</h2>
           <textarea

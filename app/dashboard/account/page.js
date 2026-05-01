@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { getActiveStripeSubscriptionPlan } from '@/lib/subscription'
 
 function planBadgeLabel(plan) {
   if (!plan || plan === 'free') return 'Free Plan'
@@ -185,12 +186,8 @@ export default function AccountPage() {
       }
       setUser(user)
       try {
-        const { data } = await supabase
-          .from('user_usage')
-          .select('plan')
-          .eq('user_id', user.id)
-          .single()
-        setPlan(data?.plan || 'free')
+        const active = await getActiveStripeSubscriptionPlan(supabase, user.id)
+        setPlan(active || 'free')
       } catch {
         setPlan('free')
       }

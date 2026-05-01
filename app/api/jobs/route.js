@@ -41,7 +41,7 @@ function simplifyJob(raw) {
 /**
  * GET /api/jobs
  * Query: query, location, page, jobType, datePosted, country
- * Requires Authorization: Bearer (Supabase access token) and an active Pro subscription.
+ * Requires Authorization: Bearer (Supabase access token). Pro users get full results and pagination. Free users get page 1 only (no hasMore); the client shows the first two listings unlocked and blurs the rest.
  * Requires RAPIDAPI_KEY (RapidAPI app key with JSearch subscribed).
  */
 export async function GET(request) {
@@ -67,9 +67,6 @@ export async function GET(request) {
     global: { headers: { Authorization: `Bearer ${token}` } },
   })
   const userIsPro = await isPro(supabaseRls, user.id)
-  if (!userIsPro) {
-    return jsonError('Job Board is available on Pro plans only.', 403)
-  }
 
   const key = process.env.RAPIDAPI_KEY
   if (!key?.trim()) {
@@ -84,6 +81,10 @@ export async function GET(request) {
 
   const location = (searchParams.get('location') || '').trim()
   const page = Math.max(1, Math.min(100, parseInt(searchParams.get('page') || '1', 10) || 1))
+
+  if (!userIsPro && page > 1) {
+    return NextResponse.json({ jobs: [], page, hasMore: false })
+  }
   const jobType = (searchParams.get('jobType') || 'any').toLowerCase()
   const datePosted = (searchParams.get('datePosted') || 'any').toLowerCase()
   const country = (searchParams.get('country') || 'any').toUpperCase()
@@ -163,7 +164,10 @@ export async function GET(request) {
   const rawList = Array.isArray(body.data) ? body.data : []
   const jobs = rawList.map(simplifyJob).filter(Boolean)
   const pageSize = 10
-  const hasMore = jobs.length >= pageSize
+  let hasMore = jobs.length >= pageSize
+  if (!userIsPro) {
+    hasMore = false
+  }
 
   return NextResponse.json({ jobs, page, hasMore })
 }
