@@ -1,6 +1,6 @@
 'use client'
 
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
@@ -16,6 +16,23 @@ function LoginContent() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    const oauthErr = searchParams.get('error')
+    const oauthDesc = searchParams.get('error_description')
+    if (!oauthErr) return
+    if (oauthDesc) {
+      setError(oauthDesc)
+      return
+    }
+    const hints = {
+      missing_code: 'Sign-in link was incomplete. Please try again.',
+      oauth: 'Could not complete sign-in. Please try again.',
+      config: 'Server configuration error.',
+      access_denied: 'Sign-in was cancelled.',
+    }
+    setError(hints[oauthErr] || oauthErr.replace(/_/g, ' '))
+  }, [searchParams])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -47,6 +64,12 @@ function LoginContent() {
           <p className="text-[#5c5c7a] text-sm mt-1">Sign in to your Unemployed Club account</p>
         </div>
 
+        {error && (
+          <div className="px-8 pt-2" role="alert">
+            <p className="text-center text-sm text-red-600">{error}</p>
+          </div>
+        )}
+
         <div className="px-8 pt-2 space-y-4">
           <AuthGoogleButton disabled={loading} onError={setError} nextPath={oauthNextPath} />
         </div>
@@ -55,7 +78,6 @@ function LoginContent() {
         </div>
 
         <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-5">
-          {error && <p className="text-red-600 text-sm">{error}</p>}
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-[#1a1a2e] mb-1">Email</label>
             <input

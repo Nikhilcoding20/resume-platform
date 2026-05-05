@@ -5,6 +5,12 @@ import { sendWelcomeEmail } from '@/lib/emails/sendWelcomeEmail'
 
 export const dynamic = 'force-dynamic'
 
+/**
+ * Supabase / OAuth redirects the browser here once with ?code= (success) or ?error= (IdP failure).
+ * This repo has no `middleware.ts` and no `next.config` redirects on `/auth/callback`; each visible
+ * OAuth round-trip issues one GET. Duplicate logs usually mean the user hit the URL twice (refresh,
+ * back button) or separate navigations—not one request invoking this handler twice.
+ */
 const LOG = '[auth/callback]'
 
 /** Deep-clone for logs; redact obvious secrets (tokens). Still logs full shape. */
@@ -48,10 +54,24 @@ function safeNextPath(next) {
   return t
 }
 
+/** Second navigation to /auth/callback with the same code — exchange fails but session may already exist. */
+function isFlowStateAlreadyUsedError(error) {
+  if (!error || typeof error.message !== 'string') return false
+  const msg = error.message.toLowerCase()
+  const code = typeof error.code === 'string' ? error.code.toLowerCase() : ''
+  return (
+    msg.includes('flow_state_already_used') ||
+    msg.includes('state has already been used') ||
+    code.includes('flow_state_already_used')
+  )
+}
+
 export async function GET(request) {
   const requestUrl = new URL(request.url)
   const fullUrl = request.url
   const code = requestUrl.searchParams.get('code')
+  const oauthError = requestUrl.searchParams.get('error')
+  const oauthErrorDescription = requestUrl.searchParams.get('error_description')
   const nextParam = requestUrl.searchParams.get('next') || '/dashboard'
   const next = safeNextPath(nextParam)
   const fromSignupFlow = requestUrl.searchParams.get('from_signup') === '1'
@@ -62,11 +82,25 @@ export async function GET(request) {
   console.log(`${LOG} step:2 OAuth ?code`, {
     codeExists,
     codeLength: code ? code.length : 0,
+    oauthError: oauthError ?? null,
   })
+
+  if (!code && oauthError) {
+    const loginUrl = new URL('/login', requestUrl.origin)
+    loginUrl.searchParams.set('error', oauthError)
+    if (oauthErrorDescription) {
+      loginUrl.searchParams.set('error_description', oauthErrorDescription)
+    }
+    console.log(`${LOG} step:3a redirect (OAuth error param, no code)`, {
+      redirectTo: loginUrl.href,
+      oauthError,
+    })
+    return NextResponse.redirect(loginUrl.href)
+  }
 
   if (!code) {
     const redirectTo = new URL('/login?error=missing_code', requestUrl.origin).href
-    console.log(`${LOG} step:3a redirect (no code)`, { redirectTo })
+    console.log(`${LOG} step:3b redirect (no code)`, { redirectTo })
     return NextResponse.redirect(redirectTo)
   }
 
@@ -74,7 +108,7 @@ export async function GET(request) {
   const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? ''
   const serviceRolePresent = Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY?.trim())
 
-  console.log(`${LOG} step:3b Supabase client config`, {
+  console.log(`${LOG} step:3c Supabase client config`, {
     supabaseUrlConfigured: Boolean(supabaseUrl.trim()),
     supabaseUrlHost: supabaseUrl ? new URL(supabaseUrl).host : null,
     /** OAuth / user session MUST use the anon (publishable) key here — never the service role. */
@@ -89,7 +123,7 @@ export async function GET(request) {
 
   if (!supabaseUrl.trim() || !supabaseAnonKey.trim()) {
     const redirectTo = new URL('/login?error=config', requestUrl.origin).href
-    console.log(`${LOG} step:3c redirect (missing env)`, { redirectTo })
+    console.log(`${LOG} step:3d redirect (missing env)`, { redirectTo })
     return NextResponse.redirect(redirectTo)
   }
 
@@ -141,6 +175,15 @@ export async function GET(request) {
   })
 
   if (error) {
+    if (isFlowStateAlreadyUsedError(error)) {
+      const redirectPath = next
+      const redirectTo = new URL(redirectPath, requestUrl.origin).href
+      console.log(`${LOG} step:10 redirect (exchange error: PKCE/state already used → assume prior success)`, {
+        redirectTo,
+        nextPath: redirectPath,
+      })
+      return NextResponse.redirect(redirectTo)
+    }
     const redirectTo = new URL('/login?error=oauth', requestUrl.origin).href
     console.log(`${LOG} step:10 redirect (exchange error)`, { redirectTo })
     return NextResponse.redirect(redirectTo)
