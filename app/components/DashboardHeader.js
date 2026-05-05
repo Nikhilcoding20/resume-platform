@@ -16,7 +16,7 @@ const navItems = [
 ]
 
 /** Dashboard navigation header (logo, nav pills, avatar menu). Expects an authenticated Supabase user. */
-export default function DashboardHeader({ user, postLogoutHref = '/login' }) {
+export default function DashboardHeader({ user, postLogoutHref = '/' }) {
   const router = useRouter()
   const pathname = usePathname()
   const [dropdownOpen, setDropdownOpen] = useState(false)
@@ -28,7 +28,7 @@ export default function DashboardHeader({ user, postLogoutHref = '/login' }) {
 
   async function handleLogout() {
     await supabase.auth.signOut()
-    router.push(postLogoutHref)
+    router.replace(postLogoutHref)
     router.refresh()
   }
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AtsScoreLoadingOverlay from '@/app/components/AtsScoreLoadingOverlay'
 
@@ -34,6 +35,7 @@ function getSectionType(section) {
 }
 
 export default function DashboardPage() {
+  const router = useRouter()
   const [paymentSuccessBanner, setPaymentSuccessBanner] = useState(false)
   const [user, setUser] = useState(null)
   const [profile, setProfile] = useState(null)
@@ -141,14 +143,19 @@ export default function DashboardPage() {
     let cancelled = false
     async function initAuth() {
       try {
-        const { data: { user }, error } = await supabase.auth.getUser()
+        const { data: { user: authUser }, error } = await supabase.auth.getUser()
         if (cancelled) return
         if (error) {
           setProfileError('Unable to verify your session. Please try again or log in.')
           setProfileLoading(false)
           return
         }
-        setUser(user)
+        if (!authUser) {
+          router.replace('/login')
+          setProfileLoading(false)
+          return
+        }
+        setUser(authUser)
       } catch {
         if (!cancelled) {
           setProfileError('Unable to connect. Please check your connection and try again.')
@@ -160,7 +167,7 @@ export default function DashboardPage() {
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [router])
 
   useEffect(() => {
     if (!user) {

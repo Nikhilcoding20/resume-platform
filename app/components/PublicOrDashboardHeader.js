@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { usePathname } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import PublicSiteHeader from '@/app/components/PublicSiteHeader'
 import DashboardHeader from '@/app/components/DashboardHeader'
@@ -10,7 +9,6 @@ import DashboardHeader from '@/app/components/DashboardHeader'
  * On marketing/legal pages: show dashboard nav when signed in, otherwise public header.
  */
 export default function PublicOrDashboardHeader() {
-  const pathname = usePathname()
   const [user, setUser] = useState(undefined)
 
   useEffect(() => {
@@ -39,7 +37,7 @@ export default function PublicOrDashboardHeader() {
   }
 
   if (user) {
-    return <DashboardHeader user={user} postLogoutHref={pathname || '/'} />
+    return <DashboardHeader user={user} />
   }
 
   return <PublicSiteHeader />

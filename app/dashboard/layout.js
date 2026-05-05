@@ -30,7 +30,7 @@ export default function DashboardLayout({ children }) {
       if (event === 'SIGNED_OUT') {
         setUser(null)
         setLoading(false)
-        router.replace('/login')
+        router.replace('/')
       }
     })
     return () => {
@@ -48,7 +48,11 @@ export default function DashboardLayout({ children }) {
   }
 
   if (!user) {
-    return null
+    return (
+      <div className="flex min-h-screen items-center justify-center ds-page">
+        <p className="text-[#5c5c7a]">Redirecting to sign in…</p>
+      </div>
+    )
   }
 
   return (
