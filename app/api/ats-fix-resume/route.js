@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import puppeteer from 'puppeteer'
+import { launchChromiumForPdf } from '@/lib/launchChromiumForPdf'
 
 const PROMPT = `You are a professional resume writer and ATS expert. Rewrite this resume applying ALL of the ATS suggestions and improvements provided. Optimize it for the job description. Rules: Keep all factual content. Add missing keywords naturally. Improve bullet points with strong action verbs and metrics. Never invent experience. Return the improved resume as clean HTML. Use: h1 for the name, h2 for section headers (SUMMARY, EXPERIENCE, SKILLS, etc.), p for paragraphs, ul/li for bullet points. Use inline styles for a professional ATS-friendly black and white layout (font-family: Arial, color: #000, no colors). Return ONLY the HTML — no explanation, no markdown, no backticks.`
 
@@ -52,10 +52,7 @@ export async function POST(request) {
       html = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family: Arial, sans-serif; font-size: 11pt; color: #000; padding: 40px; max-width: 8.5in; margin: 0 auto;">${html}</body></html>`
     }
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    })
+    const browser = await launchChromiumForPdf()
 
     try {
       const page = await browser.newPage()

@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { readFile } from 'fs/promises'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
-import puppeteer from 'puppeteer'
+import { launchChromiumForPdf } from '@/lib/launchChromiumForPdf'
 import { createClient } from '@supabase/supabase-js'
 import { getUsage, canCreateResumeForUser } from '@/lib/checkUsage'
 
@@ -333,12 +333,9 @@ export async function POST(request) {
 
     let browser
     try {
-      browser = await puppeteer.launch({
-        headless: true,
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-      })
+      browser = await launchChromiumForPdf()
     } catch (launchErr) {
-      console.error('[generate-resume] Puppeteer launch failed:', launchErr)
+      console.error('[generate-resume] Chromium launch failed:', launchErr)
       return jsonError('PDF engine failed to start', 500)
     }
 

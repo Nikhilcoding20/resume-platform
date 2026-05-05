@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
-import puppeteer from 'puppeteer'
+import { launchChromiumForPdf } from '@/lib/launchChromiumForPdf'
 import pdf from 'pdf-parse/lib/pdf-parse.js'
 import mammoth from 'mammoth'
 import { createClient } from '@supabase/supabase-js'
@@ -367,10 +367,7 @@ ${coverLetterHtml}
 </body>
 </html>`
 
-    const browser = await puppeteer.launch({
-      headless: true,
-      args: ['--no-sandbox', '--disable-setuid-sandbox'],
-    })
+    const browser = await launchChromiumForPdf()
 
     try {
       const page = await browser.newPage()
