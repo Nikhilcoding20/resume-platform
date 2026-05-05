@@ -21,20 +21,27 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 /**
- * PKCE redirect: `${NEXT_PUBLIC_SITE_URL}/auth/callback` (+ ?next= for post-login path).
- * If NEXT_PUBLIC_SITE_URL is unset, falls back to window.location.origin (typical in local dev).
+ * PKCE redirect: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` (+ ?next= for post-login path).
+ * Trailing slash on SITE_URL is stripped so the path is always .../auth/callback.
+ * If NEXT_PUBLIC_SITE_URL is unset, falls back to window.location.origin (local dev only).
  */
 function buildOAuthRedirectTo(nextPath) {
   const path = nextPath && typeof nextPath === 'string' && nextPath.startsWith('/') ? nextPath : '/dashboard'
-  const siteUrl =
-    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') ||
-    (typeof window !== 'undefined' ? window.location.origin : '')
+  const siteFromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') || ''
+  const originFallback = typeof window !== 'undefined' ? window.location.origin : ''
+  const siteUrl = siteFromEnv || originFallback
+
   if (!siteUrl) {
     console.error(
-      '[AuthGoogleButton] Set NEXT_PUBLIC_SITE_URL or open from a browser; OAuth redirectTo is invalid.'
+      '[AuthGoogleButton] Set NEXT_PUBLIC_SITE_URL (e.g. http://localhost:3000) or open from a browser.'
     )
   }
-  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(path)}`
+
+  const callbackBase = siteFromEnv
+    ? `${siteFromEnv}/auth/callback`
+    : `${originFallback}/auth/callback`
+
+  const redirectTo = `${callbackBase}?next=${encodeURIComponent(path)}`
   return redirectTo
 }
 
@@ -69,6 +76,7 @@ export default function AuthGoogleButton({ disabled, onError, nextPath = '/dashb
     onError?.(null)
     try {
       const redirectTo = buildOAuthRedirectTo(nextPath)
+      console.log('[AuthGoogleButton] signInWithOAuth redirectTo (exact)', redirectTo)
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',

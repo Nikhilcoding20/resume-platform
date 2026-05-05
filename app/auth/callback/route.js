@@ -1,8 +1,7 @@
-import { createServerClient } from '@supabase/auth-helpers-nextjs'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
+import { createRouteHandlerClient } from '@/lib/createRouteHandlerClient'
 
-// createRouteHandlerClient is not exported by @supabase/auth-helpers-nextjs@0.15; createServerClient is the supported replacement.
 export const dynamic = 'force-dynamic'
 
 const LOG = '[auth/callback]'
@@ -95,38 +94,8 @@ export async function GET(request) {
   const cookieStore = await cookies()
   console.log(`${LOG} step:4 cookies before exchange`, summarizeCookieStore(cookieStore))
 
-  let setAllCalls = 0
-  let setAllDetails = []
-
-  const supabase = createServerClient(supabaseUrl, supabaseAnonKey, {
-    cookies: {
-      getAll() {
-        return cookieStore.getAll()
-      },
-      setAll(cookiesToSet) {
-        setAllCalls += 1
-        const batch = []
-        try {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            batch.push({
-              name,
-              valueLength: value?.length ?? 0,
-              optionKeys: options ? Object.keys(options) : [],
-            })
-            cookieStore.set(name, value, options)
-          })
-          setAllDetails.push({ batch, ok: true })
-          console.log(`${LOG} step:5x cookies.setAll (Supabase storage flush)`, {
-            callIndex: setAllCalls,
-            cookiesInBatch: batch,
-          })
-        } catch (e) {
-          setAllDetails.push({ batch, ok: false, error: e?.message ?? String(e) })
-          console.error(`${LOG} step:5x cookies.setAll failed`, e)
-        }
-      },
-    },
-  })
+  const supabase = await createRouteHandlerClient({ cookies })
+  console.log(`${LOG} step:5 createRouteHandlerClient ready (PKCE cookie adapter via createServerClient)`)
 
   console.log(`${LOG} step:6 calling exchangeCodeForSession`)
 
@@ -167,8 +136,6 @@ export async function GET(request) {
 
   console.log(`${LOG} step:9 cookies after exchange`, {
     cookieSummaries: summarizeCookieStore(cookieStore),
-    setAllCallCount: setAllCalls,
-    setAllDetails,
   })
 
   if (error) {
