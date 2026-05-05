@@ -118,24 +118,13 @@ function SignUpContent() {
           {/* Google OAuth: shared with login — redirectTo = `${NEXT_PUBLIC_SITE_URL}/auth/callback?next=...` (see AuthGoogleButton) */}
           <AuthGoogleButton
             disabled={loading}
+            fromSignup
             onError={(msg) => {
               setAccountExistsError(false)
               setError(msg)
             }}
-            onAccountExists={(exists) => {
-              if (exists) {
-                setError(null)
-                setAccountExistsError(true)
-              } else {
-                setAccountExistsError(false)
-              }
-            }}
-            signupPreflightEmail={email}
             nextPath={oauthNextPath}
           />
-          <p className="text-xs text-[#9ca3af] text-center leading-snug">
-            Enter the email you want for your account, then continue with Google — we&apos;ll check if you already have an account.
-          </p>
         </div>
         <div className="px-8 py-4">
           <AuthDividerOr />

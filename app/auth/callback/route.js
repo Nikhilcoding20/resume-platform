@@ -54,6 +54,7 @@ export async function GET(request) {
   const code = requestUrl.searchParams.get('code')
   const nextParam = requestUrl.searchParams.get('next') || '/dashboard'
   const next = safeNextPath(nextParam)
+  const fromSignupFlow = requestUrl.searchParams.get('from_signup') === '1'
 
   console.log(`${LOG} step:1 request URL (full)`, fullUrl)
 
@@ -153,7 +154,12 @@ export async function GET(request) {
 
   const authUser = session.user
   const createdMs = authUser?.created_at ? new Date(authUser.created_at).getTime() : 0
-  const isRecentSignup = createdMs > 0 && Date.now() - createdMs < 3 * 60 * 1000
+  const accountAgeMs = createdMs > 0 ? Date.now() - createdMs : 0
+  const fiveMinutesMs = 5 * 60 * 1000
+  /** Pre-existing account on signup Google OAuth: land on dashboard silently (ignore ?next=). Login flow keeps `next`. */
+  const isPreExistingAccount =
+    fromSignupFlow && createdMs > 0 && accountAgeMs > fiveMinutesMs
+  const isRecentSignup = createdMs > 0 && accountAgeMs < 3 * 60 * 1000
   if (isRecentSignup && authUser.email) {
     void sendWelcomeEmail({
       toEmail: authUser.email,
@@ -165,10 +171,13 @@ export async function GET(request) {
     })
   }
 
-  const redirectTo = new URL(next, requestUrl.origin).href
+  const redirectPath = isPreExistingAccount ? '/dashboard' : next
+  const redirectTo = new URL(redirectPath, requestUrl.origin).href
   console.log(`${LOG} step:10 redirect (success)`, {
     redirectTo,
-    nextPath: next,
+    nextPath: redirectPath,
+    requestedNext: next,
+    isPreExistingAccount,
     origin: requestUrl.origin,
   })
 

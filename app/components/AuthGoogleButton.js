@@ -26,7 +26,7 @@ import { supabase } from '@/lib/supabase'
  * Trailing slash on SITE_URL is stripped. If NEXT_PUBLIC_SITE_URL is unset, uses
  * `window.location.origin` (browser only; set the env in production).
  */
-function buildOAuthRedirectTo(nextPath) {
+function buildOAuthRedirectTo(nextPath, { fromSignup = false } = {}) {
   const path = nextPath && typeof nextPath === 'string' && nextPath.startsWith('/') ? nextPath : '/dashboard'
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') || ''
   const originFallback = typeof window !== 'undefined' ? window.location.origin : ''
@@ -38,8 +38,9 @@ function buildOAuthRedirectTo(nextPath) {
     )
   }
 
-  // e.g. https://example.com/auth/callback?next=%2Fdashboard
-  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(path)}`
+  // e.g. https://example.com/auth/callback?next=%2Fdashboard&from_signup=1
+  const signupFlag = fromSignup ? '&from_signup=1' : ''
+  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(path)}${signupFlag}`
   return redirectTo
 }
 
@@ -65,60 +66,20 @@ export function AuthDividerOr() {
   )
 }
 
-export default function AuthGoogleButton({
-  disabled,
-  onError,
-  onAccountExists,
-  nextPath = '/dashboard',
-  /** When set (e.g. signup page), require this email and block OAuth if an account already exists. */
-  signupPreflightEmail,
-}) {
+export default function AuthGoogleButton({ disabled, onError, nextPath = '/dashboard', fromSignup = false }) {
   const [oauthLoading, setOauthLoading] = useState(false)
 
   async function handleGoogleSignIn() {
     if (oauthLoading) return
     setOauthLoading(true)
     onError?.(null)
-    onAccountExists?.(false)
     try {
-      if (signupPreflightEmail != null) {
-        const trimmed = String(signupPreflightEmail).trim()
-        if (!trimmed) {
-          onError?.('Please enter your email address first, then continue with Google.')
-          setOauthLoading(false)
-          return
-        }
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
-          onError?.('Please enter a valid email address before continuing with Google.')
-          setOauthLoading(false)
-          return
-        }
-        const checkRes = await fetch('/api/auth/check-signup-email', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email: trimmed.toLowerCase() }),
-        })
-        const checkJson = await checkRes.json().catch(() => ({}))
-        if (checkRes.ok && checkJson.exists) {
-          onAccountExists?.(true)
-          setOauthLoading(false)
-          return
-        }
-      }
-
-      const redirectTo = buildOAuthRedirectTo(nextPath)
-      const queryParams =
-        signupPreflightEmail != null && String(signupPreflightEmail).trim()
-          ? { login_hint: String(signupPreflightEmail).trim() }
-          : undefined
+      const redirectTo = buildOAuthRedirectTo(nextPath, { fromSignup })
       console.log('[AuthGoogleButton] signInWithOAuth redirectTo (exact)', redirectTo)
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: {
-          redirectTo,
-          ...(queryParams ? { queryParams } : {}),
-        },
+        options: { redirectTo },
       })
       if (error) {
         onError?.(error.message)
