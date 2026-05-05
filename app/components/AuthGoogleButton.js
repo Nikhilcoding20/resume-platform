@@ -1,25 +1,40 @@
 'use client'
 
 /**
- * Google OAuth via Supabase Auth.
+ * Google OAuth via Supabase Auth (PKCE).
  *
- * In the Supabase dashboard: Authentication → Providers → Google — turn the provider ON.
- * Google requires an OAuth 2.0 Client ID and Client Secret from Google Cloud Console
- * (APIs & Services → Credentials → Create Credentials → OAuth client ID → Web application).
- * Paste those values into the Google provider fields in Supabase (not in this repo).
+ * Google Cloud Console → OAuth client → Authorized redirect URIs must include ONLY the
+ * Supabase OAuth redirect (not your app domain), e.g.:
+ *   https://<project-ref>.supabase.co/auth/v1/callback
  *
- * Authorized redirect URIs in Google Cloud must include your Supabase callback URL, e.g.:
- *   https://<your-project-ref>.supabase.co/auth/v1/callback
+ * Supabase Dashboard → Authentication → URL Configuration → Redirect URLs must include
+ * every app URL you pass as redirectTo, e.g.:
+ *   https://www.unemployedclub.com/auth/callback
+ *   http://localhost:3000/auth/callback
  *
- * After a successful OAuth round-trip, Supabase redirects the user to the URL passed in
- * signInWithOAuth options.redirectTo (e.g. /dashboard).
- *
- * Add that full URL to Supabase → Authentication → URL Configuration → Redirect URLs
- * (e.g. http://localhost:3000/dashboard and https://your-production-domain/dashboard).
+ * We send users to /auth/callback (server exchanges ?code= for a session), then redirect
+ * to `next` (default /dashboard). Production uses NEXT_PUBLIC_APP_URL when set so the
+ * live domain matches www.unemployedclub.com even if the user opened a bare hostname.
  */
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
+
+const DEFAULT_PRODUCTION_ORIGIN = 'https://www.unemployedclub.com'
+
+function getOAuthRedirectOrigin() {
+  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, '')
+  if (fromEnv) return fromEnv
+  if (typeof window !== 'undefined') return window.location.origin
+  return DEFAULT_PRODUCTION_ORIGIN
+}
+
+/** PKCE: redirect to app auth callback; final path via ?next= */
+function buildOAuthRedirectTo(nextPath) {
+  const path = nextPath && typeof nextPath === 'string' && nextPath.startsWith('/') ? nextPath : '/dashboard'
+  const origin = getOAuthRedirectOrigin()
+  return `${origin}/auth/callback?next=${encodeURIComponent(path)}`
+}
 
 /** Standard multicolor Google “G” for sign-in buttons */
 export function GoogleLogo({ className = 'w-5 h-5' }) {
@@ -43,7 +58,7 @@ export function AuthDividerOr() {
   )
 }
 
-export default function AuthGoogleButton({ disabled, onError }) {
+export default function AuthGoogleButton({ disabled, onError, nextPath = '/dashboard' }) {
   const [oauthLoading, setOauthLoading] = useState(false)
 
   async function handleGoogleSignIn() {
@@ -51,9 +66,10 @@ export default function AuthGoogleButton({ disabled, onError }) {
     setOauthLoading(true)
     onError?.(null)
     try {
+      const redirectTo = buildOAuthRedirectTo(nextPath)
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo: window.location.origin + '/dashboard' },
+        options: { redirectTo },
       })
       if (error) {
         onError?.(error.message)

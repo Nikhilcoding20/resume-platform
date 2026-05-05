@@ -1,26 +1,23 @@
 'use client'
 
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { Suspense, useState } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import AuthGoogleButton, { AuthDividerOr } from '@/app/components/AuthGoogleButton'
 
-export default function SignUpPage() {
+function SignUpContent() {
   const router = useRouter()
-  const [redirectAts, setRedirectAts] = useState(false)
+  const searchParams = useSearchParams()
+  const redirectAts = searchParams.get('redirect') === 'ats'
+  const oauthNextPath = redirectAts ? '/dashboard/ats-checker?from=homepage' : '/dashboard'
+
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [subscribeMailingList, setSubscribeMailingList] = useState(false)
   const [error, setError] = useState(null)
   const [loading, setLoading] = useState(false)
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return
-    const isAtsRedirect = new URLSearchParams(window.location.search).get('redirect') === 'ats'
-    setRedirectAts(isAtsRedirect)
-  }, [])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -71,7 +68,7 @@ export default function SignUpPage() {
         </div>
 
         <div className="px-8 pt-2 space-y-4">
-          <AuthGoogleButton disabled={loading} onError={setError} />
+          <AuthGoogleButton disabled={loading} onError={setError} nextPath={oauthNextPath} />
         </div>
         <div className="px-8 py-4">
           <AuthDividerOr />
@@ -131,5 +128,19 @@ export default function SignUpPage() {
         </form>
       </div>
     </div>
+  )
+}
+
+export default function SignUpPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="relative min-h-screen flex items-center justify-center bg-white p-4">
+          <p className="text-[#5c5c7a] text-sm">Loading…</p>
+        </div>
+      }
+    >
+      <SignUpContent />
+    </Suspense>
   )
 }
