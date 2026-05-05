@@ -6,25 +6,51 @@ import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import AuthGoogleButton, { AuthDividerOr } from '@/app/components/AuthGoogleButton'
 
+const ACCOUNT_EXISTS_COPY = {
+  lead: 'You already have an account with this email.',
+  loginCta: 'log in',
+  tail: 'instead.',
+}
+
+async function emailAlreadyRegistered(normalizedEmail) {
+  const res = await fetch('/api/auth/check-signup-email', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email: normalizedEmail }),
+  })
+  const data = await res.json().catch(() => ({}))
+  if (!res.ok) return false
+  return Boolean(data.exists)
+}
+
 function SignUpContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectAts = searchParams.get('redirect') === 'ats'
   const oauthNextPath = redirectAts ? '/dashboard/ats-checker?from=homepage' : '/dashboard'
+  const loginHref = redirectAts ? '/login?redirect=ats' : '/login'
 
   const [fullName, setFullName] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [subscribeMailingList, setSubscribeMailingList] = useState(false)
   const [error, setError] = useState(null)
+  const [accountExistsError, setAccountExistsError] = useState(false)
   const [loading, setLoading] = useState(false)
 
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    setAccountExistsError(false)
     setLoading(true)
+    const normalizedEmail = email.trim().toLowerCase()
+    if (await emailAlreadyRegistered(normalizedEmail)) {
+      setAccountExistsError(true)
+      setLoading(false)
+      return
+    }
     const { data, error } = await supabase.auth.signUp({
-      email,
+      email: normalizedEmail,
       password,
       options: { data: { full_name: fullName } },
     })
@@ -47,6 +73,12 @@ function SignUpContent() {
         email: email.trim().toLowerCase(),
       })
     }
+    if (data?.session?.access_token) {
+      void fetch('/api/auth/welcome-email', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${data.session.access_token}` },
+      }).catch(() => {})
+    }
     const redirectTo = redirectAts ? '/dashboard/ats-checker?from=homepage' : '/dashboard'
     router.push(redirectTo)
   }
@@ -67,15 +99,49 @@ function SignUpContent() {
           <p className="text-[#5c5c7a] text-sm mt-1">Create your free Unemployed Club account</p>
         </div>
 
+        {(accountExistsError || error) && (
+          <div className="px-8 pt-3 space-y-2">
+            {accountExistsError && (
+              <p className="text-red-600 text-sm leading-relaxed">
+                {ACCOUNT_EXISTS_COPY.lead} Please{' '}
+                <Link href={loginHref} className="font-semibold text-[#6366f1] hover:text-[#a855f7] underline underline-offset-2">
+                  {ACCOUNT_EXISTS_COPY.loginCta}
+                </Link>{' '}
+                {ACCOUNT_EXISTS_COPY.tail}
+              </p>
+            )}
+            {error && !accountExistsError && <p className="text-red-600 text-sm">{error}</p>}
+          </div>
+        )}
+
         <div className="px-8 pt-2 space-y-4">
-          <AuthGoogleButton disabled={loading} onError={setError} nextPath={oauthNextPath} />
+          {/* Google OAuth: shared with login — redirectTo = `${NEXT_PUBLIC_SITE_URL}/auth/callback?next=...` (see AuthGoogleButton) */}
+          <AuthGoogleButton
+            disabled={loading}
+            onError={(msg) => {
+              setAccountExistsError(false)
+              setError(msg)
+            }}
+            onAccountExists={(exists) => {
+              if (exists) {
+                setError(null)
+                setAccountExistsError(true)
+              } else {
+                setAccountExistsError(false)
+              }
+            }}
+            signupPreflightEmail={email}
+            nextPath={oauthNextPath}
+          />
+          <p className="text-xs text-[#9ca3af] text-center leading-snug">
+            Enter the email you want for your account, then continue with Google — we&apos;ll check if you already have an account.
+          </p>
         </div>
         <div className="px-8 py-4">
           <AuthDividerOr />
         </div>
 
         <form onSubmit={handleSubmit} className="px-8 pb-8 space-y-5">
-          {error && <p className="text-red-600 text-sm">{error}</p>}
           <div>
             <label htmlFor="fullName" className="block text-sm font-medium text-[#1a1a2e] mb-1">Full name</label>
             <input id="fullName" type="text" value={fullName} onChange={(e) => setFullName(e.target.value)} required
@@ -83,8 +149,18 @@ function SignUpContent() {
           </div>
           <div>
             <label htmlFor="email" className="block text-sm font-medium text-[#1a1a2e] mb-1">Email</label>
-            <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required
-              className="w-full px-4 py-2.5 rounded-xl border border-[#eaeaf2] text-[#1a1a2e] focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none transition-all" />
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setAccountExistsError(false)
+                setError(null)
+              }}
+              required
+              className="w-full px-4 py-2.5 rounded-xl border border-[#eaeaf2] text-[#1a1a2e] focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none transition-all"
+            />
           </div>
           <div>
             <label htmlFor="password" className="block text-sm font-medium text-[#1a1a2e] mb-1">Password</label>
@@ -118,10 +194,7 @@ function SignUpContent() {
           </p>
           <p className="text-center text-sm text-[#5c5c7a]">
             Have an account?{' '}
-            <Link
-              href={redirectAts ? '/login?redirect=ats' : '/login'}
-              className="font-semibold text-[#6366f1] hover:text-[#a855f7]"
-            >
+            <Link href={loginHref} className="font-semibold text-[#6366f1] hover:text-[#a855f7]">
               Log in
             </Link>
           </p>

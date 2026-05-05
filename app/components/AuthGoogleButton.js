@@ -21,15 +21,16 @@ import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
 /**
- * PKCE redirect: `${process.env.NEXT_PUBLIC_SITE_URL}/auth/callback` (+ ?next= for post-login path).
- * Trailing slash on SITE_URL is stripped so the path is always .../auth/callback.
- * If NEXT_PUBLIC_SITE_URL is unset, falls back to window.location.origin (local dev only).
+ * Supabase OAuth `redirectTo` must match a URL allowed in the Supabase dashboard.
+ * Same shape on login and signup: `${NEXT_PUBLIC_SITE_URL}/auth/callback?next=<path>`.
+ * Trailing slash on SITE_URL is stripped. If NEXT_PUBLIC_SITE_URL is unset, uses
+ * `window.location.origin` (browser only; set the env in production).
  */
 function buildOAuthRedirectTo(nextPath) {
   const path = nextPath && typeof nextPath === 'string' && nextPath.startsWith('/') ? nextPath : '/dashboard'
-  const siteFromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') || ''
+  const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') || ''
   const originFallback = typeof window !== 'undefined' ? window.location.origin : ''
-  const siteUrl = siteFromEnv || originFallback
+  const siteUrl = fromEnv || originFallback
 
   if (!siteUrl) {
     console.error(
@@ -37,11 +38,8 @@ function buildOAuthRedirectTo(nextPath) {
     )
   }
 
-  const callbackBase = siteFromEnv
-    ? `${siteFromEnv}/auth/callback`
-    : `${originFallback}/auth/callback`
-
-  const redirectTo = `${callbackBase}?next=${encodeURIComponent(path)}`
+  // e.g. https://example.com/auth/callback?next=%2Fdashboard
+  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(path)}`
   return redirectTo
 }
 
@@ -67,20 +65,60 @@ export function AuthDividerOr() {
   )
 }
 
-export default function AuthGoogleButton({ disabled, onError, nextPath = '/dashboard' }) {
+export default function AuthGoogleButton({
+  disabled,
+  onError,
+  onAccountExists,
+  nextPath = '/dashboard',
+  /** When set (e.g. signup page), require this email and block OAuth if an account already exists. */
+  signupPreflightEmail,
+}) {
   const [oauthLoading, setOauthLoading] = useState(false)
 
   async function handleGoogleSignIn() {
     if (oauthLoading) return
     setOauthLoading(true)
     onError?.(null)
+    onAccountExists?.(false)
     try {
+      if (signupPreflightEmail != null) {
+        const trimmed = String(signupPreflightEmail).trim()
+        if (!trimmed) {
+          onError?.('Please enter your email address first, then continue with Google.')
+          setOauthLoading(false)
+          return
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(trimmed)) {
+          onError?.('Please enter a valid email address before continuing with Google.')
+          setOauthLoading(false)
+          return
+        }
+        const checkRes = await fetch('/api/auth/check-signup-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: trimmed.toLowerCase() }),
+        })
+        const checkJson = await checkRes.json().catch(() => ({}))
+        if (checkRes.ok && checkJson.exists) {
+          onAccountExists?.(true)
+          setOauthLoading(false)
+          return
+        }
+      }
+
       const redirectTo = buildOAuthRedirectTo(nextPath)
+      const queryParams =
+        signupPreflightEmail != null && String(signupPreflightEmail).trim()
+          ? { login_hint: String(signupPreflightEmail).trim() }
+          : undefined
       console.log('[AuthGoogleButton] signInWithOAuth redirectTo (exact)', redirectTo)
 
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
-        options: { redirectTo },
+        options: {
+          redirectTo,
+          ...(queryParams ? { queryParams } : {}),
+        },
       })
       if (error) {
         onError?.(error.message)

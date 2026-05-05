@@ -1,6 +1,7 @@
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 import { createRouteHandlerClient } from '@/lib/createRouteHandlerClient'
+import { sendWelcomeEmail } from '@/lib/emails/sendWelcomeEmail'
 
 export const dynamic = 'force-dynamic'
 
@@ -148,6 +149,20 @@ export async function GET(request) {
     const redirectTo = new URL('/login?error=oauth', requestUrl.origin).href
     console.log(`${LOG} step:10 redirect (no session)`, { redirectTo })
     return NextResponse.redirect(redirectTo)
+  }
+
+  const authUser = session.user
+  const createdMs = authUser?.created_at ? new Date(authUser.created_at).getTime() : 0
+  const isRecentSignup = createdMs > 0 && Date.now() - createdMs < 3 * 60 * 1000
+  if (isRecentSignup && authUser.email) {
+    void sendWelcomeEmail({
+      toEmail: authUser.email,
+      displayName: authUser.user_metadata?.full_name ?? null,
+    }).then((r) => {
+      if (!r.ok && !r.skipped) {
+        console.error(`${LOG} welcome email failed`, r.error)
+      }
+    })
   }
 
   const redirectTo = new URL(next, requestUrl.origin).href
