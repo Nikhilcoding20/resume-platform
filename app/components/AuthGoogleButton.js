@@ -13,27 +13,29 @@
  *   http://localhost:3000/auth/callback
  *
  * We send users to /auth/callback (server exchanges ?code= for a session), then redirect
- * to `next` (default /dashboard). Production uses NEXT_PUBLIC_APP_URL when set so the
- * live domain matches www.unemployedclub.com even if the user opened a bare hostname.
+ * to `next` (default /dashboard). Set NEXT_PUBLIC_SITE_URL (e.g. http://localhost:3000 or
+ * https://www.unemployedclub.com) so redirectTo always matches the environment.
  */
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 
-const DEFAULT_PRODUCTION_ORIGIN = 'https://www.unemployedclub.com'
-
-function getOAuthRedirectOrigin() {
-  const fromEnv = process.env.NEXT_PUBLIC_APP_URL?.trim().replace(/\/$/, '')
-  if (fromEnv) return fromEnv
-  if (typeof window !== 'undefined') return window.location.origin
-  return DEFAULT_PRODUCTION_ORIGIN
-}
-
-/** PKCE: redirect to app auth callback; final path via ?next= */
+/**
+ * PKCE redirect: `${NEXT_PUBLIC_SITE_URL}/auth/callback` (+ ?next= for post-login path).
+ * If NEXT_PUBLIC_SITE_URL is unset, falls back to window.location.origin (typical in local dev).
+ */
 function buildOAuthRedirectTo(nextPath) {
   const path = nextPath && typeof nextPath === 'string' && nextPath.startsWith('/') ? nextPath : '/dashboard'
-  const origin = getOAuthRedirectOrigin()
-  return `${origin}/auth/callback?next=${encodeURIComponent(path)}`
+  const siteUrl =
+    process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') ||
+    (typeof window !== 'undefined' ? window.location.origin : '')
+  if (!siteUrl) {
+    console.error(
+      '[AuthGoogleButton] Set NEXT_PUBLIC_SITE_URL or open from a browser; OAuth redirectTo is invalid.'
+    )
+  }
+  const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(path)}`
+  return redirectTo
 }
 
 /** Standard multicolor Google “G” for sign-in buttons */
@@ -67,6 +69,7 @@ export default function AuthGoogleButton({ disabled, onError, nextPath = '/dashb
     onError?.(null)
     try {
       const redirectTo = buildOAuthRedirectTo(nextPath)
+
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: { redirectTo },
@@ -76,7 +79,7 @@ export default function AuthGoogleButton({ disabled, onError, nextPath = '/dashb
         setOauthLoading(false)
         return
       }
-      // Browser follows redirect to Google then back to /dashboard
+      // Browser redirects to Google, then to NEXT_PUBLIC_SITE_URL/auth/callback
     } catch (e) {
       onError?.(e?.message || 'Something went wrong')
       setOauthLoading(false)
