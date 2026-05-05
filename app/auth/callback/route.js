@@ -156,11 +156,17 @@ export async function GET(request) {
   const createdMs = authUser?.created_at ? new Date(authUser.created_at).getTime() : 0
   const accountAgeMs = createdMs > 0 ? Date.now() - createdMs : 0
   const fiveMinutesMs = 5 * 60 * 1000
+  const tenMinutesMs = 10 * 60 * 1000
   /** Pre-existing account on signup Google OAuth: land on dashboard silently (ignore ?next=). Login flow keeps `next`. */
   const isPreExistingAccount =
     fromSignupFlow && createdMs > 0 && accountAgeMs > fiveMinutesMs
-  const isRecentSignup = createdMs > 0 && accountAgeMs < 3 * 60 * 1000
-  if (isRecentSignup && authUser.email) {
+  /**
+   * Welcome email for very new accounts: OAuth PKCE, magic links, and email-confirmation flows
+   * all hit this route after exchangeCodeForSession. `created_at` is the auth user row timestamp,
+   * so confirming within 10 minutes of signup still qualifies.
+   */
+  const isWithinWelcomeWindow = createdMs > 0 && accountAgeMs <= tenMinutesMs
+  if (isWithinWelcomeWindow && authUser.email) {
     void sendWelcomeEmail({
       toEmail: authUser.email,
       displayName: authUser.user_metadata?.full_name ?? null,
