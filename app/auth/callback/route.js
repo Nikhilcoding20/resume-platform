@@ -160,57 +160,14 @@ export async function GET(request) {
   const isPreExistingAccount =
     fromSignupFlow && createdMs > 0 && accountAgeMs > fiveMinutesMs
 
-  /**
-   * Welcome email once per user: `user_usage` bootstrap row with no real usage yet
-   * (resumes_generated and cover_letters_generated both 0). `welcome_email_sent` avoids
-   * repeat sends for returning users who never generated content. No row yet ⇒ first auth
-   * completion (e.g. OAuth); email confirmation also hits this route after exchange.
-   */
-  let shouldSendWelcome = false
-  const uid = authUser.id ? String(authUser.id) : ''
-  if (uid && authUser.email) {
-    const { data: usage, error: usageErr } = await supabase
-      .from('user_usage')
-      .select('resumes_generated, cover_letters_generated, welcome_email_sent')
-      .eq('user_id', uid)
-      .maybeSingle()
-
-    if (usageErr) {
-      console.warn(`${LOG} user_usage select (welcome eligibility)`, usageErr.message)
-    } else if (!usage) {
-      shouldSendWelcome = true
-    } else {
-      const r = Number(usage.resumes_generated ?? 0)
-      const c = Number(usage.cover_letters_generated ?? 0)
-      const alreadySent = usage.welcome_email_sent === true
-      shouldSendWelcome = r === 0 && c === 0 && !alreadySent
+  void sendWelcomeEmail({
+    toEmail: authUser.email,
+    displayName: authUser.user_metadata?.full_name ?? null,
+  }).then((r) => {
+    if (!r.ok && !r.skipped) {
+      console.error(`${LOG} welcome email failed`, r.error)
     }
-  }
-
-  if (shouldSendWelcome && authUser.email) {
-    void sendWelcomeEmail({
-      toEmail: authUser.email,
-      displayName: authUser.user_metadata?.full_name ?? null,
-    }).then(async (r) => {
-      if (!r.ok && !r.skipped) {
-        console.error(`${LOG} welcome email failed`, r.error)
-        return
-      }
-      if (!r.ok && r.skipped) return
-      const { error: upsertErr } = await supabase.from('user_usage').upsert(
-        {
-          user_id: uid,
-          resumes_generated: 0,
-          cover_letters_generated: 0,
-          welcome_email_sent: true,
-        },
-        { onConflict: 'user_id' }
-      )
-      if (upsertErr) {
-        console.error(`${LOG} user_usage welcome_email_sent upsert failed`, upsertErr)
-      }
-    })
-  }
+  })
 
   const redirectPath = isPreExistingAccount ? '/dashboard' : next
   const redirectTo = new URL(redirectPath, requestUrl.origin).href
