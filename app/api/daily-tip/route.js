@@ -1,3 +1,4 @@
+import { inspect } from 'node:util'
 import { NextResponse } from 'next/server'
 import Anthropic from '@anthropic-ai/sdk'
 
@@ -9,6 +10,10 @@ const TOPICS = [
   'professional networking and relationship building',
   'job search strategies and staying organized',
 ]
+
+/** Shown when Claude is unavailable so the UI still gets a useful tip (200 OK). */
+const FALLBACK_TIP =
+  "Pick one job you're excited about and spend 15 minutes aligning a single resume bullet with its description—concrete outcomes beat generic duties. Small, targeted edits often move the needle more than a full rewrite."
 
 function topicIndexForDate(dateStr) {
   let h = 0
@@ -38,40 +43,63 @@ function extractText(message) {
     .trim()
 }
 
+function logDailyTipError(err, context) {
+  console.error(`[daily-tip] ${context} — full error:\n`, inspect(err, { depth: 12, colors: false }))
+}
+
+function fallbackResponse(dateStr, topicCategory) {
+  return NextResponse.json({
+    tip: FALLBACK_TIP,
+    date: dateStr,
+    topicCategory,
+    fallback: true,
+  })
+}
+
 export async function POST(request) {
+  let dateStr = new Date().toISOString().slice(0, 10)
+
   try {
-    if (!process.env.ANTHROPIC_API_KEY) {
-      return NextResponse.json(
-        { error: 'Server configuration error: Anthropic API key is not set' },
-        { status: 500 }
-      )
+    const body = await request.json().catch(() => ({}))
+    if (typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date.trim())) {
+      dateStr = body.date.trim()
     }
 
-    const body = await request.json().catch(() => ({}))
-    const dateStr =
-      typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date.trim())
-        ? body.date.trim()
-        : new Date().toISOString().slice(0, 10)
+    const topic = TOPICS[topicIndexForDate(dateStr)]
+    const apiKey =
+      typeof process.env.ANTHROPIC_API_KEY === 'string' ? process.env.ANTHROPIC_API_KEY.trim() : ''
 
-    const topicIdx = topicIndexForDate(dateStr)
-    const topic = TOPICS[topicIdx]
+    if (!apiKey) {
+      console.error(
+        '[daily-tip] ANTHROPIC_API_KEY is missing, not a string, or empty after trim. Check .env / deployment secrets.',
+      )
+      return fallbackResponse(dateStr, topic)
+    }
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
-    const message = await anthropic.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 320,
-      temperature: 0.35,
-      messages: [
-        {
-          role: 'user',
-          content: buildPrompt(dateStr, topic),
-        },
-      ],
-    })
+    const anthropic = new Anthropic({ apiKey })
+
+    let message
+    try {
+      message = await anthropic.messages.create({
+        model: 'claude-sonnet-4-5',
+        max_tokens: 320,
+        temperature: 0.35,
+        messages: [
+          {
+            role: 'user',
+            content: buildPrompt(dateStr, topic),
+          },
+        ],
+      })
+    } catch (apiErr) {
+      logDailyTipError(apiErr, 'Claude API messages.create')
+      return fallbackResponse(dateStr, topic)
+    }
 
     const tip = extractText(message)
     if (!tip) {
-      return NextResponse.json({ error: 'AI returned no tip' }, { status: 500 })
+      console.error('[daily-tip] Claude returned no text blocks; response:', inspect(message, { depth: 6, colors: false }))
+      return fallbackResponse(dateStr, topic)
     }
 
     return NextResponse.json({
@@ -80,10 +108,7 @@ export async function POST(request) {
       topicCategory: topic,
     })
   } catch (err) {
-    console.error('[daily-tip] Error:', err)
-    return NextResponse.json(
-      { error: err.message || 'Failed to generate tip' },
-      { status: 500 }
-    )
+    logDailyTipError(err, 'POST handler (unexpected)')
+    return fallbackResponse(dateStr, TOPICS[topicIndexForDate(dateStr)])
   }
 }
