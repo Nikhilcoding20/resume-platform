@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   serverExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  experimental: {
+    serverComponentsExternalPackages: ["@sparticuz/chromium", "puppeteer-core"],
+  },
+  outputFileTracingIncludes: {
+    "/api/generate-resume": ["./node_modules/@sparticuz/chromium/**/*"],
+    "/api/generate-cover-letter": ["./node_modules/@sparticuz/chromium/**/*"],
+    "/api/ats-fix-resume": ["./node_modules/@sparticuz/chromium/**/*"],
+  },
   async headers() {
     return [
       {
