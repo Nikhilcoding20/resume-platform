@@ -311,8 +311,12 @@ export default function CoverLetterPage() {
 
       if (res.status === 403) {
         const data = await res.json().catch(() => ({}))
-        setError(data.message || 'You have reached your free limit for cover letters.')
-        setShowLimitOverlay(true)
+        if (data.error === 'limit_reached') {
+          setError(null)
+          setShowLimitOverlay(true)
+        } else {
+          setError(data.message || data.error || 'You cannot generate a cover letter right now.')
+        }
         setLoading(false)
         return
       }

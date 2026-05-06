@@ -4,7 +4,7 @@ import { launchChromiumForPdf } from '@/lib/launchChromiumForPdf'
 import pdf from 'pdf-parse/lib/pdf-parse.js'
 import mammoth from 'mammoth'
 import { createClient } from '@supabase/supabase-js'
-import { FREE_COVER_LETTER_LIMIT } from '@/lib/checkUsage'
+import { getUsage, canCreateCoverLetterForUser } from '@/lib/checkUsage'
 import { buildPrintableCoverLetterDocument, getCoverLetterPdfFilename } from '@/lib/coverLetterDocument'
 
 const COVER_LETTER_PROMPT = `You are an expert career coach. Write a Harvard style cover letter body with exactly 3 paragraphs. NO paragraph labels, headings, or bold text — just plain professional prose. Paragraph 1: strong opening showing enthusiasm for the specific role and company. Paragraph 2: highlight 2-3 most relevant experiences that match the job. Paragraph 3: explain unique value, why this company, and a professional closing with call to action. Maximum 350 words total. Be concise and impactful. Match keywords from the job description naturally. Return ONLY the 3 paragraphs as plain text, separated by blank lines. No header, no "Dear Hiring Manager", no "Sincerely", no name — only the body paragraphs.`
@@ -91,30 +91,43 @@ async function incrementCoverLetterUsage(supabase, userId) {
   }
 }
 
-const LIMIT_MESSAGE =
-  'You have reached your free limit for cover letters. Upgrade to generate more.'
+function limitReachedResponse() {
+  return NextResponse.json(
+    {
+      error: 'limit_reached',
+      message: 'You have reached your free cover letter limit. Upgrade to Pro for unlimited cover letters.',
+    },
+    { status: 403 }
+  )
+}
 
-/** Runs before file I/O or AI — avoids wasting API credits when the user is at limit. */
-async function ensureCoverLetterAllowed(supabase, userId) {
+function usageCheckFailedResponse() {
+  return NextResponse.json(
+    { error: 'usage_check_failed', message: 'Unable to verify usage. Please try again.' },
+    { status: 503 }
+  )
+}
+
+/** Runs before file I/O or AI — uses plan-aware limits via canCreateCoverLetterForUser. */
+async function ensureCanCreateCoverLetter(supabase, userId) {
+  if (!userId) {
+    return {
+      ok: false,
+      response: NextResponse.json({ error: 'Missing user context' }, { status: 400 }),
+    }
+  }
   try {
-    const { data: rows, error: usageError } = await supabase
+    const { data: rows, error: selectError } = await supabase
       .from('user_usage')
-      .select('cover_letters_generated')
+      .select('resumes_generated, cover_letters_generated')
       .eq('user_id', userId)
       .limit(1)
 
-    if (usageError) {
-      console.error('[generate-cover-letter] usage select error:', usageError)
-      return {
-        ok: false,
-        response: NextResponse.json(
-          { error: 'FREE_LIMIT_REACHED', message: 'Unable to verify usage. Please try again.' },
-          { status: 503 }
-        ),
-      }
+    if (selectError) {
+      console.error('[generate-cover-letter] usage select error:', selectError)
+      return { ok: false, response: usageCheckFailedResponse() }
     }
 
-    let current = 0
     if (!rows || rows.length === 0) {
       const { error: insertError } = await supabase.from('user_usage').insert({
         user_id: userId,
@@ -123,39 +136,22 @@ async function ensureCoverLetterAllowed(supabase, userId) {
       })
       if (insertError) {
         console.error('[generate-cover-letter] usage init error:', insertError)
-        return {
-          ok: false,
-          response: NextResponse.json(
-            { error: 'FREE_LIMIT_REACHED', message: 'Unable to verify usage. Please try again.' },
-            { status: 503 }
-          ),
-        }
+        return { ok: false, response: usageCheckFailedResponse() }
       }
-      current = 0
-    } else {
-      current = rows[0]?.cover_letters_generated ?? 0
     }
 
-    if (current >= FREE_COVER_LETTER_LIMIT) {
-      return {
-        ok: false,
-        response: NextResponse.json(
-          { error: 'FREE_LIMIT_REACHED', message: LIMIT_MESSAGE },
-          { status: 403 }
-        ),
-      }
+    const usage = await getUsage(supabase, userId)
+    const usageObj = usage ?? { resumes: 0, coverLetters: 0 }
+
+    const allowed = await canCreateCoverLetterForUser(supabase, userId, usageObj)
+    if (!allowed) {
+      return { ok: false, response: limitReachedResponse() }
     }
 
     return { ok: true }
   } catch (e) {
     console.error('[generate-cover-letter] usage check failed:', e)
-    return {
-      ok: false,
-      response: NextResponse.json(
-        { error: 'FREE_LIMIT_REACHED', message: 'Unable to verify usage. Please try again.' },
-        { status: 503 }
-      ),
-    }
+    return { ok: false, response: usageCheckFailedResponse() }
   }
 }
 
@@ -206,7 +202,7 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Missing user context' }, { status: 400 })
       }
 
-      const usageGate = await ensureCoverLetterAllowed(supabase, userId)
+      const usageGate = await ensureCanCreateCoverLetter(supabase, userId)
       if (!usageGate.ok) return usageGate.response
 
       if (!process.env.ANTHROPIC_API_KEY) {
@@ -269,7 +265,7 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Missing user context' }, { status: 400 })
       }
 
-      const usageGate = await ensureCoverLetterAllowed(supabase, userId)
+      const usageGate = await ensureCanCreateCoverLetter(supabase, userId)
       if (!usageGate.ok) return usageGate.response
 
       if (!process.env.ANTHROPIC_API_KEY) {

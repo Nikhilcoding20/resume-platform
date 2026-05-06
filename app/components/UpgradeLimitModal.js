@@ -51,12 +51,15 @@ export default function UpgradeLimitModal({ open, variant = 'resume', onClose })
           <LockIconWhite />
         </div>
         <div className="px-6 py-8 text-center">
-          <h2 id="upgrade-limit-modal-title" className="text-xl font-bold text-slate-900 mb-3">
+          <h2
+            id="upgrade-limit-modal-title"
+            className="text-xl font-bold bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent mb-3"
+          >
             You&apos;ve reached your free limit
           </h2>
           <p className="text-sm text-slate-500 mb-8 leading-relaxed">{c.subtext}</p>
           <Link
-            href="/dashboard/pricing"
+            href="/pricing"
             className="inline-flex items-center justify-center w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#06b6d4] text-white text-base font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-shadow"
           >
             Upgrade Now →
