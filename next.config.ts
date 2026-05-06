@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/generate-resume": ["./node_modules/@sparticuz/chromium/**/*"],
     "/api/generate-cover-letter": ["./node_modules/@sparticuz/chromium/**/*"],
+    "/api/render-cover-letter-pdf": ["./node_modules/@sparticuz/chromium/**/*"],
     "/api/ats-fix-resume": ["./node_modules/@sparticuz/chromium/**/*"],
   },
   async headers() {

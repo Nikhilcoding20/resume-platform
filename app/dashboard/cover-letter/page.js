@@ -6,6 +6,7 @@ import { supabase } from '@/lib/supabase'
 import { getUsage, canCreateCoverLetterForUser } from '@/lib/checkUsage'
 import Link from 'next/link'
 import UpgradeLimitModal from '@/app/components/UpgradeLimitModal'
+import { formatDateWithOrdinal } from '@/lib/coverLetterDocument'
 
 const APP_BRAND = 'Unemployed Club'
 
@@ -98,6 +99,44 @@ function CoverLetterGeneratingOverlay({ active, progress }) {
   )
 }
 
+function CoverLetterLivePreview({ header, bodyText }) {
+  const contactParts = [header?.email, header?.phone, header?.linkedin].filter(Boolean)
+  const paragraphs = (bodyText || '').split(/\n\n+/).filter((p) => p.trim())
+
+  return (
+    <div
+      className="text-black"
+      style={{
+        fontFamily: "'Calibri', 'Trebuchet MS', ui-sans-serif, sans-serif",
+        fontSize: 12,
+        lineHeight: 1.6,
+      }}
+    >
+      <div className="text-center mb-5">
+        <h2 className="text-[20px] font-bold m-0 mb-1.5 leading-tight">{header?.fullName || ''}</h2>
+        {contactParts.length > 0 && (
+          <p className="m-0 text-[12px] text-black">
+            {contactParts.join(' \u00a0|\u00a0 ')}
+          </p>
+        )}
+      </div>
+      <p className="text-right m-0 mb-5 text-[12px]">{formatDateWithOrdinal()}</p>
+      <p className="m-0 mb-3.5 text-[12px]">Dear Hiring Manager,</p>
+      <div className="mb-0">
+        {paragraphs.map((para, i) => (
+          <p key={i} className="m-0 mb-3.5 text-[12px] whitespace-pre-wrap last:mb-0">
+            {para}
+          </p>
+        ))}
+      </div>
+      <p className="mt-6 mb-0 text-[12px]">Sincerely,</p>
+      <p className="m-0 h-4" aria-hidden />
+      <p className="m-0 h-4" aria-hidden />
+      <p className="m-0 text-[12px]">{header?.fullName || ''}</p>
+    </div>
+  )
+}
+
 const ACCEPTED_TYPES = [
   'application/pdf',
   'application/msword',
@@ -132,6 +171,9 @@ export default function CoverLetterPage() {
   const [showLimitOverlay, setShowLimitOverlay] = useState(false)
   const [progress, setProgress] = useState(0)
   const progressIntervalRef = useRef(null)
+  const [result, setResult] = useState(null)
+  const [editedBody, setEditedBody] = useState('')
+  const [downloadLoading, setDownloadLoading] = useState(false)
 
   const stopProgress = () => {
     if (progressIntervalRef.current) {
@@ -259,6 +301,7 @@ export default function CoverLetterPage() {
       formData.append('file', file)
       formData.append('jobDescription', jobDescription.trim())
       formData.append('userId', session.user.id)
+      formData.append('responseFormat', 'json')
 
       const res = await fetch('/api/generate-cover-letter', {
         method: 'POST',
@@ -278,26 +321,85 @@ export default function CoverLetterPage() {
         throw new Error(data.error || `Request failed (${res.status})`)
       }
 
-      const blob = await res.blob()
-      const url = URL.createObjectURL(blob)
-      const disposition = res.headers.get('Content-Disposition')
-      const match = disposition?.match(/filename="?([^";\n]+)"?/)
-      const filename = match?.[1] || 'cover_letter.pdf'
-
+      const data = await res.json()
       stopProgress()
       setProgress(100)
       await new Promise((r) => setTimeout(r, 500))
 
+      setResult({
+        filename: data.filename || 'cover_letter.pdf',
+        bodyText: data.bodyText || '',
+        header: data.header || { fullName: '', email: '', phone: '', linkedin: '' },
+      })
+      setEditedBody(data.bodyText || '')
+    } catch (err) {
+      setError(err.message || 'Failed to generate cover letter')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleDownloadPdf = async () => {
+    if (!result) return
+    const bodyText = editedBody.trim()
+    if (!bodyText) {
+      setError('Cover letter text is empty.')
+      return
+    }
+
+    setError(null)
+    setDownloadLoading(true)
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        router.replace('/login')
+        return
+      }
+
+      const res = await fetch('/api/render-cover-letter-pdf', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${session.access_token}`,
+        },
+        body: JSON.stringify({ header: result.header, bodyText }),
+      })
+
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}))
+        throw new Error(errData.error || `Download failed (${res.status})`)
+      }
+
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const disposition = res.headers.get('Content-Disposition')
+      const match = disposition?.match(/filename="?([^";\n]+)"?/)
+      const filename = match?.[1] || result.filename || 'cover_letter.pdf'
       const a = document.createElement('a')
       a.href = url
       a.download = filename
       a.click()
       URL.revokeObjectURL(url)
     } catch (err) {
-      setError(err.message || 'Failed to generate cover letter')
+      setError(err.message || 'Failed to download PDF')
     } finally {
-      setLoading(false)
+      setDownloadLoading(false)
     }
+  }
+
+  const handleRegenerate = async () => {
+    if (!file || !jobDescription.trim()) {
+      setError('Please upload a resume and enter the job description.')
+      return
+    }
+    setError(null)
+    await handleGenerate()
+  }
+
+  const handleBackToInputs = () => {
+    setResult(null)
+    setEditedBody('')
+    setError(null)
   }
 
   if (initLoading) {
@@ -317,94 +419,157 @@ export default function CoverLetterPage() {
         onClose={() => setShowLimitOverlay(false)}
       />
       <CoverLetterGeneratingOverlay active={loading} progress={progress} />
-      <h1 className="text-2xl font-bold bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent mb-6">Generate Cover Letter</h1>
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-        <div className="bg-white rounded-xl border border-[#eaeaf2] p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#6366f1] to-[#06b6d4]" />
-          <h2 className="text-sm font-semibold text-[#5c5c7a] mb-3 mt-1">Upload your resume</h2>
+      {result ? (
+        <div className="w-full min-h-[calc(100vh-4rem)] flex flex-col -mx-4 px-4 sm:-mx-6 sm:px-6 py-2 bg-slate-100 rounded-xl border border-slate-200/80">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent pt-4 pb-6 shrink-0">
+            Your cover letter
+          </h1>
           <div
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
-            className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
-              isDragging ? 'border-[#6366f1] bg-indigo-50/80' : 'border-[#eaeaf2] hover:border-[#6366f1]/50'
-            }`}
+            className="flex-1 pb-8 min-h-0 flex flex-col lg:grid gap-6 lg:gap-[4%]"
+            style={{ gridTemplateColumns: '58% 38%' }}
           >
-            <input
-              type="file"
-              id="resume-upload"
-              accept=".pdf,.doc,.docx,.txt"
-              onChange={handleFileSelect}
-              className="hidden"
-            />
-            <label
-              htmlFor="resume-upload"
-              className="cursor-pointer block"
-            >
-              {file ? (
-                <p className="text-[#1a1a2e] font-medium">{file.name}</p>
-              ) : (
-                <>
-                  <p className="text-[#5c5c7a]">Drag and drop your resume here, or</p>
-                  <p className="text-[#6366f1] font-medium mt-2">click to browse</p>
-                  <p className="text-xs text-[#5c5c7a] mt-2">PDF, Word, or TXT</p>
-                </>
-              )}
-            </label>
+            <div className="min-w-0 flex justify-start lg:justify-start">
+              <div className="w-full max-w-[640px] overflow-hidden rounded-xl shadow-lg shadow-slate-200/60 border border-slate-200/80 bg-white">
+                <div className="max-h-[min(75vh,900px)] overflow-y-auto px-10 py-12 sm:px-14 sm:py-14">
+                  <CoverLetterLivePreview header={result.header} bodyText={editedBody} />
+                </div>
+              </div>
+            </div>
+            <div className="min-w-0 flex flex-col gap-5">
+              <div className="bg-white rounded-xl shadow-lg shadow-slate-200/60 border border-slate-200/80 p-6">
+                <h2 className="text-sm font-semibold text-[#1a1a2e] mb-2">Edit letter body</h2>
+                <p className="text-xs text-[#5c5c7a] mb-3">
+                  Adjust paragraphs below. Separate paragraphs with a blank line. Salutation and closing stay fixed to match the PDF.
+                </p>
+                <textarea
+                  value={editedBody}
+                  onChange={(e) => setEditedBody(e.target.value)}
+                  rows={14}
+                  className="w-full px-4 py-3 border border-[#eaeaf2] rounded-xl focus:ring-2 focus:ring-[#6366f1]/25 resize-y text-[#1a1a2e] text-sm leading-relaxed bg-white transition-all min-h-[220px]"
+                />
+              </div>
+              {error && <p className="text-sm text-red-600" role="alert">{error}</p>}
+              <div className="flex flex-col gap-3">
+                <button
+                  type="button"
+                  onClick={handleDownloadPdf}
+                  disabled={downloadLoading || !editedBody.trim()}
+                  className="min-h-11 w-full rounded-xl px-6 py-3 font-semibold text-white shadow-md transition-all btn-gradient ds-btn-glow hover:shadow-lg disabled:opacity-40"
+                >
+                  {downloadLoading ? 'Preparing PDF…' : 'Download PDF'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleRegenerate}
+                  disabled={loading || !file || !jobDescription.trim()}
+                  className="min-h-11 w-full rounded-xl px-6 py-3 font-semibold border-2 border-[#6366f1] text-[#6366f1] bg-white hover:bg-[#f8f8ff] disabled:opacity-40 transition-colors"
+                >
+                  {loading ? 'Regenerating…' : 'Regenerate with AI'}
+                </button>
+                <button
+                  type="button"
+                  onClick={handleBackToInputs}
+                  disabled={loading}
+                  className="text-sm font-medium text-[#5c5c7a] hover:text-[#6366f1] text-left disabled:opacity-40"
+                >
+                  ← Back to resume & job description
+                </button>
+              </div>
+            </div>
           </div>
         </div>
+      ) : (
+        <>
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent mb-6">Generate Cover Letter</h1>
+          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+            <div className="bg-white rounded-xl border border-[#eaeaf2] p-6 shadow-sm hover:shadow-md transition-shadow relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#6366f1] to-[#06b6d4]" />
+              <h2 className="text-sm font-semibold text-[#5c5c7a] mb-3 mt-1">Upload your resume</h2>
+              <div
+                onDragOver={handleDragOver}
+                onDragLeave={handleDragLeave}
+                onDrop={handleDrop}
+                className={`border-2 border-dashed rounded-xl p-8 text-center transition-all ${
+                  isDragging ? 'border-[#6366f1] bg-indigo-50/80' : 'border-[#eaeaf2] hover:border-[#6366f1]/50'
+                }`}
+              >
+                <input
+                  type="file"
+                  id="resume-upload"
+                  accept=".pdf,.doc,.docx,.txt"
+                  onChange={handleFileSelect}
+                  className="hidden"
+                />
+                <label
+                  htmlFor="resume-upload"
+                  className="cursor-pointer block"
+                >
+                  {file ? (
+                    <p className="text-[#1a1a2e] font-medium">{file.name}</p>
+                  ) : (
+                    <>
+                      <p className="text-[#5c5c7a]">Drag and drop your resume here, or</p>
+                      <p className="text-[#6366f1] font-medium mt-2">click to browse</p>
+                      <p className="text-xs text-[#5c5c7a] mt-2">PDF, Word, or TXT</p>
+                    </>
+                  )}
+                </label>
+              </div>
+            </div>
 
-        <div className="bg-white rounded-xl border border-[#eaeaf2] p-6 shadow-sm hover:shadow-md relative overflow-hidden">
-          <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#a855f7] to-[#06b6d4]" />
-          <h2 className="text-sm font-semibold text-[#5c5c7a] mb-3 mt-1">Job description</h2>
-          <textarea
-            value={jobDescription}
-            onChange={(e) => { setJobDescription(e.target.value); setFetchError(null) }}
-            placeholder="Paste the job description here..."
-            rows={12}
-            className="w-full px-4 py-3 border border-[#eaeaf2] rounded-xl focus:ring-2 focus:ring-[#6366f1]/25 resize-y text-[#1a1a2e] bg-white transition-all"
-          />
-          <div className="flex items-center gap-3 my-4">
-            <div className="flex-1 h-px bg-[#eaeaf2]" />
-            <span className="text-sm text-[#5c5c7a]">OR</span>
-            <div className="flex-1 h-px bg-[#eaeaf2]" />
+            <div className="bg-white rounded-xl border border-[#eaeaf2] p-6 shadow-sm hover:shadow-md relative overflow-hidden">
+              <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-[#a855f7] to-[#06b6d4]" />
+              <h2 className="text-sm font-semibold text-[#5c5c7a] mb-3 mt-1">Job description</h2>
+              <textarea
+                value={jobDescription}
+                onChange={(e) => { setJobDescription(e.target.value); setFetchError(null) }}
+                placeholder="Paste the job description here..."
+                rows={12}
+                className="w-full px-4 py-3 border border-[#eaeaf2] rounded-xl focus:ring-2 focus:ring-[#6366f1]/25 resize-y text-[#1a1a2e] bg-white transition-all"
+              />
+              <div className="flex items-center gap-3 my-4">
+                <div className="flex-1 h-px bg-[#eaeaf2]" />
+                <span className="text-sm text-[#5c5c7a]">OR</span>
+                <div className="flex-1 h-px bg-[#eaeaf2]" />
+              </div>
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
+                <input
+                  type="url"
+                  value={jobUrl}
+                  onChange={(e) => { setJobUrl(e.target.value); setFetchError(null) }}
+                  placeholder="Job posting URL"
+                  className="min-h-11 w-full flex-1 rounded-xl border border-[#eaeaf2] bg-white px-4 py-3 transition-all focus:ring-2 focus:ring-[#6366f1]/25"
+                  disabled={fetchLoading}
+                />
+                <button type="button" onClick={handleFetchJob} disabled={fetchLoading || !jobUrl.trim()} className="min-h-11 w-full shrink-0 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-all btn-gradient ds-btn-glow hover:shadow-lg disabled:opacity-40 sm:w-auto">
+                  {fetchLoading ? (
+                    <span className="flex items-center gap-2">
+                      <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                      Fetching...
+                    </span>
+                  ) : (
+                    'Fetch Job Description'
+                  )}
+                </button>
+              </div>
+
+              {fetchError && <p className="mt-2 text-sm text-red-600">{fetchError}</p>}
+            </div>
           </div>
-          <div className="flex flex-col gap-2 sm:flex-row sm:items-stretch">
-            <input
-              type="url"
-              value={jobUrl}
-              onChange={(e) => { setJobUrl(e.target.value); setFetchError(null) }}
-              placeholder="Job posting URL"
-              className="min-h-11 w-full flex-1 rounded-xl border border-[#eaeaf2] bg-white px-4 py-3 transition-all focus:ring-2 focus:ring-[#6366f1]/25"
-              disabled={fetchLoading}
-            />
-            <button type="button" onClick={handleFetchJob} disabled={fetchLoading || !jobUrl.trim()} className="min-h-11 w-full shrink-0 rounded-xl px-6 py-3 text-sm font-semibold text-white shadow-md transition-all btn-gradient ds-btn-glow hover:shadow-lg disabled:opacity-40 sm:w-auto">
-              {fetchLoading ? (
-                <span className="flex items-center gap-2">
-                  <span className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                  Fetching...
-                </span>
-              ) : (
-                'Fetch Job Description'
-              )}
+
+          {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
+          <div className="mt-6">
+            <button
+              type="button"
+              onClick={handleGenerate}
+              disabled={loading || !file || !jobDescription.trim()}
+              className="min-h-11 w-full rounded-xl px-8 py-3 font-semibold text-white shadow-md transition-all btn-gradient ds-btn-glow hover:shadow-lg disabled:opacity-40 sm:w-auto"
+            >
+              {loading ? 'Generating...' : 'Generate Cover Letter'}
             </button>
           </div>
-
-          {fetchError && <p className="mt-2 text-sm text-red-600">{fetchError}</p>}
-        </div>
-      </div>
-
-      {error && <p className="mt-4 text-sm text-red-600">{error}</p>}
-      <div className="mt-6">
-        <button
-          type="button"
-          onClick={handleGenerate}
-          disabled={loading || !file || !jobDescription.trim()}
-          className="min-h-11 w-full rounded-xl px-8 py-3 font-semibold text-white shadow-md transition-all btn-gradient ds-btn-glow hover:shadow-lg disabled:opacity-40 sm:w-auto"
-        >
-          {loading ? 'Generating...' : 'Generate Cover Letter'}
-        </button>
-      </div>
+        </>
+      )}
     </div>
   )
 }

@@ -5,6 +5,7 @@ import pdf from 'pdf-parse/lib/pdf-parse.js'
 import mammoth from 'mammoth'
 import { createClient } from '@supabase/supabase-js'
 import { FREE_COVER_LETTER_LIMIT } from '@/lib/checkUsage'
+import { buildPrintableCoverLetterDocument, getCoverLetterPdfFilename } from '@/lib/coverLetterDocument'
 
 const COVER_LETTER_PROMPT = `You are an expert career coach. Write a Harvard style cover letter body with exactly 3 paragraphs. NO paragraph labels, headings, or bold text — just plain professional prose. Paragraph 1: strong opening showing enthusiasm for the specific role and company. Paragraph 2: highlight 2-3 most relevant experiences that match the job. Paragraph 3: explain unique value, why this company, and a professional closing with call to action. Maximum 350 words total. Be concise and impactful. Match keywords from the job description naturally. Return ONLY the 3 paragraphs as plain text, separated by blank lines. No header, no "Dear Hiring Manager", no "Sincerely", no name — only the body paragraphs.`
 
@@ -12,18 +13,6 @@ const HEADER_EXTRACT_PROMPT = `Extract from this resume and return ONLY a valid 
 
 function jsonError(message, status = 500) {
   return NextResponse.json({ error: message }, { status })
-}
-
-function formatDateWithOrdinal() {
-  const d = new Date()
-  const day = d.getDate()
-  const ord = (n) => {
-    if (n >= 11 && n <= 13) return n + 'th'
-    const s = ['th', 'st', 'nd', 'rd']
-    return n + (s[n % 10] || 'th')
-  }
-  const months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December']
-  return `${ord(day)} ${months[d.getMonth()]}, ${d.getFullYear()}`
 }
 
 function getFileExtension(file) {
@@ -48,44 +37,6 @@ function isTxt(file) {
   const ext = getFileExtension(file)
   const mime = (file.type || '').toLowerCase()
   return ext === 'txt' || mime === 'text/plain'
-}
-
-function escapeHtml(text) {
-  if (text == null) return ''
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
-
-function paragraphsToHtml(plainText) {
-  const escaped = escapeHtml(plainText)
-  const paragraphs = escaped.split(/\n\n+/).filter((p) => p.trim())
-  return paragraphs.map((p) => `<p style="margin: 0 0 14px 0;">${p.replace(/\n/g, '<br />')}</p>`).join('')
-}
-
-function buildCoverLetterHtml(header, bodyHtml) {
-  const { fullName, email, phone, linkedin } = header
-  const contactParts = [email, phone, linkedin].filter(Boolean).map(escapeHtml)
-  const contactLine = contactParts.length ? contactParts.join(' &nbsp;|&nbsp; ') : ''
-
-  return `
-<div class="header">
-  <h1 class="name">${escapeHtml(fullName || '')}</h1>
-  ${contactLine ? `<p class="contact">${contactLine}</p>` : ''}
-</div>
-<p class="date">${formatDateWithOrdinal()}</p>
-<p class="salutation">Dear Hiring Manager,</p>
-<div class="body">
-${bodyHtml}
-</div>
-<p class="closing">Sincerely,</p>
-<p class="spacer">&nbsp;</p>
-<p class="spacer">&nbsp;</p>
-<p class="signature">${escapeHtml(fullName || '')}</p>
-`
 }
 
 function buildContext(profile, resumeText) {
@@ -115,15 +66,29 @@ function getHeaderFromProfile(profile) {
   }
 }
 
-function getFilenameFromName(fullName) {
-  const name = (fullName || '').trim()
-  if (!name) return 'cover_letter.pdf'
-  const parts = name.split(/\s+/).filter(Boolean)
-  const sanitized = parts.map((p) => p.replace(/[^a-zA-Z0-9-]/g, '')).filter(Boolean)
-  const base = sanitized.length >= 2
-    ? `${sanitized[0]}_${sanitized.slice(1).join('_')}`
-    : sanitized[0] || 'cover_letter'
-  return `${base}_cover_letter.pdf`
+async function incrementCoverLetterUsage(supabase, userId) {
+  if (!userId) return
+  try {
+    const { data: usageRows, error: usageError } = await supabase
+      .from('user_usage')
+      .select('cover_letters_generated')
+      .eq('user_id', userId)
+      .limit(1)
+
+    if (usageError) {
+      console.error('[generate-cover-letter] usage update select error:', usageError)
+    }
+
+    const current = usageRows && usageRows.length > 0 ? usageRows[0]?.cover_letters_generated ?? 0 : 0
+    await supabase
+      .from('user_usage')
+      .update({ cover_letters_generated: current + 1 })
+      .eq('user_id', userId)
+
+    console.log('[generate-cover-letter] usage increment', { user_id: userId, cover_letters_generated: current + 1 })
+  } catch (insertErr) {
+    console.error('[generate-cover-letter] Failed to track usage:', insertErr)
+  }
 }
 
 const LIMIT_MESSAGE =
@@ -216,10 +181,12 @@ export async function POST(request) {
     let resumeText = null
     let jobDescription = ''
     let header = { fullName: '', email: '', phone: '', linkedin: '' }
+    let responseFormat = 'pdf'
 
     let userId = null
     if (contentType.includes('multipart/form-data')) {
       const formData = await request.formData()
+      responseFormat = formData.get('responseFormat')?.toString()?.toLowerCase() === 'json' ? 'json' : 'pdf'
       const file = formData.get('file')
       jobDescription = formData.get('jobDescription')?.toString()?.trim() || ''
       userId = formData.get('userId')?.toString()?.trim() || null
@@ -284,6 +251,7 @@ export async function POST(request) {
       }
     } else {
       const body = await request.json()
+      responseFormat = body.responseFormat === 'json' ? 'json' : 'pdf'
       profile = body.profile
       resumeText = body.resumeText
       jobDescription = body.jobDescription?.trim() || ''
@@ -332,41 +300,23 @@ export async function POST(request) {
       return jsonError('AI returned no cover letter', 500)
     }
 
-    const filename = getFilenameFromName(header.fullName)
-    const bodyHtml = paragraphsToHtml(coverLetterText)
-    const coverLetterHtml = buildCoverLetterHtml(header, bodyHtml)
+    const filename = getCoverLetterPdfFilename(header.fullName)
 
-    const html = `<!DOCTYPE html>
-<html>
-<head>
-  <meta charset="UTF-8">
-  <style>
-    html, body, body * {
-      font-family: 'Calibri', 'Trebuchet MS', sans-serif !important;
+    if (responseFormat === 'json') {
+      await incrementCoverLetterUsage(supabase, userId)
+      return NextResponse.json({
+        filename,
+        bodyText: coverLetterText,
+        header: {
+          fullName: header.fullName,
+          email: header.email,
+          phone: header.phone,
+          linkedin: header.linkedin,
+        },
+      })
     }
-    body {
-      font-size: 12px;
-      line-height: 1.6;
-      color: #000;
-      margin: 0;
-      padding: 0;
-    }
-    .header { text-align: center; margin-bottom: 20px; }
-    .name { font-size: 20px; font-weight: bold; margin: 0 0 6px 0; }
-    .contact { margin: 0; font-size: 12px; }
-    .date { text-align: right; margin: 0 0 20px 0; }
-    .salutation { margin: 0 0 14px 0; }
-    .body p { margin: 0 0 14px 0; page-break-inside: avoid; }
-    .closing { margin: 24px 0 0 0; }
-    .spacer { margin: 0; }
-    .signature { margin: 0; }
-  </style>
-</head>
-<body>
-${coverLetterHtml}
-</body>
-</html>`
 
+    const html = buildPrintableCoverLetterDocument(header, coverLetterText)
     const browser = await launchChromiumForPdf()
 
     try {
@@ -385,29 +335,7 @@ ${coverLetterHtml}
 
       await browser.close()
 
-      if (userId) {
-        try {
-          const { data: usageRows, error: usageError } = await supabase
-            .from('user_usage')
-            .select('cover_letters_generated')
-            .eq('user_id', userId)
-            .limit(1)
-
-          if (usageError) {
-            console.error('[generate-cover-letter] usage update select error:', usageError)
-          }
-
-          const current = usageRows && usageRows.length > 0 ? usageRows[0]?.cover_letters_generated ?? 0 : 0
-          await supabase
-            .from('user_usage')
-            .update({ cover_letters_generated: current + 1 })
-            .eq('user_id', userId)
-
-          console.log('[generate-cover-letter] usage increment', { user_id: userId, cover_letters_generated: current + 1 })
-        } catch (insertErr) {
-          console.error('[generate-cover-letter] Failed to track usage:', insertErr)
-        }
-      }
+      await incrementCoverLetterUsage(supabase, userId)
 
       return new NextResponse(pdfBuffer, {
         status: 200,
