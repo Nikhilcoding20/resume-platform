@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Reset your password</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f8fafc;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color:#f8fafc;padding:24px 12px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:560px;background:#ffffff;border-radius:16px;overflow:hidden;border:1px solid #eaeaf2;box-shadow:0 4px 24px rgba(15,23,42,0.06);">
+          <tr>
+            <td style="background:linear-gradient(135deg,#6366f1 0%,#7c3aed 45%,#06b6d4 100%);padding:24px 28px;text-align:center;">
+              <img src="https://www.unemployedclub.com/logo.png" alt="Unemployed Club" width="160" height="36" style="display:block;margin:0 auto 16px;height:36px;width:auto;max-width:160px;" />
+              <h1 style="margin:0;font-size:20px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">Reset your password</h1>
+              <p style="margin:10px 0 0;font-size:14px;color:rgba(255,255,255,0.92);line-height:1.5;">We received a request to reset the password for your account.</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 28px 8px;">
+              <p style="margin:0 0 16px;font-size:15px;line-height:1.6;color:#1a1a2e;">
+                Click the button below to choose a new password. This link expires soon for your security.
+              </p>
+              <table role="presentation" cellspacing="0" cellpadding="0" align="center" style="margin:24px auto;">
+                <tr>
+                  <td align="center" style="border-radius:12px;background:linear-gradient(135deg,#6366f1 0%,#7c3aed 50%,#06b6d4 100%);">
+                    <a href="{{ .ConfirmationURL }}" target="_blank" rel="noopener noreferrer" style="display:inline-block;padding:14px 32px;font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;font-family:system-ui,-apple-system,Segoe UI,Roboto,sans-serif;border-radius:12px;">
+                      Reset password
+                    </a>
+                  </td>
+                </tr>
+              </table>
+              <p style="margin:20px 0 0;font-size:13px;line-height:1.5;color:#5c5c7a;">
+                If the button doesn&rsquo;t work, copy and paste this link into your browser:<br />
+                <a href="{{ .ConfirmationURL }}" style="color:#6366f1;word-break:break-all;">{{ .ConfirmationURL }}</a>
+              </p>
+              <p style="margin:20px 0 0;font-size:13px;line-height:1.5;color:#94a3b8;">
+                If you didn&rsquo;t request a password reset, you can ignore this email.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:0 28px 24px;font-size:12px;color:#94a3b8;">Unemployed Club · unemployedclub.com</td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
