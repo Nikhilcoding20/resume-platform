@@ -125,15 +125,53 @@ const COMPLETE_PROGRESS_DURATION_MS = 450
 
 function buildResumeText(content) {
   if (!content) return ''
-  const { name, summary, experience, skills } = content
+  const {
+    name,
+    email,
+    phone,
+    location,
+    linkedin_url: linkedinUrl,
+    portfolio_url: portfolioUrl,
+    summary,
+    experience,
+    skills,
+    skillGroups,
+    education,
+    certifications,
+  } = content
   let t = [name, summary].filter(Boolean).join('\n\n')
+  const contactBits = [email, phone, location, linkedinUrl, portfolioUrl].filter(Boolean)
+  if (contactBits.length) t += '\n\n' + contactBits.join(' · ')
   if (Array.isArray(experience) && experience.length) {
     experience.forEach((job) => {
       t += '\n\n' + [job.title, job.company, job.dates].filter(Boolean).join(' ')
       if (Array.isArray(job.bullets)) t += '\n' + job.bullets.join('\n')
     })
   }
-  if (Array.isArray(skills) && skills.length) t += '\n\nSkills: ' + skills.join(', ')
+  if (Array.isArray(skillGroups) && skillGroups.length) {
+    t += '\n\nSkills:'
+    skillGroups.forEach((g) => {
+      const cat = g?.category || 'Skills'
+      const list = Array.isArray(g?.skills) ? g.skills.join(', ') : ''
+      if (list) t += `\n${cat}: ${list}`
+    })
+  } else if (Array.isArray(skills) && skills.length) {
+    t += '\n\nSkills: ' + skills.join(', ')
+  }
+  if (Array.isArray(education) && education.length) {
+    t += '\n\nEducation:'
+    education.forEach((e) => {
+      const line = [e.degree, e.institution, e.graduationYear].filter(Boolean).join(' — ')
+      if (line) t += '\n' + line
+    })
+  }
+  if (Array.isArray(certifications) && certifications.length) {
+    t += '\n\nCertifications:'
+    certifications.forEach((c) => {
+      const line = [c.name, c.issuer, c.year].filter(Boolean).join(' — ')
+      if (line) t += '\n' + line
+    })
+  }
   return t
 }
 

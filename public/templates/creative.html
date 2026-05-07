@@ -9,6 +9,7 @@
   <header style="background: #1e3a5f; color: #fff; padding: 48px; text-align: center;">
     <h1 style="margin: 0; font-size: 32pt; font-weight: 700;">{{name}}</h1>
     <p style="margin: 12px 0 0 0; font-size: 12pt; opacity: 0.9;">{{email}} | {{phone}} | {{location}}</p>
+    {{contact_urls_block}}
   </header>
 
   <div style="display: flex; flex-wrap: wrap; padding: 32px;">
@@ -25,9 +26,12 @@
         <div style="font-size: 11pt; line-height: 1.5;">{{experience}}</div>
       </div>
 
+      {{education_block}}
+      {{certifications_block}}
+
       <div style="border-left: 4px solid #059669; padding-left: 16px;">
         <h2 style="margin: 0 0 12px 0; font-size: 11pt; font-weight: 600; color: #059669; text-transform: uppercase;">Skills</h2>
-        <p style="margin: 0; font-size: 11pt; line-height: 1.5;">{{skills}}</p>
+        <div style="margin: 0; font-size: 11pt; line-height: 1.5;">{{skills}}</div>
       </div>
     </div>
   </div>

@@ -8,6 +8,13 @@ import { getUsage, canCreateResumeForUser } from '@/lib/checkUsage'
 
 const PROMPT = `You are a professional resume writer and layout designer. Rewrite this person's resume to perfectly match the following job description. Never invent experience that does not exist. Keep all content ATS-friendly. Naturally include important keywords from the job description.
 
+SOURCE DATA — USE EVERYTHING RELEVANT (DO NOT DROP):
+- You receive the full resume profile as JSON (built manually or from an uploaded resume). Use every field that is present.
+- CONTACT: The profile may include email, phone_number, city, country, linkedin_url, and portfolio_url. Never contradict these in the summary. (The PDF header uses the profile values directly; your job is to keep wording consistent and not omit facts that appear in the profile.)
+- EDUCATION: If the profile's "education" array has any entries, you MUST include an "education" array in your JSON with one object per real entry (same count). Each object must use keys: degree (string), institution (string), graduationYear (string). Map from profile fields degreeName → degree, schoolName → institution, graduationYear → graduationYear. You may tighten wording but must not remove a real degree/school/year.
+- CERTIFICATIONS: If the profile's "certifications" array has any entries with certificationName, issuer, or year, you MUST include a "certifications" array in your JSON with one object per real entry. Use keys: name (string), issuer (string), year (string). Map certificationName → name. Do not invent certifications.
+- SKILLS: Never output skills as one flat comma-separated blob only. Always use "skillGroups" (see JSON schema below): several named categories, each with its own skill list.
+
 RESUME LENGTH & LAYOUT RULES (STRICT):
 - The resume must fill exactly 1 full A4 page — not more, not less.
 - There must be no overflow onto a second page under any circumstance.
@@ -31,10 +38,11 @@ BULLET POINT RULES - USE CAR METHOD STRICTLY:
 - Each bullet point should be written so that it is roughly 1.5 to 2 lines of text at normal resume font size — not too short and not an overly long paragraph.
 
 SKILLS SECTION RULES:
-- Maximum 15 skills, minimum 8 skills.
-- Only include skills directly relevant to the job description.
+- Output "skillGroups" as an array of category objects (see JSON schema). Each category has a short label (e.g. "Languages", "Frameworks", "Cloud & DevOps") and a list of skills under it.
+- Across all categories combined: maximum 15 skills, minimum 8 skills (only if the profile/source actually lists enough distinct skills; if fewer exist, include all real ones and do not invent).
+- Only include skills directly relevant to the job description (when choosing among many); still include every skill from the profile that fits the role.
 - No soft skills like "team player" or "hard worker".
-- The skills section should contain enough skills to visually fill the skills line/row without leaving large empty gaps.
+- The skills section should read as clean grouped lines/blocks (category label + skills), not a single comma-separated paragraph.
 
 SUMMARY RULES:
 - Exactly 3 sentences (no more, no fewer).
@@ -42,16 +50,25 @@ SUMMARY RULES:
 - Must mention years of experience, top 2 skills, and one impressive achievement.
 
 OVERALL PAGE COMPOSITION:
-- Aim for a perfectly balanced full-page resume: summary, experience, and skills together should fill a single A4 page in a way that looks intentional and professional.
+- Aim for a perfectly balanced full-page resume: summary, experience, education (when present), certifications (when present), and grouped skills together should fill a single A4 page in a way that looks intentional and professional.
 - Use the amount of detail in bullet points and the number of bullets to control how full the page is.
 - If the page still feels under-filled, prefer enriching existing bullet points with specific tools, platforms, and measurable outcomes from the candidate's real background (never inventing new roles).
 - If the page feels overfilled, first reduce bullet point count for less relevant roles, then trim wording while preserving CAR structure and metrics.
 
-Return ONLY a raw JSON object with these fields: summary (string), experience (array of objects each with title, company, dates, and bullets as array of strings), skills (array of strings). Return nothing else.`
+JSON SCHEMA (STRICT — include every key; use empty arrays where nothing applies):
+- summary (string)
+- experience (array of objects: title, company, dates, bullets as array of strings)
+- skillGroups (array of objects: each has "category" (string) and "skills" (array of strings))
+- education (array of objects: degree, institution, graduationYear — required entries whenever profile education exists)
+- certifications (array of objects: name, issuer, year — required entries whenever profile certifications exist)
 
-const REGENERATE_PROMPT = `You are a professional resume writer. The user has an existing resume and requested specific changes. Apply their feedback to the resume content below. Never invent experience that does not exist. Keep all content ATS-friendly. Preserve the same JSON structure.
+Return ONLY that raw JSON object. Return nothing else.`
 
-Return ONLY a raw JSON object with these fields: summary (string), experience (array of objects each with title, company, dates, and bullets as array of strings), skills (array of strings). Return nothing else.`
+const REGENERATE_PROMPT = `You are a professional resume writer. The user has an existing resume and requested specific changes. Apply their feedback to the resume content below. Never invent experience that does not exist. Keep all content ATS-friendly.
+
+You MUST preserve and return the full JSON structure: summary, experience, skillGroups (grouped skills — never a single comma-only blob), education, certifications. Use the profile JSON in the request if you need to restore any education or certification rows that must not be dropped.
+
+Return ONLY a raw JSON object with these fields: summary (string), experience (array of objects each with title, company, dates, and bullets as array of strings), skillGroups (array of objects each with category string and skills array of strings), education (array of objects each with degree, institution, graduationYear), certifications (array of objects each with name, issuer, year). Use empty arrays for education or certifications only when the user's profile truly has none. Return nothing else.`
 
 const VALID_TEMPLATES = ['ats', 'modern', 'minimal', 'creative']
 
@@ -99,11 +116,194 @@ function formatExperienceHtml(experience) {
     .join('')
 }
 
-function formatSkillsHtml(skills) {
-  if (!Array.isArray(skills) || skills.length === 0) {
+function formatSkillGroupsHtml(skillGroups) {
+  if (!Array.isArray(skillGroups) || skillGroups.length === 0) {
     return ''
   }
-  return skills.map((s) => escapeHtml(String(s))).join(', ')
+  return skillGroups
+    .map((g) => {
+      const items = (g.skills || []).map((s) => escapeHtml(String(s))).join(', ')
+      return `<div class="skill-group resume-section" style="margin-bottom: 8px;"><span style="font-weight: bold;">${escapeHtml(g.category || 'Skills')}:</span> ${items}</div>`
+    })
+    .join('')
+}
+
+function normalizeEducationEntry(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const degree = raw.degree ?? raw.degreeName ?? ''
+  const institution = raw.institution ?? raw.schoolName ?? raw.school ?? ''
+  const graduationYear = raw.graduationYear ?? raw.year ?? ''
+  const degreeS = String(degree).trim()
+  const institutionS = String(institution).trim()
+  const yearS = String(graduationYear).trim()
+  if (!degreeS && !institutionS && !yearS) return null
+  return { degree: degreeS, institution: institutionS, graduationYear: yearS }
+}
+
+function educationKey(entry) {
+  return `${entry.institution.toLowerCase()}|${entry.degree.toLowerCase()}`
+}
+
+function educationFromProfile(profile) {
+  const arr = Array.isArray(profile?.education) ? profile.education : []
+  return arr.map(normalizeEducationEntry).filter(Boolean)
+}
+
+function mergeEducationFromProfile(parsedList, profile) {
+  const profileEdu = educationFromProfile(profile)
+  const parsedEdu = (Array.isArray(parsedList) ? parsedList : []).map(normalizeEducationEntry).filter(Boolean)
+  if (profileEdu.length === 0) return parsedEdu
+  const seen = new Set(parsedEdu.map(educationKey))
+  const out = [...parsedEdu]
+  for (const row of profileEdu) {
+    const k = educationKey(row)
+    if (!seen.has(k)) {
+      out.push(row)
+      seen.add(k)
+    }
+  }
+  return out
+}
+
+function normalizeCertEntry(raw) {
+  if (!raw || typeof raw !== 'object') return null
+  const name = raw.name ?? raw.certificationName ?? ''
+  const issuer = raw.issuer ?? ''
+  const year = raw.year ?? ''
+  const nameS = String(name).trim()
+  const issuerS = String(issuer).trim()
+  const yearS = String(year).trim()
+  if (!nameS && !issuerS && !yearS) return null
+  return { name: nameS, issuer: issuerS, year: yearS }
+}
+
+function certKey(entry) {
+  return `${entry.name.toLowerCase()}|${entry.issuer.toLowerCase()}|${entry.year.toLowerCase()}`
+}
+
+function certificationsFromProfile(profile) {
+  const arr = Array.isArray(profile?.certifications) ? profile.certifications : []
+  return arr.map(normalizeCertEntry).filter(Boolean)
+}
+
+function mergeCertificationsFromProfile(parsedList, profile) {
+  const profileCerts = certificationsFromProfile(profile)
+  const parsedCerts = (Array.isArray(parsedList) ? parsedList : []).map(normalizeCertEntry).filter(Boolean)
+  if (profileCerts.length === 0) return parsedCerts
+  const seen = new Set(parsedCerts.map(certKey))
+  const out = [...parsedCerts]
+  for (const row of profileCerts) {
+    const k = certKey(row)
+    if (!seen.has(k)) {
+      out.push(row)
+      seen.add(k)
+    }
+  }
+  return out
+}
+
+function chunkSkillsIntoGroups(skills) {
+  if (!Array.isArray(skills) || skills.length === 0) return []
+  const labels = ['Technical', 'Tools & platforms', 'Languages & frameworks', 'Other']
+  const n = Math.min(4, Math.max(2, Math.ceil(skills.length / 5)))
+  const chunkSize = Math.ceil(skills.length / n)
+  const out = []
+  for (let i = 0; i < n; i++) {
+    const slice = skills.slice(i * chunkSize, (i + 1) * chunkSize).filter(Boolean)
+    if (slice.length) out.push({ category: labels[i] || `Skills ${i + 1}`, skills: slice })
+  }
+  return out
+}
+
+function normalizeSkillGroups(parsed, profile) {
+  let groups = []
+  if (Array.isArray(parsed?.skillGroups)) {
+    groups = parsed.skillGroups
+      .filter((g) => g && typeof g === 'object')
+      .map((g) => ({
+        category: String(g.category || g.name || 'Skills').trim() || 'Skills',
+        skills: (Array.isArray(g.skills) ? g.skills : []).map((s) => String(s).trim()).filter(Boolean),
+      }))
+      .filter((g) => g.skills.length > 0)
+  }
+  let flat = groups.flatMap((g) => g.skills)
+  if (!flat.length && Array.isArray(parsed?.skills)) {
+    flat = parsed.skills.map((s) => String(s).trim()).filter(Boolean)
+  }
+  if (!flat.length && Array.isArray(profile?.skills)) {
+    flat = profile.skills.map((s) => String(s).trim()).filter(Boolean)
+  }
+  if (!groups.length && flat.length) {
+    groups = chunkSkillsIntoGroups(flat)
+  }
+  return { skillGroups: groups, flatSkills: flat }
+}
+
+function formatEducationHtml(items) {
+  if (!Array.isArray(items) || items.length === 0) return ''
+  return items
+    .map((e) => {
+      const degree = escapeHtml(e.degree || '')
+      const inst = escapeHtml(e.institution || '')
+      const year = e.graduationYear ? escapeHtml(String(e.graduationYear)) : ''
+      const main = [degree, inst].filter(Boolean).join(' — ')
+      const yearPart = year ? ` · ${year}` : ''
+      return `<div class="education-item resume-section" style="margin-bottom: 8px;"><p style="margin: 0; font-size: 11px;">${main}${yearPart}</p></div>`
+    })
+    .join('')
+}
+
+function formatEducationBlock(items) {
+  const inner = formatEducationHtml(items)
+  if (!inner) return ''
+  return `<div class="resume-education-block resume-section"><h2>Education</h2>${inner}</div>`
+}
+
+function formatCertificationsHtml(items) {
+  if (!Array.isArray(items) || items.length === 0) return ''
+  return items
+    .map((c) => {
+      const name = escapeHtml(c.name || '')
+      const issuer = c.issuer ? escapeHtml(c.issuer) : ''
+      const year = c.year ? escapeHtml(String(c.year)) : ''
+      const mid = [name, issuer].filter(Boolean).join(' — ')
+      const tail = year ? ` · ${year}` : ''
+      return `<div class="cert-item resume-section" style="margin-bottom: 8px;"><p style="margin: 0; font-size: 11px;">${mid}${tail}</p></div>`
+    })
+    .join('')
+}
+
+function formatCertificationsBlock(items) {
+  const inner = formatCertificationsHtml(items)
+  if (!inner) return ''
+  return `<div class="resume-certifications-block resume-section"><h2>Certifications</h2>${inner}</div>`
+}
+
+function formatContactUrlsLine(profile) {
+  const parts = []
+  if (profile.linkedin_url && String(profile.linkedin_url).trim()) {
+    parts.push(`LinkedIn: ${escapeHtml(String(profile.linkedin_url).trim())}`)
+  }
+  if (profile.portfolio_url && String(profile.portfolio_url).trim()) {
+    parts.push(`Website: ${escapeHtml(String(profile.portfolio_url).trim())}`)
+  }
+  if (!parts.length) return ''
+  return `<p style="margin: 4px 0 0 0;" class="contact-line">${parts.join(' · ')}</p>`
+}
+
+function formatSidebarUrls(profile) {
+  const blocks = []
+  if (profile.linkedin_url && String(profile.linkedin_url).trim()) {
+    blocks.push(
+      `<p style="margin: 0 0 8px 0; font-size: 10pt; line-height: 1.5; word-break: break-all;">LinkedIn<br/>${escapeHtml(String(profile.linkedin_url).trim())}</p>`
+    )
+  }
+  if (profile.portfolio_url && String(profile.portfolio_url).trim()) {
+    blocks.push(
+      `<p style="margin: 0; font-size: 10pt; line-height: 1.5; word-break: break-all;">Website<br/>${escapeHtml(String(profile.portfolio_url).trim())}</p>`
+    )
+  }
+  return blocks.join('')
 }
 
 function escapeHtml(text) {
@@ -257,7 +457,8 @@ export async function POST(request) {
 
     let message
     if (isRegenerate) {
-      const userMessage = `User-requested changes:\n${feedback}\n\nPrevious resume content (JSON):\n${JSON.stringify(previousContent, null, 2)}\n\nJob description (for context):\n${jobDescription}`
+      const resumeContext = JSON.stringify(profile, null, 2)
+      const userMessage = `User-requested changes:\n${feedback}\n\nPrevious resume content (JSON):\n${JSON.stringify(previousContent, null, 2)}\n\nResume profile (source of truth for education, certifications, contact URLs — do not drop rows that exist here):\n${resumeContext}\n\nJob description (for context):\n${jobDescription}`
       message = await anthropic.messages.create({
         model: 'claude-sonnet-4-5',
         max_tokens: 4096,
@@ -292,14 +493,22 @@ export async function POST(request) {
 
     const location = [profile.city, profile.country].filter(Boolean).join(', ') || ''
 
+    const mergedEducation = mergeEducationFromProfile(parsed.education, profile)
+    const mergedCertifications = mergeCertificationsFromProfile(parsed.certifications, profile)
+    const { skillGroups, flatSkills } = normalizeSkillGroups(parsed, profile)
+
     const replacements = {
       '{{name}}': profile.full_name || '',
       '{{email}}': profile.email || '',
       '{{phone}}': profile.phone_number || '',
       '{{location}}': location,
+      '{{contact_urls_block}}': formatContactUrlsLine(profile),
+      '{{sidebar_urls}}': formatSidebarUrls(profile),
       '{{summary}}': parsed.summary || '',
       '{{experience}}': formatExperienceHtml(parsed.experience || []),
-      '{{skills}}': formatSkillsHtml(parsed.skills || []),
+      '{{education_block}}': formatEducationBlock(mergedEducation),
+      '{{certifications_block}}': formatCertificationsBlock(mergedCertifications),
+      '{{skills}}': formatSkillGroupsHtml(skillGroups),
     }
 
     const templatePath = join(process.cwd(), 'public', 'templates', `${template}.html`)
@@ -436,9 +645,17 @@ export async function POST(request) {
         }
         const content = {
           name: profile.full_name || '',
+          email: profile.email || '',
+          phone: profile.phone_number || '',
+          location,
+          linkedin_url: profile.linkedin_url || '',
+          portfolio_url: profile.portfolio_url || '',
           summary: parsed.summary || '',
           experience: parsed.experience || [],
-          skills: parsed.skills || [],
+          skillGroups,
+          skills: flatSkills,
+          education: mergedEducation,
+          certifications: mergedCertifications,
         }
         return NextResponse.json({
           pdfBase64,

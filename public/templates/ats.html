@@ -9,6 +9,7 @@
   <div style="margin-bottom: 16px;">
     <h1 style="margin: 0 0 4px 0; font-size: 18pt; font-weight: bold;">{{name}}</h1>
     <p style="margin: 0; font-size: 11pt;">{{email}} | {{phone}} | {{location}}</p>
+    {{contact_urls_block}}
   </div>
 
   <h2 style="margin: 16px 0 8px 0; font-size: 12pt; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px;">SUMMARY</h2>
@@ -17,7 +18,10 @@
   <h2 style="margin: 16px 0 8px 0; font-size: 12pt; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px;">EXPERIENCE</h2>
   <div style="margin-bottom: 16px;">{{experience}}</div>
 
+  {{education_block}}
+  {{certifications_block}}
+
   <h2 style="margin: 16px 0 8px 0; font-size: 12pt; font-weight: bold; border-bottom: 1px solid #000; padding-bottom: 2px;">SKILLS</h2>
-  <p style="margin: 0;">{{skills}}</p>
+  <div style="margin: 0;">{{skills}}</div>
 </body>
 </html>
