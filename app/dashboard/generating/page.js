@@ -175,6 +175,48 @@ function buildResumeText(content) {
   return t
 }
 
+/** Normalize API resume content for editing (skill groups, arrays). */
+function ensureResumeContentShape(c) {
+  if (!c || typeof c !== 'object') return c
+  const next = { ...c }
+  if (!Array.isArray(next.experience)) next.experience = []
+  if (!Array.isArray(next.education)) next.education = []
+  if (!Array.isArray(next.certifications)) next.certifications = []
+  next.experience = next.experience.map((job) => ({
+    title: job?.title != null ? String(job.title) : '',
+    company: job?.company != null ? String(job.company) : '',
+    dates: job?.dates != null ? String(job.dates) : '',
+    bullets: Array.isArray(job?.bullets)
+      ? job.bullets.map((b) => String(b))
+      : typeof job?.bullets === 'string'
+        ? job.bullets.split(/\r?\n/).map((s) => s.trimEnd())
+        : [],
+  }))
+  next.education = next.education.map((row) => ({
+    degree: row?.degree != null ? String(row.degree) : '',
+    institution: row?.institution != null ? String(row.institution) : '',
+    graduationYear: row?.graduationYear != null ? String(row.graduationYear) : '',
+  }))
+  next.certifications = next.certifications.map((row) => ({
+    name: row?.name != null ? String(row.name) : '',
+    issuer: row?.issuer != null ? String(row.issuer) : '',
+    year: row?.year != null ? String(row.year) : '',
+  }))
+  if (!Array.isArray(next.skillGroups) || next.skillGroups.length === 0) {
+    if (Array.isArray(next.skills) && next.skills.length) {
+      next.skillGroups = [{ category: 'Skills', skills: next.skills.map((s) => String(s)) }]
+    } else {
+      next.skillGroups = [{ category: 'Technical skills', skills: [] }]
+    }
+  } else {
+    next.skillGroups = next.skillGroups.map((g) => ({
+      category: g?.category != null ? String(g.category) : 'Skills',
+      skills: Array.isArray(g?.skills) ? g.skills.map((s) => String(s)) : [],
+    }))
+  }
+  return next
+}
+
 function scoreBand(score) {
   if (score >= 90) {
     return {
@@ -321,6 +363,9 @@ export default function GeneratingPage() {
   const [boostQuestionsLoading, setBoostQuestionsLoading] = useState(false)
   const [boostQuestionsError, setBoostQuestionsError] = useState(null)
   const [boostResumeLoading, setBoostResumeLoading] = useState(false)
+  const [showResumeEditor, setShowResumeEditor] = useState(false)
+  const [saveEditorLoading, setSaveEditorLoading] = useState(false)
+  const [saveEditorError, setSaveEditorError] = useState(null)
   const [showLimitOverlay, setShowLimitOverlay] = useState(false)
   const [limitOverlayVariant, setLimitOverlayVariant] = useState('resume')
   const [progress, setProgress] = useState(0)
@@ -496,7 +541,7 @@ export default function GeneratingPage() {
         const url = URL.createObjectURL(blob)
         setPdfFilename(sanitizeString(filename) || 'resume.pdf')
         setPdfBlobUrl(url)
-        setResumeContent(content)
+        setResumeContent(ensureResumeContentShape(content))
 
         try {
           const atsRes = await fetch('/api/ats-checker', {
@@ -653,7 +698,7 @@ export default function GeneratingPage() {
       const url = URL.createObjectURL(blob)
       setPdfFilename(sanitizeString(filename) || 'resume.pdf')
       setPdfBlobUrl(url)
-      setResumeContent(content)
+      setResumeContent(ensureResumeContentShape(content))
 
       try {
         const atsRes = await fetch('/api/ats-checker', {
@@ -775,7 +820,7 @@ export default function GeneratingPage() {
       const url = URL.createObjectURL(blob)
       setPdfFilename(sanitizeString(filename) || 'resume.pdf')
       setPdfBlobUrl(url)
-      setResumeContent(content)
+      setResumeContent(ensureResumeContentShape(content))
       try {
         const atsRes = await fetch('/api/ats-checker', {
           method: 'POST',
@@ -815,6 +860,112 @@ export default function GeneratingPage() {
       setStatus('error')
     } finally {
       setBoostResumeLoading(false)
+    }
+  }
+
+  async function handleSaveEditedResume() {
+    if (!profile || !resumeContent) return
+    let jobDescription = ''
+    try {
+      jobDescription = getJobDescriptionFromStorage()
+    } catch (e) {
+      console.error('[generating/page.js] handleSaveEditedResume: getJobDescriptionFromStorage failed:', e)
+    }
+    const templateName = getTemplateFromStorage()
+    if (!templateName) {
+      setSaveEditorError('Could not read template. Try choosing a template again from the dashboard.')
+      return
+    }
+    setSaveEditorLoading(true)
+    setSaveEditorError(null)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.replace('/login')
+        return
+      }
+      const res = await fetch('/api/generate-resume', {
+        method: 'POST',
+        headers: await generateResumeApiHeaders(),
+        body: JSON.stringify({
+          profile,
+          jobDescription: sanitizeString(jobDescription || ''),
+          templateName,
+          includeContent: true,
+          userId: user.id || profile.user_id,
+          renderFromContent: true,
+          resumeContent,
+        }),
+      })
+      let data
+      try {
+        const text = await res.text()
+        data = safeJsonParse(text, 'handleSaveEditedResume(): generate-resume response')
+      } catch (parseErr) {
+        console.error('[generating/page.js] handleSaveEditedResume(): JSON parse failed:', parseErr)
+        setSaveEditorError('Invalid response from server')
+        return
+      }
+      if (!res.ok) {
+        throw new Error((data && data.error) || `Request failed (${res.status})`)
+      }
+      const { pdfBase64, filename, content } = data
+      if (!content || !pdfBase64) {
+        setSaveEditorError('Invalid response from server')
+        return
+      }
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl)
+      let binary
+      try {
+        binary = safeAtob(pdfBase64, 'handleSaveEditedResume(): pdf base64 decode')
+      } catch (atobErr) {
+        setSaveEditorError('Invalid PDF data from server')
+        return
+      }
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const blob = new Blob([bytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      setPdfFilename(sanitizeString(filename) || 'resume.pdf')
+      setPdfBlobUrl(url)
+      const shaped = ensureResumeContentShape(content)
+      setResumeContent(shaped)
+      try {
+        const atsRes = await fetch('/api/ats-checker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            resumeText: buildResumeText(shaped),
+            jobDescription: sanitizeString(jobDescription || ''),
+          }),
+        })
+        if (atsRes.ok) {
+          const atsText = await atsRes.text()
+          try {
+            const atsData = safeJsonParse(atsText, 'handleSaveEditedResume(): ats-checker response')
+            const score = typeof atsData.overall_score === 'number' ? Math.min(100, Math.max(0, Math.round(atsData.overall_score))) : 0
+            const strengths = Array.isArray(atsData.what_is_working) ? atsData.what_is_working.slice(0, 5) : []
+            const improvements = Array.isArray(atsData.quick_wins) ? atsData.quick_wins.slice(0, 3) : (Array.isArray(atsData.recommendations) ? atsData.recommendations.slice(0, 3).map((r) => (r?.tip != null ? r.tip : String(r))) : [])
+            setAtsReview({ score, strengths, improvements })
+          } catch (atsParseErr) {
+            console.error('[generating/page.js] handleSaveEditedResume(): ats-checker JSON parse failed:', atsParseErr)
+            setAtsReview({ score: 0, strengths: [], improvements: [] })
+          }
+        }
+      } catch (atsErr) {
+        console.error('[generating/page.js] handleSaveEditedResume(): ats-checker failed:', atsErr)
+      }
+      void persistGeneratedResume({
+        userId: user.id,
+        pdfBlob: blob,
+        templateName,
+        jobDescription: sanitizeString(jobDescription || ''),
+      }).catch((err) => console.warn('[generating/page.js] handleSaveEditedResume persist resume:', err))
+    } catch (err) {
+      console.error('[generating/page.js] handleSaveEditedResume():', err)
+      setSaveEditorError(err.message || 'Failed to update PDF')
+    } finally {
+      setSaveEditorLoading(false)
     }
   }
 
@@ -1039,6 +1190,448 @@ export default function GeneratingPage() {
                 Back to Dashboard
               </Link>
             </div>
+
+            <div className="rounded-xl border border-slate-200/90 bg-white shadow-lg shadow-slate-200/50 overflow-hidden">
+              <button
+                type="button"
+                onClick={() => setShowResumeEditor((o) => !o)}
+                className="flex w-full items-center justify-between gap-3 px-5 py-4 text-left transition-colors hover:bg-slate-50/90"
+              >
+                <div>
+                  <span className="block text-[14px] font-semibold text-slate-900">Edit resume sections</span>
+                  <span className="mt-0.5 block text-[12px] text-slate-500">
+                    Adjust text directly — save to refresh the preview PDF (contact info stays from your profile).
+                  </span>
+                </div>
+                <svg
+                  className={`h-5 w-5 shrink-0 text-[#6366f1] transition-transform ${showResumeEditor ? 'rotate-180' : ''}`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  aria-hidden
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                </svg>
+              </button>
+              {showResumeEditor && resumeContent && (
+                <div className="space-y-5 border-t border-slate-100 px-5 py-5 bg-gradient-to-b from-white to-slate-50/50">
+                  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                    <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#6366f1] mb-3">Summary</h3>
+                    <textarea
+                      value={resumeContent.summary ?? ''}
+                      onChange={(e) =>
+                        setResumeContent((p) => (p ? { ...p, summary: e.target.value } : p))
+                      }
+                      rows={5}
+                      className="w-full px-3 py-2.5 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none text-slate-900 placeholder-slate-400 resize-y"
+                      placeholder="Professional summary…"
+                    />
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#6366f1]">Experience</h3>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setResumeContent((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  experience: [...(p.experience || []), { title: '', company: '', dates: '', bullets: [] }],
+                                }
+                              : p
+                          )
+                        }
+                        className="text-[12px] font-semibold text-teal-600 hover:text-teal-700"
+                      >
+                        + Add job
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {(resumeContent.experience || []).length === 0 && (
+                        <p className="text-[13px] text-slate-500">No roles yet. Add a job to include experience.</p>
+                      )}
+                      {(resumeContent.experience || []).map((job, jobIdx) => (
+                        <div
+                          key={jobIdx}
+                          className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 space-y-3"
+                        >
+                          <div className="flex justify-end">
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const exp = [...(p.experience || [])]
+                                  exp.splice(jobIdx, 1)
+                                  return { ...p, experience: exp }
+                                })
+                              }
+                              className="text-[12px] text-rose-600 hover:text-rose-700 font-medium"
+                            >
+                              Remove job
+                            </button>
+                          </div>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <label className="block text-[12px] font-medium text-slate-600">
+                              Title
+                              <input
+                                type="text"
+                                value={job.title ?? ''}
+                                onChange={(e) =>
+                                  setResumeContent((p) => {
+                                    if (!p) return p
+                                    const exp = [...(p.experience || [])]
+                                    exp[jobIdx] = { ...exp[jobIdx], title: e.target.value }
+                                    return { ...p, experience: exp }
+                                  })
+                                }
+                                className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                              />
+                            </label>
+                            <label className="block text-[12px] font-medium text-slate-600">
+                              Company
+                              <input
+                                type="text"
+                                value={job.company ?? ''}
+                                onChange={(e) =>
+                                  setResumeContent((p) => {
+                                    if (!p) return p
+                                    const exp = [...(p.experience || [])]
+                                    exp[jobIdx] = { ...exp[jobIdx], company: e.target.value }
+                                    return { ...p, experience: exp }
+                                  })
+                                }
+                                className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                              />
+                            </label>
+                          </div>
+                          <label className="block text-[12px] font-medium text-slate-600">
+                            Dates
+                            <input
+                              type="text"
+                              value={job.dates ?? ''}
+                              onChange={(e) =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const exp = [...(p.experience || [])]
+                                  exp[jobIdx] = { ...exp[jobIdx], dates: e.target.value }
+                                  return { ...p, experience: exp }
+                                })
+                              }
+                              placeholder="e.g. Jan 2022 – Present"
+                              className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                            />
+                          </label>
+                          <label className="block text-[12px] font-medium text-slate-600">
+                            Bullet points (one per line)
+                            <textarea
+                              value={Array.isArray(job.bullets) ? job.bullets.join('\n') : ''}
+                              onChange={(e) =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const exp = [...(p.experience || [])]
+                                  const lines = e.target.value.split(/\r?\n/)
+                                  exp[jobIdx] = { ...exp[jobIdx], bullets: lines }
+                                  return { ...p, experience: exp }
+                                })
+                              }
+                              rows={5}
+                              className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none font-mono text-slate-800 resize-y"
+                              placeholder="Led migration of…"
+                            />
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-teal-600">Education</h3>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setResumeContent((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  education: [...(p.education || []), { degree: '', institution: '', graduationYear: '' }],
+                                }
+                              : p
+                          )
+                        }
+                        className="text-[12px] font-semibold text-teal-600 hover:text-teal-700"
+                      >
+                        + Add entry
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {(resumeContent.education || []).length === 0 && (
+                        <p className="text-[13px] text-slate-500">No education listed.</p>
+                      )}
+                      {(resumeContent.education || []).map((edu, eduIdx) => (
+                        <div key={eduIdx} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 grid gap-3 sm:grid-cols-3">
+                          <label className="block text-[12px] font-medium text-slate-600 sm:col-span-1">
+                            Degree
+                            <input
+                              type="text"
+                              value={edu.degree ?? ''}
+                              onChange={(e) =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const list = [...(p.education || [])]
+                                  list[eduIdx] = { ...list[eduIdx], degree: e.target.value }
+                                  return { ...p, education: list }
+                                })
+                              }
+                              className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                            />
+                          </label>
+                          <label className="block text-[12px] font-medium text-slate-600 sm:col-span-1">
+                            Institution
+                            <input
+                              type="text"
+                              value={edu.institution ?? ''}
+                              onChange={(e) =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const list = [...(p.education || [])]
+                                  list[eduIdx] = { ...list[eduIdx], institution: e.target.value }
+                                  return { ...p, education: list }
+                                })
+                              }
+                              className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                            />
+                          </label>
+                          <div className="flex gap-2 sm:col-span-1 items-end">
+                            <label className="block text-[12px] font-medium text-slate-600 flex-1">
+                              Graduation year
+                              <input
+                                type="text"
+                                value={edu.graduationYear ?? ''}
+                                onChange={(e) =>
+                                  setResumeContent((p) => {
+                                    if (!p) return p
+                                    const list = [...(p.education || [])]
+                                    list[eduIdx] = { ...list[eduIdx], graduationYear: e.target.value }
+                                    return { ...p, education: list }
+                                  })
+                                }
+                                className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const list = [...(p.education || [])]
+                                  list.splice(eduIdx, 1)
+                                  return { ...p, education: list }
+                                })
+                              }
+                              className="mb-0.5 shrink-0 px-2 py-2 text-[12px] text-rose-600 hover:bg-rose-50 rounded-lg font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-[#6366f1]">Skills</h3>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setResumeContent((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  skillGroups: [...(p.skillGroups || []), { category: 'Skills', skills: [] }],
+                                }
+                              : p
+                          )
+                        }
+                        className="text-[12px] font-semibold text-teal-600 hover:text-teal-700"
+                      >
+                        + Add category
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {(resumeContent.skillGroups || []).map((group, gi) => (
+                        <div key={gi} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 space-y-2">
+                          <div className="flex gap-2 items-start">
+                            <label className="flex-1 text-[12px] font-medium text-slate-600">
+                              Category name
+                              <input
+                                type="text"
+                                value={group.category ?? ''}
+                                onChange={(e) =>
+                                  setResumeContent((p) => {
+                                    if (!p) return p
+                                    const sg = [...(p.skillGroups || [])]
+                                    sg[gi] = { ...sg[gi], category: e.target.value }
+                                    return { ...p, skillGroups: sg }
+                                  })
+                                }
+                                className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const sg = [...(p.skillGroups || [])]
+                                  sg.splice(gi, 1)
+                                  return { ...p, skillGroups: sg.length ? sg : [{ category: 'Skills', skills: [] }] }
+                                })
+                              }
+                              className="mt-6 shrink-0 text-[12px] text-rose-600 hover:text-rose-700 font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                          <label className="block text-[12px] font-medium text-slate-600">
+                            Skills (one per line)
+                            <textarea
+                              value={(group.skills || []).join('\n')}
+                              onChange={(e) =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const sg = [...(p.skillGroups || [])]
+                                  const lines = e.target.value.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+                                  sg[gi] = { ...sg[gi], skills: lines }
+                                  return { ...p, skillGroups: sg }
+                                })
+                              }
+                              rows={4}
+                              className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none resize-y"
+                              placeholder={`Python\nAWS`}
+                            />
+                          </label>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div className="rounded-lg border border-slate-200 bg-white p-4 shadow-sm">
+                    <div className="flex items-center justify-between gap-2 mb-3">
+                      <h3 className="text-[11px] font-bold uppercase tracking-wider text-teal-600">Certifications</h3>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          setResumeContent((p) =>
+                            p
+                              ? {
+                                  ...p,
+                                  certifications: [...(p.certifications || []), { name: '', issuer: '', year: '' }],
+                                }
+                              : p
+                          )
+                        }
+                        className="text-[12px] font-semibold text-teal-600 hover:text-teal-700"
+                      >
+                        + Add certification
+                      </button>
+                    </div>
+                    <div className="space-y-4">
+                      {(resumeContent.certifications || []).length === 0 && (
+                        <p className="text-[13px] text-slate-500">No certifications listed.</p>
+                      )}
+                      {(resumeContent.certifications || []).map((cert, ci) => (
+                        <div key={ci} className="rounded-lg border border-slate-100 bg-slate-50/60 p-3 grid gap-3 sm:grid-cols-3">
+                          <label className="block text-[12px] font-medium text-slate-600">
+                            Name
+                            <input
+                              type="text"
+                              value={cert.name ?? ''}
+                              onChange={(e) =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const list = [...(p.certifications || [])]
+                                  list[ci] = { ...list[ci], name: e.target.value }
+                                  return { ...p, certifications: list }
+                                })
+                              }
+                              className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                            />
+                          </label>
+                          <label className="block text-[12px] font-medium text-slate-600">
+                            Issuer
+                            <input
+                              type="text"
+                              value={cert.issuer ?? ''}
+                              onChange={(e) =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const list = [...(p.certifications || [])]
+                                  list[ci] = { ...list[ci], issuer: e.target.value }
+                                  return { ...p, certifications: list }
+                                })
+                              }
+                              className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                            />
+                          </label>
+                          <div className="flex gap-2 items-end">
+                            <label className="block text-[12px] font-medium text-slate-600 flex-1">
+                              Year
+                              <input
+                                type="text"
+                                value={cert.year ?? ''}
+                                onChange={(e) =>
+                                  setResumeContent((p) => {
+                                    if (!p) return p
+                                    const list = [...(p.certifications || [])]
+                                    list[ci] = { ...list[ci], year: e.target.value }
+                                    return { ...p, certifications: list }
+                                  })
+                                }
+                                className="mt-1 w-full px-3 py-2 text-[13px] border border-slate-200 rounded-lg focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none"
+                              />
+                            </label>
+                            <button
+                              type="button"
+                              onClick={() =>
+                                setResumeContent((p) => {
+                                  if (!p) return p
+                                  const list = [...(p.certifications || [])]
+                                  list.splice(ci, 1)
+                                  return { ...p, certifications: list }
+                                })
+                              }
+                              className="mb-0.5 shrink-0 px-2 py-2 text-[12px] text-rose-600 hover:bg-rose-50 rounded-lg font-medium"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {saveEditorError && (
+                    <p className="text-[13px] text-rose-600" role="alert">
+                      {saveEditorError}
+                    </p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={handleSaveEditedResume}
+                    disabled={saveEditorLoading}
+                    className="w-full py-3 rounded-xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] hover:opacity-95 disabled:opacity-50 text-white font-semibold text-[14px] shadow-md shadow-indigo-200/50 transition-opacity"
+                  >
+                    {saveEditorLoading ? 'Saving & updating PDF…' : 'Save changes'}
+                  </button>
+                </div>
+              )}
+            </div>
+
             {showMakeChanges && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
                 <label className="block text-[13px] font-medium text-slate-800">

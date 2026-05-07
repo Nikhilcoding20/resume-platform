@@ -306,6 +306,75 @@ function formatSidebarUrls(profile) {
   return blocks.join('')
 }
 
+function normalizeClientResumeContentForRender(clientContent, profile) {
+  const summary = String(clientContent?.summary ?? '').trim()
+
+  const experience = (Array.isArray(clientContent?.experience) ? clientContent.experience : [])
+    .map((job) => {
+      if (!job || typeof job !== 'object') return null
+      const title = String(job.title ?? '').trim()
+      const company = String(job.company ?? '').trim()
+      const dates = String(job.dates ?? '').trim()
+      let bullets = job.bullets
+      if (typeof bullets === 'string') {
+        bullets = bullets.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+      } else if (Array.isArray(bullets)) {
+        bullets = bullets.map((b) => String(b).trim()).filter(Boolean)
+      } else {
+        bullets = []
+      }
+      if (!title && !company && !dates && bullets.length === 0) return null
+      return { title, company, dates, bullets }
+    })
+    .filter(Boolean)
+
+  const education = (Array.isArray(clientContent?.education) ? clientContent.education : [])
+    .map((row) => normalizeEducationEntry(row))
+    .filter(Boolean)
+
+  const certifications = (Array.isArray(clientContent?.certifications) ? clientContent.certifications : [])
+    .map((row) => normalizeCertEntry(row))
+    .filter(Boolean)
+
+  const { skillGroups, flatSkills } = normalizeSkillGroups(
+    { skillGroups: clientContent?.skillGroups, skills: clientContent?.skills },
+    profile
+  )
+
+  const location = [profile.city, profile.country].filter(Boolean).join(', ') || ''
+
+  const output = {
+    name: profile.full_name || '',
+    email: profile.email || '',
+    phone: profile.phone_number || '',
+    location,
+    linkedin_url: profile.linkedin_url || '',
+    portfolio_url: profile.portfolio_url || '',
+    summary,
+    experience,
+    skillGroups,
+    skills: flatSkills,
+    education,
+    certifications,
+  }
+
+  const replacements = {
+    '{{name}}': profile.full_name || '',
+    '{{email}}': profile.email || '',
+    '{{phone}}': profile.phone_number || '',
+    '{{location}}': location,
+    '{{contact_urls_block}}': formatContactUrlsLine(profile),
+    '{{sidebar_urls}}': formatSidebarUrls(profile),
+    '{{summary}}': summary,
+    '{{experience}}': formatExperienceHtml(experience),
+    '{{education_block}}': formatEducationBlock(education),
+    '{{certifications_block}}': formatCertificationsBlock(certifications),
+    '{{skills}}': formatSkillGroupsHtml(skillGroups),
+  }
+
+  return { output, replacements }
+}
+
 function escapeHtml(text) {
   if (text == null) return ''
   return String(text)
@@ -330,8 +399,26 @@ export async function POST(request) {
   try {
     const authorizationHeader = request.headers.get('Authorization')
     const body = await request.json()
-    const { profile, jobDescription, templateName, includeContent, feedback, previousContent, userId } = body
-    const isRegenerate = Boolean(feedback && previousContent && typeof previousContent === 'object')
+    const {
+      profile,
+      jobDescription: bodyJobDescription,
+      templateName,
+      includeContent,
+      feedback,
+      previousContent,
+      userId,
+      renderFromContent,
+      resumeContent: clientResumeContent,
+    } = body
+
+    const isRenderOnly = Boolean(
+      renderFromContent && clientResumeContent && typeof clientResumeContent === 'object'
+    )
+    const isRegenerate = Boolean(
+      !isRenderOnly && feedback && previousContent && typeof previousContent === 'object'
+    )
+
+    const jobDescription = typeof bodyJobDescription === 'string' ? bodyJobDescription : ''
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -356,7 +443,7 @@ export async function POST(request) {
     if (!profile || typeof profile !== 'object') {
       return jsonError('Missing or invalid profile data', 400)
     }
-    if (!jobDescription || typeof jobDescription !== 'string') {
+    if (!isRenderOnly && !jobDescription.trim()) {
       return jsonError('Missing or invalid job description', 400)
     }
     if (!templateName || typeof templateName !== 'string') {
@@ -368,7 +455,7 @@ export async function POST(request) {
       return jsonError('Invalid template name', 400)
     }
 
-    if (!process.env.ANTHROPIC_API_KEY) {
+    if (!isRenderOnly && !process.env.ANTHROPIC_API_KEY) {
       return jsonError('Server configuration error: Anthropic API key is not set', 500)
     }
 
@@ -381,14 +468,14 @@ export async function POST(request) {
     /** Matches user_usage.user_id (text) and RLS auth.uid()::text */
     const normalizedUserId = String(effectiveUserId)
 
-    let canCreateResumeForUserResult = isRegenerate
-      ? '[skipped: regenerate]'
+    let canCreateResumeForUserResult = isRegenerate || isRenderOnly
+      ? '[skipped: regenerate or render-only]'
       : !supabase
         ? '[skipped: no supabase client]'
         : null
     let resumeCountBeforeGate = null
 
-    if (!isRegenerate && supabase) {
+    if (!isRegenerate && !isRenderOnly && supabase) {
       try {
         if (!supabaseService) {
           console.warn(
@@ -438,11 +525,12 @@ export async function POST(request) {
       authorizationHeader,
       user: authUser,
       authUserError,
+      isRenderOnly,
       canCreateResumeForUser: canCreateResumeForUserResult,
       resumeCountBeforeGate,
     })
 
-    if (!isRegenerate && supabase && canCreateResumeForUserResult === false) {
+    if (!isRegenerate && !isRenderOnly && supabase && canCreateResumeForUserResult === false) {
       return NextResponse.json(
         {
           error: 'FREE_LIMIT_REACHED',
@@ -453,62 +541,86 @@ export async function POST(request) {
       )
     }
 
-    const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
+    let replacements
+    let contentOut
 
-    let message
-    if (isRegenerate) {
-      const resumeContext = JSON.stringify(profile, null, 2)
-      const userMessage = `User-requested changes:\n${feedback}\n\nPrevious resume content (JSON):\n${JSON.stringify(previousContent, null, 2)}\n\nResume profile (source of truth for education, certifications, contact URLs — do not drop rows that exist here):\n${resumeContext}\n\nJob description (for context):\n${jobDescription}`
-      message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: `${REGENERATE_PROMPT}\n\n${userMessage}` }],
-      })
+    if (isRenderOnly) {
+      const { output, replacements: r } = normalizeClientResumeContentForRender(clientResumeContent, profile)
+      contentOut = output
+      replacements = r
     } else {
-      const resumeContext = JSON.stringify(profile, null, 2)
-      const userMessage = `Resume profile data:\n${resumeContext}\n\nJob description:\n${jobDescription}`
-      message = await anthropic.messages.create({
-        model: 'claude-sonnet-4-5',
-        max_tokens: 4096,
-        messages: [{ role: 'user', content: `${PROMPT}\n\n${userMessage}` }],
-      })
-    }
+      const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
-    const textBlocks = (message.content || [])
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-    const rawText = textBlocks.join('').trim()
+      let message
+      if (isRegenerate) {
+        const resumeContext = JSON.stringify(profile, null, 2)
+        const userMessage = `User-requested changes:\n${feedback}\n\nPrevious resume content (JSON):\n${JSON.stringify(previousContent, null, 2)}\n\nResume profile (source of truth for education, certifications, contact URLs — do not drop rows that exist here):\n${resumeContext}\n\nJob description (for context):\n${jobDescription}`
+        message = await anthropic.messages.create({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: `${REGENERATE_PROMPT}\n\n${userMessage}` }],
+        })
+      } else {
+        const resumeContext = JSON.stringify(profile, null, 2)
+        const userMessage = `Resume profile data:\n${resumeContext}\n\nJob description:\n${jobDescription}`
+        message = await anthropic.messages.create({
+          model: 'claude-sonnet-4-5',
+          max_tokens: 4096,
+          messages: [{ role: 'user', content: `${PROMPT}\n\n${userMessage}` }],
+        })
+      }
 
-    if (!rawText) {
-      return jsonError('AI returned no data', 500)
-    }
+      const textBlocks = (message.content || [])
+        .filter((block) => block.type === 'text')
+        .map((block) => block.text)
+      const rawText = textBlocks.join('').trim()
 
-    const cleaned = rawText.replace(/^```(?:json)?\s*|\s*```$/g, '').trim()
-    let parsed
-    try {
-      parsed = JSON.parse(cleaned)
-    } catch {
-      return jsonError('Failed to parse AI response', 500)
-    }
+      if (!rawText) {
+        return jsonError('AI returned no data', 500)
+      }
 
-    const location = [profile.city, profile.country].filter(Boolean).join(', ') || ''
+      const cleaned = rawText.replace(/^```(?:json)?\s*|\s*```$/g, '').trim()
+      let parsed
+      try {
+        parsed = JSON.parse(cleaned)
+      } catch {
+        return jsonError('Failed to parse AI response', 500)
+      }
 
-    const mergedEducation = mergeEducationFromProfile(parsed.education, profile)
-    const mergedCertifications = mergeCertificationsFromProfile(parsed.certifications, profile)
-    const { skillGroups, flatSkills } = normalizeSkillGroups(parsed, profile)
+      const location = [profile.city, profile.country].filter(Boolean).join(', ') || ''
 
-    const replacements = {
-      '{{name}}': profile.full_name || '',
-      '{{email}}': profile.email || '',
-      '{{phone}}': profile.phone_number || '',
-      '{{location}}': location,
-      '{{contact_urls_block}}': formatContactUrlsLine(profile),
-      '{{sidebar_urls}}': formatSidebarUrls(profile),
-      '{{summary}}': parsed.summary || '',
-      '{{experience}}': formatExperienceHtml(parsed.experience || []),
-      '{{education_block}}': formatEducationBlock(mergedEducation),
-      '{{certifications_block}}': formatCertificationsBlock(mergedCertifications),
-      '{{skills}}': formatSkillGroupsHtml(skillGroups),
+      const mergedEducation = mergeEducationFromProfile(parsed.education, profile)
+      const mergedCertifications = mergeCertificationsFromProfile(parsed.certifications, profile)
+      const { skillGroups, flatSkills } = normalizeSkillGroups(parsed, profile)
+
+      contentOut = {
+        name: profile.full_name || '',
+        email: profile.email || '',
+        phone: profile.phone_number || '',
+        location,
+        linkedin_url: profile.linkedin_url || '',
+        portfolio_url: profile.portfolio_url || '',
+        summary: parsed.summary || '',
+        experience: parsed.experience || [],
+        skillGroups,
+        skills: flatSkills,
+        education: mergedEducation,
+        certifications: mergedCertifications,
+      }
+
+      replacements = {
+        '{{name}}': profile.full_name || '',
+        '{{email}}': profile.email || '',
+        '{{phone}}': profile.phone_number || '',
+        '{{location}}': location,
+        '{{contact_urls_block}}': formatContactUrlsLine(profile),
+        '{{sidebar_urls}}': formatSidebarUrls(profile),
+        '{{summary}}': parsed.summary || '',
+        '{{experience}}': formatExperienceHtml(parsed.experience || []),
+        '{{education_block}}': formatEducationBlock(mergedEducation),
+        '{{certifications_block}}': formatCertificationsBlock(mergedCertifications),
+        '{{skills}}': formatSkillGroupsHtml(skillGroups),
+      }
     }
 
     const templatePath = join(process.cwd(), 'public', 'templates', `${template}.html`)
@@ -580,7 +692,7 @@ export async function POST(request) {
         return jsonError('Generated PDF is invalid', 500)
       }
 
-      if (!isRegenerate && supabase) {
+      if (!isRegenerate && !isRenderOnly && supabase) {
         try {
           if (!supabaseService) {
             console.warn(
@@ -643,24 +755,10 @@ export async function POST(request) {
           console.error('[generate-resume] base64 string is empty or invalid')
           return jsonError('Failed to encode PDF', 500)
         }
-        const content = {
-          name: profile.full_name || '',
-          email: profile.email || '',
-          phone: profile.phone_number || '',
-          location,
-          linkedin_url: profile.linkedin_url || '',
-          portfolio_url: profile.portfolio_url || '',
-          summary: parsed.summary || '',
-          experience: parsed.experience || [],
-          skillGroups,
-          skills: flatSkills,
-          education: mergedEducation,
-          certifications: mergedCertifications,
-        }
         return NextResponse.json({
           pdfBase64,
           filename,
-          content,
+          content: contentOut,
         })
       }
 
