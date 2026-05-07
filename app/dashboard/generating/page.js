@@ -784,8 +784,8 @@ export default function GeneratingPage() {
     <div
       className={
         status === 'review' && resumeContent
-          ? 'w-full flex flex-col min-h-[60vh] relative'
-          : 'max-w-xl mx-auto flex flex-col items-center justify-center min-h-[60vh] relative'
+          ? 'relative flex w-full min-w-0 max-w-full flex-col min-h-[60vh]'
+          : 'relative mx-auto flex max-w-xl min-w-0 flex-col items-center justify-center min-h-[60vh]'
       }
     >
       <UpgradeLimitModal
@@ -808,15 +808,12 @@ export default function GeneratingPage() {
       )}
 
       {status === 'review' && resumeContent && (
-        <div className="w-full min-h-screen bg-slate-100 flex flex-col px-6">
+        <div className="flex min-h-screen w-full min-w-0 max-w-full flex-col bg-slate-100 px-4 sm:px-6">
           <h2 className="text-2xl font-bold bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent pt-8 pb-6">
             Review Your Resume
           </h2>
 
-          <div
-            className="flex-1 pb-6 min-h-0 flex flex-col lg:grid gap-6 lg:gap-[4%]"
-            style={{ gridTemplateColumns: '58% 38%' }}
-          >
+          <div className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-6 pb-6 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-[4%]">
             {/* Left column — 58% — PDF preview (A4, scaled to fit) */}
             <div className="min-w-0 overflow-hidden flex justify-start">
               <div

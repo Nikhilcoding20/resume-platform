@@ -24,8 +24,8 @@ function MembershipCard({ user, plan }) {
 
   return (
     <div
-      className="shrink-0 [perspective:1200px]"
-      style={{ width: 420, height: 265 }}
+      className="mx-auto w-full max-w-[min(100%,420px)] shrink-0 [perspective:1200px] lg:max-w-[420px]"
+      style={{ aspectRatio: '420 / 265' }}
     >
       <div
         className="relative h-full w-full overflow-hidden rounded-2xl transition-transform duration-300 ease-out [transform-style:preserve-3d] hover:[transform:rotateX(4deg)_rotateY(-7deg)_translateZ(0)]"

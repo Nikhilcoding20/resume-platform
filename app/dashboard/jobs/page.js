@@ -157,7 +157,7 @@ function LoadMoreJobsButton({ onClick, loading }) {
           onClick={onClick}
           disabled={loading}
           aria-busy={loading}
-          className="flex items-center justify-center gap-2.5 min-w-[220px] px-8 py-3 rounded-[10px] bg-white font-semibold text-sm transition-colors hover:bg-[#fafaff] disabled:opacity-55 disabled:pointer-events-none"
+          className="flex items-center justify-center gap-2.5 min-h-11 w-full max-w-full min-w-0 px-6 py-3 rounded-[10px] bg-white font-semibold text-sm transition-colors hover:bg-[#fafaff] disabled:opacity-55 disabled:pointer-events-none sm:w-auto sm:min-w-[220px]"
         >
           {loading && (
             <span

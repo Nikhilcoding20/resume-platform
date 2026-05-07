@@ -59,7 +59,7 @@ export default function DashboardLayout({ children }) {
     <div className="ds-page flex min-h-screen flex-col overflow-x-hidden">
       <DashboardHeader user={user} />
 
-      <main className="mx-auto w-full min-w-0 max-w-[90rem] flex-1 p-4 text-[#1a1a2e] sm:p-6 lg:p-8">
+      <main className="mx-auto w-full min-w-0 max-w-[90rem] flex-1 overflow-x-hidden p-4 text-[#1a1a2e] sm:p-6 lg:p-8">
         {children}
       </main>
     </div>

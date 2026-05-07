@@ -706,9 +706,9 @@ export default function DashboardPage() {
         </Link>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 mb-10">
+      <div className="mb-10 grid min-w-0 grid-cols-1 gap-8 lg:grid-cols-12">
         <div className="order-2 lg:col-span-8">
-          <div className="ds-card ds-card-interactive p-8 h-full bg-white">
+          <div className="ds-card ds-card-interactive h-full min-w-0 bg-white p-4 sm:p-8">
             <h2 className="text-xl font-bold text-[#1a1a2e] mb-6 bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent">
               Improve Your Profile
             </h2>
@@ -773,9 +773,9 @@ export default function DashboardPage() {
         </div>
 
         <div className="order-1 lg:col-span-4">
-          <div className="ds-card p-8 h-full bg-white">
+          <div className="ds-card h-full min-w-0 bg-white p-4 sm:p-8">
             <h2 className="text-xl font-bold text-[#1a1a2e] mb-6">Quick Stats</h2>
-            <div className="grid grid-cols-2 gap-3 lg:grid-cols-1 lg:gap-4">
+            <div className="grid grid-cols-1 gap-3 min-w-0 sm:grid-cols-2 lg:grid-cols-1 lg:gap-4">
               <div className="p-4 bg-[#f8f8ff] rounded-xl border border-[#eaeaf2] flex items-center justify-between hover:border-[#6366f1]/30 transition-colors">
                 <div className="flex items-center gap-4">
                   <div className="w-10 h-10 rounded-lg bg-[#6366f1]/20 text-[#a855f7] flex items-center justify-center ring-1 ring-[#6366f1]/30">

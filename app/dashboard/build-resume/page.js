@@ -287,7 +287,7 @@ export default function BuildResumePage() {
 
   if (initLoading) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-2xl mx-auto">
+      <div className="flex flex-col items-center justify-center min-h-[60vh] max-w-2xl mx-auto w-full min-w-0 px-4">
         <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin" />
         <p className="mt-4 text-gray-500">Loading...</p>
       </div>
@@ -297,7 +297,7 @@ export default function BuildResumePage() {
   if (showUpgradeModal) {
     return (
       <>
-        <div className="max-w-2xl mx-auto opacity-50 pointer-events-none">
+        <div className="max-w-2xl mx-auto w-full min-w-0 opacity-50 pointer-events-none px-4">
           <div className="mb-8"><span>Step {step} of {TOTAL_STEPS}</span></div>
         </div>
         <UpgradeLimitModal
@@ -310,7 +310,7 @@ export default function BuildResumePage() {
   }
 
   return (
-    <div className="max-w-2xl mx-auto">
+    <div className="max-w-2xl mx-auto w-full min-w-0 px-1 sm:px-0">
       {/* Progress bar */}
       <div className="mb-8">
         <div className="flex justify-between text-sm text-gray-500 mb-2">
@@ -470,7 +470,7 @@ export default function BuildResumePage() {
                   </p>
                 )}
               </div>
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-1">Start Date</label>
                   <input

@@ -29,9 +29,9 @@ export default function SavedResumePreviewPanel({ profile, authUser }) {
     'Your Name'
 
   return (
-    <div className="mt-3">
+    <div className="mt-3 w-full max-w-[min(100%,280px)] mx-auto sm:mx-0">
       <div
-        className="w-[280px] h-[380px] overflow-hidden border border-[#e5e7eb] bg-white"
+        className="h-[380px] w-full overflow-hidden border border-[#e5e7eb] bg-white"
         style={{ borderRadius: 8 }}
       >
         <div

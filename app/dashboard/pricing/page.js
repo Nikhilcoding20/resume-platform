@@ -4,27 +4,24 @@ import { Fragment, useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 
-const COL_PRO = 'bg-[#f5f3ff]'
-
 function renderCell(v) {
   if (v === 'check') {
     return (
-      <span className="text-lg leading-none text-[#6366f1]" aria-label="Included">
-        ✅
+      <span className="text-base font-medium leading-none text-[#1a1a2e]" aria-label="Included">
+        ✓
       </span>
     )
   }
   if (v === 'cross') {
     return (
-      <span className="text-lg leading-none text-slate-500" aria-label="Not included">
-        ❌
+      <span className="text-base font-normal leading-none text-slate-400" aria-label="Not included">
+        —
       </span>
     )
   }
   return <span className="text-sm text-[#1a1a2e]">{v}</span>
 }
 
-/** Free | Pro Monthly | Pro Annual — only these rows on the comparison table */
 const SECTIONS = [
   {
     title: null,
@@ -44,20 +41,15 @@ const SECTIONS = [
 
 function PlanHeaderCell({ children, className = '' }) {
   return (
-    <th
-      scope="col"
-      className={`border-b border-slate-200/80 px-4 py-3 text-center align-bottom ${className}`}
-    >
+    <th scope="col" className={`border-b border-slate-200 bg-white px-4 py-4 text-center align-bottom ${className}`}>
       {children}
     </th>
   )
 }
 
-function FeatureCell({ children, pro }) {
+function FeatureCell({ children }) {
   return (
-    <td
-      className={`border-b border-slate-100 px-4 py-3 text-center text-sm ${pro ? COL_PRO : 'bg-white'}`}
-    >
+    <td className="border-b border-slate-100 bg-white px-4 py-3 text-center text-sm">
       <div className="flex min-h-[1.5rem] items-center justify-center">{children}</div>
     </td>
   )
@@ -68,19 +60,6 @@ function FeatureLabelCell({ children }) {
     <td className="sticky left-0 z-20 border-b border-slate-100 bg-white px-4 py-3 text-left text-sm text-[#1a1a2e] shadow-[1px_0_0_0_rgb(241,245,249)]">
       {children}
     </td>
-  )
-}
-
-function SectionHeaderRow({ title, isFirst }) {
-  return (
-    <tr>
-      <td
-        colSpan={4}
-        className={`bg-white px-4 py-3 text-xs font-bold uppercase tracking-wider text-[#1a1a2e] ${isFirst ? 'pt-4' : 'pt-8'}`}
-      >
-        {title}
-      </td>
-    </tr>
   )
 }
 
@@ -177,10 +156,9 @@ function PricingFaqAccordion() {
   const [openId, setOpenId] = useState(null)
 
   return (
-    <section className="mt-16 border-t border-slate-200/80 pt-14" aria-labelledby="pricing-faq-heading">
-      <h2 id="pricing-faq-heading" className="text-center text-2xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-3xl">
-        Frequently asked{' '}
-        <span className="bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent">questions</span>
+    <section className="mt-16 border-t border-slate-200 pt-14" aria-labelledby="pricing-faq-heading">
+      <h2 id="pricing-faq-heading" className="text-center text-2xl font-semibold tracking-tight text-[#1a1a2e] sm:text-3xl">
+        Frequently asked questions
       </h2>
       <p className="mx-auto mt-2 max-w-lg text-center text-sm text-slate-500">
         Straight answers — no corporate jargon.
@@ -193,9 +171,7 @@ function PricingFaqAccordion() {
             <div
               key={id}
               className={`overflow-hidden rounded-xl border transition-colors ${
-                isOpen
-                  ? 'border-[#6366f1]/40 bg-[#f8f8ff] shadow-[0_0_0_1px_rgba(99,102,241,0.12)]'
-                  : 'border-slate-200/90 bg-white hover:border-[#6366f1]/25'
+                isOpen ? 'border-slate-300 bg-slate-50' : 'border-slate-200 bg-white hover:border-slate-300'
               }`}
             >
               <button
@@ -206,12 +182,10 @@ function PricingFaqAccordion() {
                 onClick={() => setOpenId(isOpen ? null : id)}
                 className="flex min-h-11 w-full items-center justify-between gap-4 px-5 py-3 text-left sm:py-4"
               >
-                <span className={`text-sm font-semibold sm:text-base ${isOpen ? 'text-[#6366f1]' : 'text-[#1a1a2e]'}`}>
-                  {item.q}
-                </span>
+                <span className="text-sm font-medium sm:text-base text-[#1a1a2e]">{item.q}</span>
                 <span
-                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-[#6366f1] transition-transform ${
-                    isOpen ? 'rotate-180 bg-[#6366f1]/10' : 'bg-slate-50'
+                  className={`flex h-11 w-11 shrink-0 items-center justify-center rounded-lg text-slate-500 transition-transform ${
+                    isOpen ? 'rotate-180 bg-slate-100' : 'bg-slate-50'
                   }`}
                   aria-hidden
                 >
@@ -225,9 +199,9 @@ function PricingFaqAccordion() {
                   id={`${id}-panel`}
                   role="region"
                   aria-labelledby={`${id}-btn`}
-                  className="border-t border-[#6366f1]/15 px-5 pb-5 pt-1"
+                  className="border-t border-slate-200 px-5 pb-5 pt-3"
                 >
-                  <p className="text-sm leading-relaxed text-[#5c5c7a] sm:text-[15px]">{item.a}</p>
+                  <p className="text-sm leading-relaxed text-slate-600 sm:text-[15px]">{item.a}</p>
                 </div>
               )}
             </div>
@@ -238,117 +212,52 @@ function PricingFaqAccordion() {
   )
 }
 
-function ProCtaDesktop({ priceId, showManage, manageLoading, checkoutLoading, onPortal, onCheckout }) {
-  if (showManage) {
-    return (
-      <button
-        type="button"
-        disabled={manageLoading}
-        onClick={onPortal}
-        className="mt-4 inline-flex min-h-11 w-full max-w-[220px] items-center justify-center rounded-xl border-2 border-[#6366f1] bg-white px-4 py-2.5 text-sm font-semibold text-[#6366f1] transition-colors hover:bg-[#6366f1]/5 disabled:opacity-60 md:max-w-[168px]"
-      >
-        {manageLoading ? 'Opening…' : 'Manage Subscription'}
-      </button>
-    )
-  }
+function FeatureComparisonTable() {
   return (
-    <button
-      type="button"
-      disabled={!!checkoutLoading}
-      onClick={() => onCheckout(priceId)}
-      className="mt-4 inline-flex min-h-11 w-full max-w-[220px] items-center justify-center rounded-xl bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-4 py-2.5 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 transition-opacity hover:opacity-95 disabled:opacity-60 md:max-w-[168px]"
-    >
-      {checkoutLoading === priceId ? 'Redirecting…' : 'Upgrade Now →'}
-    </button>
-  )
-}
-
-function PlanComparisonTable({
-  monthlyPriceId,
-  annualPriceId,
-  showManage,
-  manageLoading,
-  checkoutLoading,
-  openPortal,
-  startCheckout,
-}) {
-  return (
-    <table className="w-full min-w-[720px] border-collapse text-left">
-      <thead className="sticky top-0 z-30 bg-white shadow-[0_1px_0_0_rgba(226,232,240,0.95)]">
-        <tr className="bg-white">
-          <th className="sticky left-0 top-0 z-50 w-[26%] min-w-[168px] bg-white px-4 py-5 text-left align-bottom shadow-[1px_0_0_0_rgb(241,245,249)]" />
-          <PlanHeaderCell className="bg-white">
-            <div className="flex flex-col items-center gap-1">
-              <span className="text-sm font-bold uppercase tracking-wide text-[#1a1a2e]">Free</span>
-              <span className="text-2xl font-bold text-[#1a1a2e]">$0</span>
-              <span className="text-xs text-slate-500">/month</span>
-              <span className="text-xs font-medium text-slate-600">Starter</span>
-              <Link
-                href="/dashboard"
-                className="mt-4 inline-flex min-h-11 w-full max-w-[220px] items-center justify-center rounded-xl border-2 border-[#6366f1] bg-white px-4 py-2.5 text-sm font-semibold text-[#6366f1] transition-colors hover:bg-[#6366f1]/5 md:max-w-[168px]"
-              >
-                Get Started
-              </Link>
-            </div>
-          </PlanHeaderCell>
-          <PlanHeaderCell className={`${COL_PRO}`}>
-            <div className="flex flex-col items-center gap-1.5">
-              <span className="inline-flex rounded-full bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-3 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-                Pro
-              </span>
-              <span className="text-sm font-bold uppercase tracking-wide text-[#1a1a2e]">Pro Monthly</span>
-              <span className="text-2xl font-bold text-[#1a1a2e]">$14.99</span>
-              <span className="text-xs text-slate-500">/month</span>
-              <ProCtaDesktop
-                priceId={monthlyPriceId}
-                showManage={showManage}
-                manageLoading={manageLoading}
-                checkoutLoading={checkoutLoading}
-                onPortal={openPortal}
-                onCheckout={startCheckout}
-              />
-            </div>
-          </PlanHeaderCell>
-          <PlanHeaderCell className={`${COL_PRO}`}>
-            <div className="flex flex-col items-center gap-2">
-              <span className="inline-flex shrink-0 rounded-full bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                Best Value
-              </span>
-              <span className="inline-flex shrink-0 rounded-full bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-3 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white shadow-sm">
-                Pro Annual
-              </span>
-              <span className="text-sm font-bold uppercase tracking-wide text-[#1a1a2e]">Pro Annual</span>
-              <span className="text-2xl font-bold text-[#1a1a2e]">$8.25</span>
-              <span className="text-xs text-slate-500">/month</span>
-              <span className="text-[11px] leading-tight text-slate-500">billed $99/year</span>
-              <ProCtaDesktop
-                priceId={annualPriceId}
-                showManage={showManage}
-                manageLoading={manageLoading}
-                checkoutLoading={checkoutLoading}
-                onPortal={openPortal}
-                onCheckout={startCheckout}
-              />
-            </div>
-          </PlanHeaderCell>
-        </tr>
-      </thead>
-      <tbody>
-        {SECTIONS.map((section, sIdx) => (
-          <Fragment key={section.title ?? 'compare'}>
-            {section.title ? <SectionHeaderRow title={section.title} isFirst={sIdx === 0} /> : null}
-            {section.rows.map((row) => (
-              <tr key={row.label}>
-                <FeatureLabelCell>{row.label}</FeatureLabelCell>
-                <FeatureCell pro={false}>{renderCell(row.values[0])}</FeatureCell>
-                <FeatureCell pro>{renderCell(row.values[1])}</FeatureCell>
-                <FeatureCell pro>{renderCell(row.values[2])}</FeatureCell>
-              </tr>
-            ))}
-          </Fragment>
-        ))}
-      </tbody>
-    </table>
+    <div className="mt-6 w-full max-w-full min-w-0 overflow-x-auto overscroll-x-contain rounded-xl border border-slate-200 bg-white shadow-sm">
+      <table className="w-full min-w-[640px] border-collapse text-left">
+        <thead>
+          <tr className="border-b border-slate-200">
+            <th className="sticky left-0 z-10 w-[34%] min-w-[140px] bg-white px-4 py-4 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+              Feature
+            </th>
+            <PlanHeaderCell>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm font-semibold text-[#1a1a2e]">Free</span>
+                <span className="text-xs text-slate-500">Starter</span>
+              </div>
+            </PlanHeaderCell>
+            <PlanHeaderCell>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-sm font-semibold text-[#1a1a2e]">Pro Monthly</span>
+                <span className="text-xs text-slate-500">$14.99/mo</span>
+              </div>
+            </PlanHeaderCell>
+            <PlanHeaderCell>
+              <div className="flex flex-col items-center gap-1">
+                <span className="text-xs font-semibold uppercase tracking-wide text-slate-500">Best value</span>
+                <span className="text-sm font-semibold text-[#1a1a2e]">Pro Annual</span>
+                <span className="text-xs text-slate-500">$99/yr</span>
+              </div>
+            </PlanHeaderCell>
+          </tr>
+        </thead>
+        <tbody>
+          {SECTIONS.map((section) => (
+            <Fragment key={section.title ?? 'compare'}>
+              {section.rows.map((row) => (
+                <tr key={row.label}>
+                  <FeatureLabelCell>{row.label}</FeatureLabelCell>
+                  <FeatureCell>{renderCell(row.values[0])}</FeatureCell>
+                  <FeatureCell>{renderCell(row.values[1])}</FeatureCell>
+                  <FeatureCell>{renderCell(row.values[2])}</FeatureCell>
+                </tr>
+              ))}
+            </Fragment>
+          ))}
+        </tbody>
+      </table>
+    </div>
   )
 }
 
@@ -377,27 +286,68 @@ export default function PricingPage() {
       setShowManage(!!active)
     }
     load()
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-white pb-20">
+    <div className="min-h-screen overflow-x-hidden bg-slate-50/80 pb-20">
       <div className="mx-auto max-w-6xl px-4 pt-10 sm:px-6 lg:px-8">
-        <h1 className="text-center text-3xl font-extrabold tracking-tight text-[#1a1a2e] sm:text-4xl">
-          Compare{' '}
-          <span className="bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent">
-            plans
-          </span>
+        <h1 className="text-center text-3xl font-semibold tracking-tight text-[#1a1a2e] sm:text-4xl">
+          Simple pricing for your job search
         </h1>
-        <p className="mx-auto mt-3 max-w-lg text-center text-sm text-slate-500">
-          Choose the plan that fits your job search. Upgrade anytime.
+        <p className="mx-auto mt-3 max-w-lg text-center text-sm text-slate-600">
+          Choose the plan that fits you. Upgrade or cancel anytime.
         </p>
 
-        <div className="mt-10 hidden overflow-x-auto rounded-2xl border border-slate-200/80 shadow-sm md:block">
-          <PlanComparisonTable
+        <div className="mt-12 grid grid-cols-1 gap-6 lg:grid-cols-3 lg:gap-8">
+          <PlanCard
+            planId="free"
+            kicker={null}
+            title="Free"
+            subtitle="Starter"
+            price="$0"
+            period="/ month"
+            billed={null}
+            bestValue={false}
+            showManage={false}
             monthlyPriceId={monthlyPriceId}
             annualPriceId={annualPriceId}
+            manageLoading={manageLoading}
+            checkoutLoading={checkoutLoading}
+            openPortal={openPortal}
+            startCheckout={startCheckout}
+          />
+          <PlanCard
+            planId="monthly"
+            kicker="Pro"
+            title="Pro Monthly"
+            subtitle={null}
+            price="$14.99"
+            period="/ month"
+            billed={null}
+            bestValue={false}
             showManage={showManage}
+            monthlyPriceId={monthlyPriceId}
+            annualPriceId={annualPriceId}
+            manageLoading={manageLoading}
+            checkoutLoading={checkoutLoading}
+            openPortal={openPortal}
+            startCheckout={startCheckout}
+          />
+          <PlanCard
+            planId="annual"
+            kicker="Best value"
+            title="Pro Annual"
+            subtitle={null}
+            price="$8.25"
+            period="/ month"
+            billed="Billed $99 per year"
+            bestValue
+            showManage={showManage}
+            monthlyPriceId={monthlyPriceId}
+            annualPriceId={annualPriceId}
             manageLoading={manageLoading}
             checkoutLoading={checkoutLoading}
             openPortal={openPortal}
@@ -405,68 +355,12 @@ export default function PricingPage() {
           />
         </div>
 
-        <div className="mt-10 space-y-5 md:hidden">
-          <MobilePlanCard
-            planId="free"
-            headline="FREE"
-            badge={null}
-            tagline="Starter"
-            price="$0"
-            period="/month"
-            billed={null}
-            bestValue={false}
-            cta={{ label: 'Get Started', href: '/dashboard', variant: 'outline' }}
-          />
-          <MobilePlanCard
-            planId="monthly"
-            headline="Pro Monthly"
-            badge="Pro"
-            tagline={null}
-            price="$14.99"
-            period="/month"
-            billed={null}
-            bestValue={false}
-            priceId={monthlyPriceId}
-            showManage={showManage}
-            manageLoading={manageLoading}
-            checkoutLoading={checkoutLoading}
-            onPortal={openPortal}
-            onCheckout={startCheckout}
-          />
-          <MobilePlanCard
-            planId="annual"
-            headline="Pro Annual"
-            badge="Pro Annual"
-            tagline={null}
-            price="$8.25"
-            period="/month"
-            billed="billed $99/year"
-            bestValue
-            priceId={annualPriceId}
-            showManage={showManage}
-            manageLoading={manageLoading}
-            checkoutLoading={checkoutLoading}
-            onPortal={openPortal}
-            onCheckout={startCheckout}
-          />
-        </div>
-
-        <div className="md:hidden">
-          <p className="mt-10 text-center text-sm font-semibold text-[#5c5c7a]">Compare all features</p>
-          <p className="mx-auto mt-1 max-w-md text-center text-xs text-slate-500">Scroll horizontally to see the full table.</p>
-          <div className="mt-4 -mx-4 overflow-x-auto px-4 pb-1 sm:-mx-6 sm:px-6">
-            <div className="min-w-0 rounded-2xl border border-slate-200/80 shadow-sm">
-              <PlanComparisonTable
-                monthlyPriceId={monthlyPriceId}
-                annualPriceId={annualPriceId}
-                showManage={showManage}
-                manageLoading={manageLoading}
-                checkoutLoading={checkoutLoading}
-                openPortal={openPortal}
-                startCheckout={startCheckout}
-              />
-            </div>
-          </div>
+        <div className="mt-16">
+          <h2 className="text-center text-lg font-semibold text-[#1a1a2e]">Compare features</h2>
+          <p className="mx-auto mt-1 max-w-md text-center text-sm text-slate-500">
+            Same tools across plans; limits shown per column.
+          </p>
+          <FeatureComparisonTable />
         </div>
 
         <PricingFaqAccordion />
@@ -475,100 +369,90 @@ export default function PricingPage() {
   )
 }
 
-function MobilePlanCard({
+function PlanCard({
   planId,
-  headline,
-  badge,
-  tagline,
+  kicker,
+  title,
+  subtitle,
   price,
   period,
   billed,
   bestValue,
-  cta,
-  priceId,
   showManage,
+  monthlyPriceId,
+  annualPriceId,
   manageLoading,
   checkoutLoading,
-  onPortal,
-  onCheckout,
+  openPortal,
+  startCheckout,
 }) {
   const colIdx = planId === 'free' ? 0 : planId === 'monthly' ? 1 : 2
   const isFree = planId === 'free'
+  const priceId = planId === 'monthly' ? monthlyPriceId : planId === 'annual' ? annualPriceId : null
 
   return (
     <div
-      className={`overflow-hidden rounded-2xl border border-slate-200/80 shadow-sm ${
-        isFree ? 'bg-white' : 'bg-[#f5f3ff]'
+      className={`flex flex-col rounded-2xl border bg-white p-6 shadow-sm ${
+        bestValue ? 'border-slate-300 ring-1 ring-slate-200' : 'border-slate-200'
       }`}
     >
-      {bestValue && (
-        <div className="bg-gradient-to-r from-[#6366f1] to-[#06b6d4] py-2.5 text-center text-[10px] font-bold uppercase tracking-wide text-white">
-          Best Value
-        </div>
+      {kicker ? (
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">{kicker}</p>
+      ) : (
+        <p className="text-xs font-semibold uppercase tracking-wide text-transparent select-none" aria-hidden>
+          &nbsp;
+        </p>
       )}
-      <div className="border-b border-slate-200/80 px-4 py-5 text-center">
-        <div className="flex flex-col items-center gap-1">
-          {badge && (
-            <span className="inline-flex rounded-full bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-3 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
-              {badge}
-            </span>
-          )}
-          <span className="text-lg font-bold uppercase tracking-wide text-[#1a1a2e]">{headline}</span>
-          {tagline && <span className="text-xs font-medium text-slate-600">{tagline}</span>}
-          <div className="mt-1 flex items-baseline justify-center gap-0.5">
-            <span className="text-3xl font-bold text-[#1a1a2e]">{price}</span>
-            <span className="text-sm text-slate-500">{period}</span>
-          </div>
-          {billed && <span className="text-xs text-slate-500">{billed}</span>}
-        </div>
-        {isFree && cta?.variant === 'outline' ? (
-          <Link
-            href={cta.href}
-            className="mt-4 flex min-h-11 w-full items-center justify-center rounded-xl border-2 border-[#6366f1] bg-white py-3 text-sm font-semibold text-[#6366f1] transition-colors hover:bg-[#6366f1]/5"
-          >
-            {cta.label}
-          </Link>
-        ) : showManage ? (
-          <button
-            type="button"
-            disabled={manageLoading}
-            onClick={onPortal}
-            className="mt-4 flex min-h-11 w-full items-center justify-center rounded-xl border-2 border-[#6366f1] bg-white py-3 text-sm font-semibold text-[#6366f1] disabled:opacity-60"
-          >
-            {manageLoading ? 'Opening…' : 'Manage Subscription'}
-          </button>
-        ) : (
-          <button
-            type="button"
-            disabled={!!checkoutLoading}
-            onClick={() => onCheckout(priceId)}
-            className="mt-4 flex min-h-11 w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#6366f1] to-[#06b6d4] py-3 text-sm font-semibold text-white shadow-md shadow-indigo-500/20 disabled:opacity-60"
-          >
-            {checkoutLoading === priceId ? 'Redirecting…' : 'Upgrade Now →'}
-          </button>
-        )}
+      <h2 className="mt-1 text-xl font-semibold text-[#1a1a2e]">{title}</h2>
+      {subtitle ? <p className="mt-0.5 text-sm text-slate-600">{subtitle}</p> : null}
+      <div className="mt-4 flex items-baseline gap-1">
+        <span className="text-3xl font-semibold tracking-tight text-[#1a1a2e]">{price}</span>
+        <span className="text-sm text-slate-500">{period}</span>
       </div>
-      <div className="divide-y divide-slate-100 px-4 py-2">
-        {SECTIONS.map((section) => (
-          <div key={section.title ?? 'compare'} className="py-3">
-            {section.title ? (
-              <p className="mb-2 text-xs font-bold uppercase tracking-wider text-[#1a1a2e]">{section.title}</p>
-            ) : null}
-            <ul className="space-y-2">
-              {section.rows.map((row) => {
-                const v = row.values[colIdx]
-                return (
-                  <li key={row.label} className="flex items-start justify-between gap-3 text-sm">
-                    <span className="min-w-0 flex-1 text-[#5c5c7a]">{row.label}</span>
-                    <span className="flex shrink-0 items-center justify-end text-right text-[#1a1a2e]">
-                      {renderCell(v)}
-                    </span>
-                  </li>
-                )
-              })}
-            </ul>
-          </div>
-        ))}
+      {billed ? <p className="mt-1 text-xs text-slate-500">{billed}</p> : null}
+
+      {isFree ? (
+        <Link
+          href="/dashboard"
+          className="mt-6 flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#1a1a2e] transition-colors hover:bg-slate-50"
+        >
+          Continue with Free
+        </Link>
+      ) : showManage ? (
+        <button
+          type="button"
+          disabled={manageLoading}
+          onClick={openPortal}
+          className="mt-6 flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#1a1a2e] transition-colors hover:bg-slate-50 disabled:opacity-60"
+        >
+          {manageLoading ? 'Opening…' : 'Manage subscription'}
+        </button>
+      ) : (
+        <button
+          type="button"
+          disabled={!!checkoutLoading}
+          onClick={() => startCheckout(priceId)}
+          className="mt-6 flex min-h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-95 disabled:opacity-60"
+        >
+          {checkoutLoading === priceId ? 'Redirecting…' : 'Upgrade now'}
+        </button>
+      )}
+
+      <div className="mt-8 border-t border-slate-100 pt-6">
+        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">What&apos;s included</p>
+        <ul className="mt-4 space-y-0 divide-y divide-slate-100">
+          {SECTIONS.flatMap((section) =>
+            section.rows.map((row) => {
+              const v = row.values[colIdx]
+              return (
+                <li key={row.label} className="flex items-center justify-between gap-4 py-3 text-sm first:pt-0">
+                  <span className="min-w-0 flex-1 text-slate-600">{row.label}</span>
+                  <span className="shrink-0 tabular-nums">{renderCell(v)}</span>
+                </li>
+              )
+            })
+          )}
+        </ul>
       </div>
     </div>
   )

@@ -416,7 +416,7 @@ export default function CoverLetterPage() {
   }
 
   return (
-    <div className="relative min-w-0">
+    <div className="relative w-full min-w-0 max-w-full overflow-x-hidden">
       <UpgradeLimitModal
         open={showLimitOverlay}
         variant="cover-letter"
@@ -424,17 +424,14 @@ export default function CoverLetterPage() {
       />
       <CoverLetterGeneratingOverlay active={loading} progress={progress} />
       {result ? (
-        <div className="w-full min-h-[calc(100vh-4rem)] flex flex-col -mx-4 px-4 sm:-mx-6 sm:px-6 py-2 bg-slate-100 rounded-xl border border-slate-200/80">
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text text-transparent pt-4 pb-6 shrink-0">
+        <div className="flex min-h-[calc(100vh-4rem)] w-full min-w-0 max-w-full flex-col rounded-xl border border-slate-200/80 bg-slate-100 py-2">
+          <h1 className="shrink-0 bg-gradient-to-r from-[#6366f1] to-[#06b6d4] bg-clip-text pb-6 pt-4 text-2xl font-bold text-transparent">
             Your cover letter
           </h1>
-          <div
-            className="flex-1 pb-8 min-h-0 flex flex-col lg:grid gap-6 lg:gap-[4%]"
-            style={{ gridTemplateColumns: '58% 38%' }}
-          >
-            <div className="min-w-0 flex justify-start lg:justify-start">
-              <div className="w-full max-w-[640px] overflow-hidden rounded-xl shadow-lg shadow-slate-200/60 border border-slate-200/80 bg-white">
-                <div className="max-h-[min(75vh,900px)] overflow-y-auto px-10 py-12 sm:px-14 sm:py-14">
+          <div className="flex min-h-0 w-full min-w-0 max-w-full flex-1 flex-col gap-6 pb-8 lg:grid lg:grid-cols-[minmax(0,1.15fr)_minmax(0,0.85fr)] lg:gap-[4%]">
+            <div className="flex min-w-0 justify-start lg:justify-start">
+              <div className="w-full max-w-full overflow-hidden rounded-xl border border-slate-200/80 bg-white shadow-lg shadow-slate-200/60 lg:max-w-[640px]">
+                <div className="max-h-[min(75vh,900px)] overflow-y-auto px-4 py-8 sm:px-10 sm:py-12 lg:px-14 lg:py-14">
                   <CoverLetterLivePreview header={result.header} bodyText={editedBody} />
                 </div>
               </div>

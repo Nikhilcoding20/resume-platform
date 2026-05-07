@@ -409,7 +409,7 @@ function ReviewCard({ r }: { r: (typeof REVIEWS)[number] }) {
 
 function HeroDashboardMock() {
   return (
-    <div className="relative mx-auto w-full max-w-[420px] lg:max-w-none">
+    <div className="relative mx-auto w-full min-w-0 max-w-[min(100%,420px)] lg:max-w-none">
       <div
         className="rounded-2xl border border-[#eaeaf2] bg-white p-3 shadow-[0_20px_50px_-20px_rgba(99,102,241,0.25),0_8px_30px_-12px_rgba(15,23,42,0.12)] ring-1 ring-[#6366f1]/[0.06]"
         style={{ boxShadow: '0 25px 50px -12px rgba(99, 102, 241, 0.18), 0 0 0 1px rgba(234, 234, 242, 1)' }}
@@ -524,7 +524,7 @@ function ResumeBuilderHighlightMock() {
   const pill =
     'rounded-full px-3 py-1 text-[11px] font-semibold text-white shadow-md bg-gradient-to-r from-[#6366f1] to-[#8b5cf6]'
   return (
-    <div className="relative mx-auto w-full max-w-xl py-6 lg:max-w-none lg:py-4">
+    <div className="relative mx-auto w-full min-w-0 max-w-full py-6 lg:max-w-none lg:py-4">
       <div
         className="pointer-events-none absolute left-2 top-8 z-0 h-4 w-4 rotate-45 rounded-sm bg-[#6366f1]/30"
         aria-hidden
@@ -552,7 +552,7 @@ function ResumeBuilderHighlightMock() {
       <div className="relative z-[1] mt-10 min-h-[560px] lg:mt-12 lg:min-h-[500px]">
         {/* Back card — job description */}
         <div
-          className="relative z-10 mx-auto w-full max-w-[340px] rounded-2xl border border-[#eaeaf2] bg-white p-5 shadow-[0_24px_60px_-16px_rgba(99,102,241,0.2),0_10px_36px_-12px_rgba(15,23,42,0.1),0_0_0_1px_rgba(240,240,248,0.9)] lg:absolute lg:left-0 lg:top-14 lg:mx-0 lg:max-w-[min(100%,340px)]"
+          className="relative z-10 mx-auto w-full max-w-[min(100%,340px)] rounded-2xl border border-[#eaeaf2] bg-white p-5 shadow-[0_24px_60px_-16px_rgba(99,102,241,0.2),0_10px_36px_-12px_rgba(15,23,42,0.1),0_0_0_1px_rgba(240,240,248,0.9)] lg:absolute lg:left-0 lg:top-14 lg:mx-0 lg:max-w-[min(100%,340px)]"
         >
           <p className="mb-3 text-sm font-bold text-[#1a1a2e]">Pasted Job Description</p>
           <div className="space-y-2 text-[13px] leading-relaxed text-[#5c5c7a]">
@@ -592,7 +592,7 @@ function ResumeBuilderHighlightMock() {
 
         {/* Front card — resume */}
         <div
-          className="relative z-20 -mt-10 w-full max-w-[380px] rounded-2xl border border-[#eaeaf2] bg-white p-5 shadow-[0_28px_70px_-18px_rgba(99,102,241,0.28),0_14px_44px_-14px_rgba(15,23,42,0.14),0_0_0_1px_rgba(234,234,242,0.95)] lg:absolute lg:right-0 lg:top-2 lg:-mt-0 lg:max-w-[min(100%,380px)]"
+          className="relative z-20 -mt-10 w-full max-w-[min(100%,380px)] rounded-2xl border border-[#eaeaf2] bg-white p-5 shadow-[0_28px_70px_-18px_rgba(99,102,241,0.28),0_14px_44px_-14px_rgba(15,23,42,0.14),0_0_0_1px_rgba(234,234,242,0.95)] lg:absolute lg:right-0 lg:top-2 lg:-mt-0 lg:max-w-[min(100%,380px)]"
         >
           <div className="mb-4 flex items-start justify-between gap-3 border-b border-[#f0f0f8] pb-4">
             <div className="min-w-0">
@@ -993,7 +993,7 @@ export default function LandingPage() {
           </p>
         </div>
 
-        <div className="mx-auto mt-12 w-full max-w-4xl">
+        <div className="mx-auto mt-12 w-full min-w-0 max-w-4xl px-1 sm:px-0">
           <div className="relative min-h-[620px] rounded-[20px] border border-[#eaeaf2] bg-white p-6 shadow-[0_16px_50px_-20px_rgba(99,102,241,0.25)] sm:min-h-[640px] sm:p-10 md:min-h-[560px]">
             <div
               className={`absolute inset-0 px-6 py-6 transition-opacity duration-500 sm:px-10 sm:py-10 ${
@@ -1367,59 +1367,57 @@ export default function LandingPage() {
           <p className="mx-auto mb-12 max-w-lg text-center text-[#5c5c7a]">Choose the plan that fits your search. Upgrade or cancel anytime.</p>
           <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
             <div className={cardBase}>
-              <p className="text-sm font-semibold text-[#6366f1]">Free</p>
+              <p className="text-sm font-semibold text-[#1a1a2e]">Free</p>
               <p className="mt-2 text-3xl font-extrabold text-[#1a1a2e]">
                 $0<span className="text-base font-medium text-[#5c5c7a]">/mo</span>
               </p>
               <ul className="mt-6 space-y-3 text-sm text-[#5c5c7a]">
                 <li className="flex gap-2">
-                  <span className="text-[#6366f1]">✓</span> Core resume builder
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Core resume builder
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-[#6366f1]">✓</span> Limited ATS checks
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Limited ATS checks
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-[#6366f1]">✓</span> Basic templates
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Basic templates
                 </li>
               </ul>
             </div>
-            <div
-              className={`${cardBase} relative ring-2 ring-[#6366f1]/25 shadow-[0_12px_40px_-12px_rgba(99,102,241,0.25)]`}
-            >
-              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-3 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
+            <div className={`${cardBase} relative border-slate-300 ring-1 ring-slate-200`}>
+              <span className="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-semibold uppercase tracking-wide text-slate-600 shadow-sm">
                 Popular
               </span>
-              <p className="text-sm font-semibold text-[#6366f1]">Pro Monthly</p>
+              <p className="text-sm font-semibold text-[#1a1a2e]">Pro Monthly</p>
               <p className="mt-2 text-3xl font-extrabold text-[#1a1a2e]">
                 $14.99<span className="text-base font-medium text-[#5c5c7a]">/mo</span>
               </p>
               <ul className="mt-6 space-y-3 text-sm text-[#5c5c7a]">
                 <li className="flex gap-2">
-                  <span className="text-[#6366f1]">✓</span> Unlimited resumes &amp; letters
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Unlimited resumes &amp; letters
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-[#6366f1]">✓</span> Full ATS checker
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Full ATS checker
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-[#6366f1]">✓</span> Interview coach &amp; job board
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Interview coach &amp; job board
                 </li>
               </ul>
             </div>
             <div className={cardBase}>
-              <p className="text-sm font-semibold text-[#06b6d4]">Pro Annual</p>
+              <p className="text-sm font-semibold text-[#1a1a2e]">Pro Annual</p>
               <p className="mt-2 text-3xl font-extrabold text-[#1a1a2e]">
                 $8.25<span className="text-base font-medium text-[#5c5c7a]">/mo</span>
               </p>
               <p className="mt-1 text-xs text-[#5c5c7a]">billed annually — best value</p>
               <ul className="mt-4 space-y-3 text-sm text-[#5c5c7a]">
                 <li className="flex gap-2">
-                  <span className="text-[#06b6d4]">✓</span> Everything in Pro Monthly
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Everything in Pro Monthly
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-[#06b6d4]">✓</span> Priority support
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Priority support
                 </li>
                 <li className="flex gap-2">
-                  <span className="text-[#06b6d4]">✓</span> Lowest per-month price
+                  <span className="font-medium text-[#1a1a2e]" aria-hidden>✓</span> Lowest per-month price
                 </li>
               </ul>
             </div>
