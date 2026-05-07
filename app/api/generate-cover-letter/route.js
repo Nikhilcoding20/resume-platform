@@ -66,9 +66,16 @@ function getHeaderFromProfile(profile) {
   }
 }
 
-async function incrementCoverLetterUsage(supabase, userId) {
+async function incrementCoverLetterUsage(supabase, supabaseService, userId) {
   if (!userId) return
   try {
+    if (!supabaseService) {
+      console.warn(
+        '[generate-cover-letter] SUPABASE_SERVICE_ROLE_KEY missing; user_usage increment uses JWT client (RLS may block)'
+      )
+    }
+    const usageMutateClient = supabaseService ?? supabase
+
     const { data: usageRows, error: usageError } = await supabase
       .from('user_usage')
       .select('cover_letters_generated')
@@ -80,10 +87,21 @@ async function incrementCoverLetterUsage(supabase, userId) {
     }
 
     const current = usageRows && usageRows.length > 0 ? usageRows[0]?.cover_letters_generated ?? 0 : 0
-    await supabase
+    const updateRes = await usageMutateClient
       .from('user_usage')
       .update({ cover_letters_generated: current + 1 })
       .eq('user_id', userId)
+      .select('cover_letters_generated')
+
+    console.log('[generate-cover-letter] user_usage increment response', {
+      client: supabaseService ? 'service_role' : 'user_jwt',
+      error: updateRes.error,
+      data: updateRes.data,
+    })
+
+    if (updateRes.error) {
+      console.error('[generate-cover-letter] usage increment update error:', updateRes.error)
+    }
 
     console.log('[generate-cover-letter] usage increment', { user_id: userId, cover_letters_generated: current + 1 })
   } catch (insertErr) {
@@ -108,42 +126,59 @@ function usageCheckFailedResponse() {
   )
 }
 
+/** Service role client for user_usage insert/update only (bypasses RLS). Mirrors generate-resume. */
+function createSupabaseServiceRoleClient() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY
+  if (!url || !key?.trim()) return null
+  return createClient(url, key.trim(), {
+    auth: { persistSession: false, autoRefreshToken: false },
+  })
+}
+
 /** Runs before file I/O or AI — uses plan-aware limits via canCreateCoverLetterForUser. */
-async function ensureCanCreateCoverLetter(supabase, userId) {
-  if (!userId) {
+async function ensureCanCreateCoverLetter(supabase, supabaseService, userId) {
+  const normalizedUserId = String(userId || '')
+  if (!normalizedUserId) {
     return {
       ok: false,
       response: NextResponse.json({ error: 'Missing user context' }, { status: 400 }),
     }
   }
   try {
-    const { data: rows, error: selectError } = await supabase
+    if (!supabaseService) {
+      console.warn(
+        '[generate-cover-letter] SUPABASE_SERVICE_ROLE_KEY missing; user_usage bootstrap uses JWT client (RLS may block)'
+      )
+    }
+    const usageMutateClient = supabaseService ?? supabase
+
+    const upsertRes = await usageMutateClient
       .from('user_usage')
-      .select('resumes_generated, cover_letters_generated')
-      .eq('user_id', userId)
-      .limit(1)
+      .upsert(
+        {
+          user_id: normalizedUserId,
+          resumes_generated: 0,
+          cover_letters_generated: 0,
+        },
+        { onConflict: 'user_id', ignoreDuplicates: true }
+      )
+      .select()
 
-    if (selectError) {
-      console.error('[generate-cover-letter] usage select error:', selectError)
-      return { ok: false, response: usageCheckFailedResponse() }
+    console.log('[generate-cover-letter] user_usage bootstrap upsert', {
+      client: supabaseService ? 'service_role' : 'user_jwt',
+      error: upsertRes.error,
+      data: upsertRes.data,
+    })
+
+    if (upsertRes.error) {
+      console.error('[generate-cover-letter] usage bootstrap upsert error:', upsertRes.error)
     }
 
-    if (!rows || rows.length === 0) {
-      const { error: insertError } = await supabase.from('user_usage').insert({
-        user_id: userId,
-        resumes_generated: 0,
-        cover_letters_generated: 0,
-      })
-      if (insertError) {
-        console.error('[generate-cover-letter] usage init error:', insertError)
-        return { ok: false, response: usageCheckFailedResponse() }
-      }
-    }
-
-    const usage = await getUsage(supabase, userId)
+    const usage = await getUsage(supabase, normalizedUserId)
     const usageObj = usage ?? { resumes: 0, coverLetters: 0 }
 
-    const allowed = await canCreateCoverLetterForUser(supabase, userId, usageObj)
+    const allowed = await canCreateCoverLetterForUser(supabase, normalizedUserId, usageObj)
     if (!allowed) {
       return { ok: false, response: limitReachedResponse() }
     }
@@ -157,15 +192,31 @@ async function ensureCanCreateCoverLetter(supabase, userId) {
 
 export async function POST(request) {
   try {
+    const authorizationHeader = request.headers.get('Authorization')
+
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
-    const supabase = supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey, {
-      global: {
-        headers: {
-          Authorization: request.headers.get('Authorization') || '',
-        },
-      },
-    }) : null
+    const supabase =
+      supabaseUrl && supabaseAnonKey
+        ? createClient(supabaseUrl, supabaseAnonKey, {
+            auth: { persistSession: false, autoRefreshToken: false },
+            global: {
+              headers: {
+                Authorization: authorizationHeader || '',
+              },
+            },
+          })
+        : null
+
+    const supabaseService = createSupabaseServiceRoleClient()
+
+    let authUser = null
+    let authUserError = null
+    if (supabase) {
+      const authRes = await supabase.auth.getUser()
+      authUser = authRes.data?.user ?? null
+      authUserError = authRes.error ?? null
+    }
 
     if (!supabase) {
       return jsonError('Server configuration error: Supabase client not initialized', 500)
@@ -202,7 +253,14 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Missing user context' }, { status: 400 })
       }
 
-      const usageGate = await ensureCanCreateCoverLetter(supabase, userId)
+      console.log('[generate-cover-letter] usage gate context', {
+        authorizationHeaderPresent: Boolean(authorizationHeader?.trim()),
+        authUserId: authUser?.id ?? null,
+        authUserError: authUserError?.message ?? null,
+        bodyUserId: userId,
+      })
+
+      const usageGate = await ensureCanCreateCoverLetter(supabase, supabaseService, userId)
       if (!usageGate.ok) return usageGate.response
 
       if (!process.env.ANTHROPIC_API_KEY) {
@@ -265,7 +323,14 @@ export async function POST(request) {
         return NextResponse.json({ error: 'Missing user context' }, { status: 400 })
       }
 
-      const usageGate = await ensureCanCreateCoverLetter(supabase, userId)
+      console.log('[generate-cover-letter] usage gate context', {
+        authorizationHeaderPresent: Boolean(authorizationHeader?.trim()),
+        authUserId: authUser?.id ?? null,
+        authUserError: authUserError?.message ?? null,
+        bodyUserId: userId,
+      })
+
+      const usageGate = await ensureCanCreateCoverLetter(supabase, supabaseService, userId)
       if (!usageGate.ok) return usageGate.response
 
       if (!process.env.ANTHROPIC_API_KEY) {
@@ -299,7 +364,7 @@ export async function POST(request) {
     const filename = getCoverLetterPdfFilename(header.fullName)
 
     if (responseFormat === 'json') {
-      await incrementCoverLetterUsage(supabase, userId)
+      await incrementCoverLetterUsage(supabase, supabaseService, userId)
       return NextResponse.json({
         filename,
         bodyText: coverLetterText,
@@ -331,7 +396,7 @@ export async function POST(request) {
 
       await browser.close()
 
-      await incrementCoverLetterUsage(supabase, userId)
+      await incrementCoverLetterUsage(supabase, supabaseService, userId)
 
       return new NextResponse(pdfBuffer, {
         status: 200,
