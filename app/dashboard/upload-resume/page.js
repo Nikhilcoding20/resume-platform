@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect } from 'react'
+import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getUsage, canCreateResumeForUser } from '@/lib/checkUsage'
@@ -24,6 +24,18 @@ function isAcceptedFile(file) {
     name.endsWith('.txt')
 }
 
+function getPostExtractRoute() {
+  try {
+    if (sessionStorage.getItem('ats-handoff-post-upload') === 'choose-template') {
+      sessionStorage.removeItem('ats-handoff-post-upload')
+      return '/dashboard/choose-template'
+    }
+  } catch {
+    /* ignore */
+  }
+  return '/dashboard'
+}
+
 export default function UploadResumePage() {
   const router = useRouter()
   const [file, setFile] = useState(null)
@@ -33,6 +45,8 @@ export default function UploadResumePage() {
   const [error, setError] = useState(null)
   const [initLoading, setInitLoading] = useState(true)
   const [showUpgradeModal, setShowUpgradeModal] = useState(false)
+  const [successKind, setSuccessKind] = useState(null)
+  const handoffStartedRef = useRef(false)
 
   useEffect(() => {
     let cancelled = false
@@ -51,6 +65,106 @@ export default function UploadResumePage() {
     check()
     return () => { cancelled = true }
   }, [router])
+
+  const runExtract = useCallback(async (uploadFile) => {
+    const { data: { session } } = await supabase.auth.getSession()
+    if (!session) {
+      router.replace('/login')
+      throw new Error('Please log in to upload a resume')
+    }
+
+    const formData = new FormData()
+    formData.append('file', uploadFile)
+    formData.append('accessToken', session.access_token)
+
+    let res
+    try {
+      res = await fetch('/api/extract-resume', {
+        method: 'POST',
+        body: formData,
+      })
+    } catch (fetchErr) {
+      console.error('[UploadResume] Fetch failed (network error):', fetchErr)
+      throw new Error(
+        fetchErr.message?.includes('Failed to fetch') || fetchErr.message?.includes('Load failed')
+          ? 'Network error. Check your connection and ensure the server is running.'
+          : fetchErr.message || 'Request failed'
+      )
+    }
+
+    let data
+    const responseText = await res.text()
+    try {
+      data = responseText ? JSON.parse(responseText) : {}
+    } catch (parseErr) {
+      console.error('[UploadResume] Failed to parse response as JSON:', parseErr)
+      throw new Error(
+        res.ok
+          ? 'Invalid response from server'
+          : `Server error (${res.status}). The server may have crashed or returned an invalid response.`
+      )
+    }
+
+    if (res.status === 403) {
+      setShowUpgradeModal(true)
+      throw new Error(data.error || 'Usage limit reached')
+    }
+    if (!res.ok) {
+      console.error('[UploadResume] API error:', data)
+      throw new Error(data.error || `Request failed (${res.status})`)
+    }
+  }, [router])
+
+  const finishExtractSuccess = useCallback(() => {
+    const next = getPostExtractRoute()
+    const delay = next === '/dashboard/choose-template' ? 700 : 2000
+    setSuccessKind(next === '/dashboard/choose-template' ? 'builder' : 'dashboard')
+    setSuccess(true)
+    setTimeout(() => router.push(next), delay)
+  }, [router])
+
+  useEffect(() => {
+    if (initLoading || handoffStartedRef.current) return
+
+    let pending = false
+    let text = ''
+    try {
+      pending = sessionStorage.getItem('ats-handoff-pending') === '1'
+      text = sessionStorage.getItem('ats-handoff-resume-text') || ''
+    } catch {
+      return
+    }
+
+    if (!pending || !text.trim()) return
+
+    handoffStartedRef.current = true
+    try {
+      sessionStorage.removeItem('ats-handoff-pending')
+      sessionStorage.removeItem('ats-handoff-resume-text')
+    } catch {
+      /* ignore */
+    }
+
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' })
+    const f = new File([blob], 'resume-from-ats-checker.txt', { type: 'text/plain' })
+    setFile(f)
+
+    setLoading(true)
+    setError(null)
+
+    ;(async () => {
+      try {
+        await runExtract(f)
+        finishExtractSuccess()
+      } catch (err) {
+        console.error('[UploadResume] ATS handoff extract failed:', err)
+        handoffStartedRef.current = false
+        setError(err.message || 'Something went wrong')
+      } finally {
+        setLoading(false)
+      }
+    })()
+  }, [initLoading, runExtract, finishExtractSuccess])
 
   const handleDragOver = useCallback((e) => {
     e.preventDefault()
@@ -96,68 +210,12 @@ export default function UploadResumePage() {
     setError(null)
 
     try {
-      console.log('[UploadResume] Starting upload, file:', file?.name, 'size:', file?.size)
-
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        console.error('[UploadResume] No session - user not logged in')
-        setError('Please log in to upload a resume')
-        setLoading(false)
-        router.replace('/login')
-        return
-      }
-
-      const formData = new FormData()
-      formData.append('file', file)
-      formData.append('accessToken', session.access_token)
-
-      console.log('[UploadResume] Sending request to /api/extract-resume')
-      let res
-      try {
-        res = await fetch('/api/extract-resume', {
-          method: 'POST',
-          body: formData,
-        })
-      } catch (fetchErr) {
-        console.error('[UploadResume] Fetch failed (network error):', fetchErr)
-        throw new Error(
-          fetchErr.message?.includes('Failed to fetch') || fetchErr.message?.includes('Load failed')
-            ? 'Network error. Check your connection and ensure the server is running.'
-            : fetchErr.message || 'Request failed'
-        )
-      }
-
-      console.log('[UploadResume] Response status:', res.status, res.statusText)
-
-      let data
-      const responseText = await res.text()
-      try {
-        data = responseText ? JSON.parse(responseText) : {}
-      } catch (parseErr) {
-        console.error('[UploadResume] Failed to parse response as JSON:', parseErr)
-        console.error('[UploadResume] Response body:', responseText?.slice(0, 500) || '(empty)')
-        throw new Error(
-          res.ok
-            ? 'Invalid response from server'
-            : `Server error (${res.status}). The server may have crashed or returned an invalid response.`
-        )
-      }
-
-      if (res.status === 403) {
-        setShowUpgradeModal(true)
-        throw new Error(data.error || 'Usage limit reached')
-      }
-      if (!res.ok) {
-        console.error('[UploadResume] API error:', data)
-        throw new Error(data.error || `Request failed (${res.status})`)
-      }
-
-      console.log('[UploadResume] Success')
-      setSuccess(true)
-      setTimeout(() => router.push('/dashboard'), 2000)
+      await runExtract(file)
+      finishExtractSuccess()
     } catch (err) {
       console.error('[UploadResume] Error:', err)
       setError(err.message || 'Something went wrong')
+    } finally {
       setLoading(false)
     }
   }
@@ -166,6 +224,7 @@ export default function UploadResumePage() {
     setFile(null)
     setError(null)
     setSuccess(false)
+    setSuccessKind(null)
     setLoading(false)
   }
 
@@ -199,7 +258,12 @@ export default function UploadResumePage() {
 
       {success && (
         <div className="mb-6 p-4 bg-green-50 border border-green-200 text-green-700 rounded-lg">
-          Resume parsed and saved successfully! Redirecting to dashboard...
+          <p className="font-medium">Resume parsed and saved successfully!</p>
+          <p className="text-sm mt-1 text-green-800/90">
+            {successKind === 'builder'
+              ? 'Redirecting you to pick a template for your AI-tailored resume…'
+              : 'Redirecting to your dashboard…'}
+          </p>
         </div>
       )}
 

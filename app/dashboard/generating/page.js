@@ -488,17 +488,28 @@ export default function GeneratingPage() {
       }
       setProfile(profileData)
 
+      let additionalInstructions = ''
       try {
+        additionalInstructions = (sessionStorage.getItem('resume-generate-additional-instructions') || '').trim()
+      } catch (e) {
+        console.warn('[generating/page.js] generate(): sessionStorage read failed:', e)
+      }
+
+      try {
+        const payload = {
+          profile: profileData,
+          jobDescription: sanitizeString(jobDescription),
+          templateName,
+          includeContent: true,
+          userId: user.id,
+        }
+        if (additionalInstructions) {
+          payload.additionalInstructions = sanitizeString(additionalInstructions).slice(0, 12000)
+        }
         const res = await fetch('/api/generate-resume', {
           method: 'POST',
           headers: await generateResumeApiHeaders(),
-          body: JSON.stringify({
-            profile: profileData,
-            jobDescription: sanitizeString(jobDescription),
-            templateName,
-            includeContent: true,
-            userId: user.id,
-          }),
+          body: JSON.stringify(payload),
         })
 
         if (res.status === 403) {
@@ -542,6 +553,12 @@ export default function GeneratingPage() {
         setPdfFilename(sanitizeString(filename) || 'resume.pdf')
         setPdfBlobUrl(url)
         setResumeContent(ensureResumeContentShape(content))
+
+        try {
+          sessionStorage.removeItem('resume-generate-additional-instructions')
+        } catch (e) {
+          console.warn('[generating/page.js] generate(): sessionStorage remove failed:', e)
+        }
 
         try {
           const atsRes = await fetch('/api/ats-checker', {

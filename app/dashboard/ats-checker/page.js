@@ -1,8 +1,11 @@
 'use client'
 
 import { useState, useCallback, useEffect, useRef } from 'react'
+import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AtsScoreLoadingOverlay from '@/app/components/AtsScoreLoadingOverlay'
+
+const JOB_DESCRIPTION_STORAGE_KEY = 'job-description'
 
 const ACCEPTED_TYPES = [
   'application/pdf',
@@ -34,6 +37,75 @@ function scoreRingColor(score) {
   return 'stroke-red-500'
 }
 
+function sanitizeHandoffText(str, maxLen) {
+  if (str == null || typeof str !== 'string') return ''
+  return str
+    .replace(/\0/g, '')
+    .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+    .trim()
+    .slice(0, maxLen)
+}
+
+/** Builds instructions passed to /api/generate-resume (sessionStorage) after profile is filled via extract-resume. */
+function buildAtsBuilderPrompt(analysis, resumeText) {
+  const lines = []
+  lines.push(
+    'Use the resume profile data (from the candidate\'s current resume) as the source of truth for employers, titles, dates, and education. Do not invent roles or credentials.'
+  )
+  lines.push('Tailor the rewritten resume to the job description and apply every ATS improvement below.')
+
+  if (analysis?.overall_score != null) {
+    lines.push(`ATS overall score: ${analysis.overall_score}/100.`)
+  }
+  const km = analysis?.keyword_match
+  const em = analysis?.experience_match
+  const sm = analysis?.skills_match
+  if (km != null || em != null || sm != null) {
+    lines.push(`Subscores — Keyword match: ${km ?? '—'}/100, Experience match: ${em ?? '—'}/100, Skills match: ${sm ?? '—'}/100.`)
+  }
+
+  const missing = analysis?.missing_keywords || []
+  if (missing.length) {
+    lines.push(`Missing keywords (integrate naturally where truthful): ${missing.join(', ')}`)
+  }
+  const strong = analysis?.strong_keywords || []
+  if (strong.length) {
+    lines.push(`Strong keywords to keep or reinforce: ${strong.join(', ')}`)
+  }
+
+  const wins = analysis?.quick_wins || []
+  wins.forEach((w, i) => {
+    lines.push(`Quick win ${i + 1}: ${w}`)
+  })
+
+  const recs = analysis?.recommendations || []
+  recs.forEach((rec, i) => {
+    const tip = typeof rec === 'string' ? rec : rec?.tip
+    const where = typeof rec === 'object' && rec?.where_to_add ? ` Where to add: ${rec.where_to_add}` : ''
+    if (tip) lines.push(`Recommendation ${i + 1}: ${tip}.${where}`)
+  })
+
+  const plan = analysis?.full_improvement_plan || []
+  plan.forEach((step, i) => {
+    lines.push(`Improvement plan ${i + 1}: ${step}`)
+  })
+
+  const working = analysis?.what_is_working || []
+  if (working.length) {
+    lines.push('Preserve these strengths:')
+    working.forEach((w) => lines.push(`- ${w}`))
+  }
+
+  const snippet = sanitizeHandoffText(resumeText || '', 4500)
+  if (snippet) {
+    lines.push('')
+    lines.push('Reference — resume text from ATS check (stay consistent with extracted profile):')
+    lines.push(snippet)
+  }
+
+  return sanitizeHandoffText(lines.join('\n'), 11500)
+}
+
 function CollapsibleSection({ title, children, defaultOpen = false }) {
   const [open, setOpen] = useState(defaultOpen)
   return (
@@ -52,7 +124,9 @@ function CollapsibleSection({ title, children, defaultOpen = false }) {
 }
 
 export default function AtsCheckerPage() {
+  const router = useRouter()
   const [file, setFile] = useState(null)
+  const [fileInputKey, setFileInputKey] = useState(0)
   const [jobDescription, setJobDescription] = useState('')
   const [showAtsHandoffBanner, setShowAtsHandoffBanner] = useState(false)
   const [savedResumeName, setSavedResumeName] = useState('')
@@ -277,6 +351,38 @@ export default function AtsCheckerPage() {
     }
   }
 
+  const handleBuildResumeWithFixes = () => {
+    if (!result || !resumeText?.trim() || !jobDescription.trim()) {
+      setError('Need ATS results, resume text, and a job description to open the resume builder.')
+      return
+    }
+    setError(null)
+    try {
+      const prompt = buildAtsBuilderPrompt(result, resumeText)
+      sessionStorage.setItem('resume-generate-additional-instructions', prompt)
+      sessionStorage.setItem('ats-handoff-pending', '1')
+      sessionStorage.setItem('ats-handoff-resume-text', resumeText)
+      sessionStorage.setItem('ats-handoff-post-upload', 'choose-template')
+      const jd = jobDescription.replace(/\u2028/g, '').replace(/\u2029/g, '')
+      localStorage.setItem(JOB_DESCRIPTION_STORAGE_KEY, encodeURIComponent(sanitizeHandoffText(jd, 800000)))
+    } catch (e) {
+      console.error('[ats-checker] Build resume handoff failed:', e)
+      setError('Could not start the resume builder. Please try again.')
+      return
+    }
+    router.push('/dashboard/upload-resume')
+  }
+
+  const handleCheckAnotherResume = () => {
+    setResult(null)
+    setResumeText(null)
+    setError(null)
+    setFile(null)
+    setFileInputKey((k) => k + 1)
+    stopAtsProgress()
+    setAtsProgress(0)
+  }
+
   return (
     <div className="relative mx-auto max-w-6xl min-w-0">
       <AtsScoreLoadingOverlay active={loading} progress={atsProgress} headline="Your ATS score is being calculated..." />
@@ -317,6 +423,7 @@ export default function AtsCheckerPage() {
             } ${highlightUpload && !file ? 'border-[#6366f1] bg-[#eef2ff] ring-2 ring-[#6366f1]/30 shadow-[0_0_30px_rgba(99,102,241,0.35)]' : ''} ${loading ? 'pointer-events-none opacity-70' : ''}`}
           >
             <input
+              key={fileInputKey}
               id="ats-file-input"
               type="file"
               accept=".pdf,.doc,.docx,.txt,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document,text/plain"
@@ -447,7 +554,7 @@ export default function AtsCheckerPage() {
             <div className="flex flex-wrap gap-2">
               {(result.missing_keywords || []).length ? (
                 (result.missing_keywords || []).map((kw, i) => (
-                  <span key={kw} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
+                  <span key={`${kw}-${i}`} className="px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm">
                     {kw}
                   </span>
                 ))
@@ -461,7 +568,7 @@ export default function AtsCheckerPage() {
             <div className="flex flex-wrap gap-2">
               {(result.strong_keywords || []).length ? (
                 (result.strong_keywords || []).map((kw, i) => (
-                  <span key={kw} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
+                  <span key={`${kw}-${i}`} className="px-3 py-1 bg-green-100 text-green-800 rounded-full text-sm">
                     {kw}
                   </span>
                 ))
@@ -475,7 +582,7 @@ export default function AtsCheckerPage() {
             <CollapsibleSection title="Quick Wins" defaultOpen={true}>
               <ul className="space-y-2">
                 {(result.quick_wins || []).map((win, i) => (
-                  <li key={win} className="flex items-start gap-2 text-[#cbd5e1]">
+                  <li key={`qw-${i}`} className="flex items-start gap-2 text-[#cbd5e1]">
                     <span className="text-amber-500 font-bold">{i + 1}.</span>
                     {win}
                   </li>
@@ -487,16 +594,20 @@ export default function AtsCheckerPage() {
           {(result.recommendations?.length > 0) && (
             <CollapsibleSection title="Recommendations">
               <ul className="space-y-3">
-                {(result.recommendations || []).map((rec, i) => (
-                  <li key={rec.tip} className="p-3 bg-white rounded-lg border border-[#eaeaf2]">
-                    <p className="text-[#1a1a2e] font-medium">{rec.tip}</p>
-                    {rec.where_to_add && (
+                {(result.recommendations || []).map((rec, i) => {
+                  const tip = typeof rec === 'string' ? rec : rec?.tip
+                  const where = typeof rec === 'object' && rec?.where_to_add ? rec.where_to_add : ''
+                  return (
+                  <li key={`rec-${i}`} className="p-3 bg-white rounded-lg border border-[#eaeaf2]">
+                    <p className="text-[#1a1a2e] font-medium">{tip}</p>
+                    {where ? (
                       <p className="text-sm text-[#5c5c7a] mt-1">
-                        <span className="font-medium">Where to add:</span> {rec.where_to_add}
+                        <span className="font-medium">Where to add:</span> {where}
                       </p>
-                    )}
+                    ) : null}
                   </li>
-                ))}
+                  )
+                })}
               </ul>
             </CollapsibleSection>
           )}
@@ -505,7 +616,7 @@ export default function AtsCheckerPage() {
             <CollapsibleSection title="What is Working">
               <ul className="space-y-2">
                 {(result.what_is_working || []).map((item, i) => (
-                  <li key={item} className="flex items-start gap-2 text-[#cbd5e1]">
+                  <li key={`wiw-${i}`} className="flex items-start gap-2 text-[#cbd5e1]">
                     <span className="text-green-500 mt-0.5">✓</span>
                     {item}
                   </li>
@@ -518,11 +629,28 @@ export default function AtsCheckerPage() {
             <CollapsibleSection title="Full Improvement Plan">
               <ol className="space-y-2 list-decimal list-inside text-[#cbd5e1]">
                 {(result.full_improvement_plan || []).map((step, i) => (
-                  <li key={step}>{step}</li>
+                  <li key={`plan-${i}`}>{step}</li>
                 ))}
               </ol>
             </CollapsibleSection>
           )}
+
+          <div className="mt-8 flex flex-col sm:flex-row gap-3 sm:gap-4 pt-6 border-t border-[#eaeaf2]">
+            <button
+              type="button"
+              onClick={handleBuildResumeWithFixes}
+              className="flex-1 min-h-12 rounded-xl px-6 py-3.5 text-[15px] font-semibold text-white shadow-lg shadow-indigo-200/40 btn-gradient ds-btn-glow transition-all hover:opacity-95"
+            >
+              Build Resume with These Fixes
+            </button>
+            <button
+              type="button"
+              onClick={handleCheckAnotherResume}
+              className="flex-1 min-h-12 rounded-xl px-6 py-3.5 text-[15px] font-semibold border-2 border-[#eaeaf2] bg-white text-[#1a1a2e] hover:border-[#6366f1]/40 hover:bg-[#f8f8ff] transition-all"
+            >
+              Check Another Resume
+            </button>
+          </div>
 
         </div>
       )}

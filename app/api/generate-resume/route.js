@@ -409,6 +409,7 @@ export async function POST(request) {
       userId,
       renderFromContent,
       resumeContent: clientResumeContent,
+      additionalInstructions: bodyAdditionalInstructions,
     } = body
 
     const isRenderOnly = Boolean(
@@ -419,6 +420,15 @@ export async function POST(request) {
     )
 
     const jobDescription = typeof bodyJobDescription === 'string' ? bodyJobDescription : ''
+
+    const additionalInstructions =
+      typeof bodyAdditionalInstructions === 'string'
+        ? bodyAdditionalInstructions
+            .replace(/\0/g, '')
+            .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '')
+            .trim()
+            .slice(0, 12000)
+        : ''
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -562,7 +572,10 @@ export async function POST(request) {
         })
       } else {
         const resumeContext = JSON.stringify(profile, null, 2)
-        const userMessage = `Resume profile data:\n${resumeContext}\n\nJob description:\n${jobDescription}`
+        let userMessage = `Resume profile data:\n${resumeContext}\n\nJob description:\n${jobDescription}`
+        if (additionalInstructions) {
+          userMessage += `\n\n---\nAdditional instructions from ATS checker (apply thoroughly; never invent employers, titles, dates, or degrees):\n${additionalInstructions}`
+        }
         message = await anthropic.messages.create({
           model: 'claude-sonnet-4-5',
           max_tokens: 4096,
