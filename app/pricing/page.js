@@ -1,8 +1,10 @@
 'use client'
 
-import { Fragment, useState } from 'react'
+import { Fragment, useEffect, useState } from 'react'
 import Link from 'next/link'
 import PublicOrDashboardHeader from '@/app/components/PublicOrDashboardHeader'
+import { supabase } from '@/lib/supabase'
+import { useStripeBilling } from '@/lib/useStripeBilling'
 
 /** Included / excluded — plain typography, no emoji */
 function renderCell(v) {
@@ -207,6 +209,27 @@ function FeatureComparisonTable() {
 }
 
 export default function PublicPricingPage() {
+  const monthlyPriceId = process.env.NEXT_PUBLIC_STRIPE_PRO_MONTHLY_PRICE_ID || ''
+  const annualPriceId = process.env.NEXT_PUBLIC_STRIPE_PRO_ANNUAL_PRICE_ID || ''
+  const [user, setUser] = useState(null)
+  const { startCheckout, checkoutLoading } = useStripeBilling()
+
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!cancelled) setUser(session?.user ?? null)
+    })
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user ?? null)
+    })
+    return () => {
+      cancelled = true
+      subscription.unsubscribe()
+    }
+  }, [])
+
+  const isLoggedIn = !!user
+
   return (
     <div className="min-h-screen bg-slate-50/80 pb-20">
       <PublicOrDashboardHeader />
@@ -228,6 +251,11 @@ export default function PublicPricingPage() {
             period="/ month"
             billed={null}
             bestValue={false}
+            isLoggedIn={isLoggedIn}
+            monthlyPriceId={monthlyPriceId}
+            annualPriceId={annualPriceId}
+            checkoutLoading={checkoutLoading}
+            startCheckout={startCheckout}
           />
           <PlanCard
             planId="monthly"
@@ -238,6 +266,11 @@ export default function PublicPricingPage() {
             period="/ month"
             billed={null}
             bestValue={false}
+            isLoggedIn={isLoggedIn}
+            monthlyPriceId={monthlyPriceId}
+            annualPriceId={annualPriceId}
+            checkoutLoading={checkoutLoading}
+            startCheckout={startCheckout}
           />
           <PlanCard
             planId="annual"
@@ -248,6 +281,11 @@ export default function PublicPricingPage() {
             period="/ month"
             billed="Billed $99 per year"
             bestValue
+            isLoggedIn={isLoggedIn}
+            monthlyPriceId={monthlyPriceId}
+            annualPriceId={annualPriceId}
+            checkoutLoading={checkoutLoading}
+            startCheckout={startCheckout}
           />
         </div>
 
@@ -265,9 +303,24 @@ export default function PublicPricingPage() {
   )
 }
 
-function PlanCard({ planId, kicker, title, subtitle, price, period, billed, bestValue }) {
+function PlanCard({
+  planId,
+  kicker,
+  title,
+  subtitle,
+  price,
+  period,
+  billed,
+  bestValue,
+  isLoggedIn,
+  monthlyPriceId,
+  annualPriceId,
+  checkoutLoading,
+  startCheckout,
+}) {
   const colIdx = planId === 'free' ? 0 : planId === 'monthly' ? 1 : 2
   const isFree = planId === 'free'
+  const priceId = planId === 'monthly' ? monthlyPriceId : planId === 'annual' ? annualPriceId : null
 
   return (
     <div
@@ -292,11 +345,20 @@ function PlanCard({ planId, kicker, title, subtitle, price, period, billed, best
 
       {isFree ? (
         <Link
-          href="/signup"
+          href={isLoggedIn ? '/dashboard' : '/signup'}
           className="mt-6 flex min-h-11 w-full items-center justify-center rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-sm font-semibold text-[#1a1a2e] transition-colors hover:bg-slate-50"
         >
-          Get started
+          {isLoggedIn ? 'Go to dashboard' : 'Get started'}
         </Link>
+      ) : isLoggedIn ? (
+        <button
+          type="button"
+          disabled={!!checkoutLoading}
+          onClick={() => startCheckout(priceId)}
+          className="mt-6 flex min-h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-95 disabled:opacity-60"
+        >
+          {checkoutLoading === priceId ? 'Redirecting…' : 'Upgrade now'}
+        </button>
       ) : (
         <Link
           href="/signup"

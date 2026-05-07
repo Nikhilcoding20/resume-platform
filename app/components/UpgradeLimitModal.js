@@ -59,7 +59,7 @@ export default function UpgradeLimitModal({ open, variant = 'resume', onClose })
           </h2>
           <p className="text-sm text-slate-500 mb-8 leading-relaxed">{c.subtext}</p>
           <Link
-            href="/pricing"
+            href="/dashboard/pricing"
             className="inline-flex items-center justify-center w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#06b6d4] text-white text-base font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-shadow"
           >
             Upgrade Now →
