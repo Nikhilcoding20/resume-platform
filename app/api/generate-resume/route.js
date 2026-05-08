@@ -417,9 +417,6 @@ export async function POST(request) {
     const isRenderOnly = Boolean(
       renderFromContent && clientResumeContent && typeof clientResumeContent === 'object'
     )
-    const isRegenerate = Boolean(
-      !isRenderOnly && feedback && previousContent && typeof previousContent === 'object'
-    )
 
     const jobDescription = typeof bodyJobDescription === 'string' ? bodyJobDescription : ''
 
@@ -431,6 +428,16 @@ export async function POST(request) {
             .trim()
             .slice(0, 12000)
         : ''
+
+    const hasRegenerateChangeRequest =
+      (typeof feedback === 'string' && feedback.trim().length > 0) ||
+      additionalInstructions.trim().length > 0
+    const isRegenerate = Boolean(
+      !isRenderOnly &&
+      previousContent &&
+      typeof previousContent === 'object' &&
+      hasRegenerateChangeRequest
+    )
 
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -566,7 +573,19 @@ export async function POST(request) {
       let message
       if (isRegenerate) {
         const resumeContext = JSON.stringify(profile, null, 2)
-        const userMessage = `User-requested changes:\n${feedback}\n\nPrevious resume content (JSON):\n${JSON.stringify(previousContent, null, 2)}\n\nResume profile (source of truth for education, certifications, contact URLs — do not drop rows that exist here):\n${resumeContext}\n\nJob description (for context):\n${jobDescription}`
+        const fb = typeof feedback === 'string' ? feedback.trim() : ''
+        const addl = additionalInstructions.trim()
+        let changesSection = ''
+        if (fb && addl && fb === addl) {
+          changesSection = `User-requested changes:\n${fb}`
+        } else if (fb && addl) {
+          changesSection = `User-requested changes:\n${fb}\n\n---\nAdditional instructions (apply thoroughly; never invent employers, titles, dates, or degrees):\n${addl}`
+        } else if (fb) {
+          changesSection = `User-requested changes:\n${fb}`
+        } else {
+          changesSection = `Additional instructions (apply thoroughly; never invent employers, titles, dates, or degrees):\n${addl}`
+        }
+        const userMessage = `${changesSection}\n\nPrevious resume content (JSON):\n${JSON.stringify(previousContent, null, 2)}\n\nResume profile (source of truth for education, certifications, contact URLs — do not drop rows that exist here):\n${resumeContext}\n\nJob description (for context):\n${jobDescription}`
         message = await anthropic.messages.create({
           model: 'claude-sonnet-4-5',
           max_tokens: 4096,

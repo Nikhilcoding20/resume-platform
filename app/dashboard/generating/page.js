@@ -355,6 +355,8 @@ export default function GeneratingPage() {
   const [showMakeChanges, setShowMakeChanges] = useState(false)
   const [changeFeedback, setChangeFeedback] = useState('')
   const [regenerateLoading, setRegenerateLoading] = useState(false)
+  const [aiEditInstruction, setAiEditInstruction] = useState('')
+  const [aiEditLoading, setAiEditLoading] = useState(false)
   const [coverLetterLoading, setCoverLetterLoading] = useState(false)
   const [coverLetterError, setCoverLetterError] = useState(null)
   const [boostQuestions, setBoostQuestions] = useState([])
@@ -745,6 +747,114 @@ export default function GeneratingPage() {
       setStatus('error')
     } finally {
       setRegenerateLoading(false)
+    }
+  }
+
+  async function handleApplyAiChanges() {
+    const jobDescription = getJobDescriptionFromStorage()
+    const templateName = getTemplateFromStorage()
+    const instruction = sanitizeString(aiEditInstruction).trim().slice(0, 12000)
+    if (!profile || !resumeContent || !jobDescription || !templateName || !instruction) return
+    setAiEditLoading(true)
+    setStatus('loading')
+    setProgress(0)
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        router.replace('/login')
+        return
+      }
+      const res = await fetch('/api/generate-resume', {
+        method: 'POST',
+        headers: await generateResumeApiHeaders(),
+        body: JSON.stringify({
+          profile,
+          jobDescription: sanitizeString(jobDescription),
+          templateName,
+          includeContent: true,
+          feedback: instruction,
+          additionalInstructions: instruction,
+          previousContent: resumeContent,
+          userId: user.id || profile?.user_id,
+        }),
+      })
+      if (res.status === 403) {
+        setLimitOverlayVariant('resume')
+        setShowLimitOverlay(true)
+        setStatus('error')
+        return
+      }
+      let data
+      try {
+        const text = await res.text()
+        data = safeJsonParse(text, 'handleApplyAiChanges(): generate-resume response')
+      } catch (parseErr) {
+        console.error('[generating/page.js] handleApplyAiChanges(): response JSON parse failed:', parseErr)
+        setError('Invalid response from server')
+        setStatus('error')
+        return
+      }
+      if (!res.ok) {
+        throw new Error((data && data.error) || `Request failed (${res.status})`)
+      }
+      const { pdfBase64, filename, content } = data
+      if (!content || !pdfBase64) {
+        setError('Invalid response from server')
+        setStatus('error')
+        return
+      }
+
+      if (pdfBlobUrl) URL.revokeObjectURL(pdfBlobUrl)
+      let binary
+      try {
+        binary = safeAtob(pdfBase64, 'handleApplyAiChanges(): pdf base64 decode')
+      } catch (atobErr) {
+        setError('Invalid PDF data from server')
+        setStatus('error')
+        return
+      }
+      const bytes = new Uint8Array(binary.length)
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i)
+      const blob = new Blob([bytes], { type: 'application/pdf' })
+      const url = URL.createObjectURL(blob)
+      setPdfFilename(sanitizeString(filename) || 'resume.pdf')
+      setPdfBlobUrl(url)
+      setResumeContent(ensureResumeContentShape(content))
+
+      try {
+        const atsRes = await fetch('/api/ats-checker', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ resumeText: buildResumeText(content), jobDescription: sanitizeString(jobDescription) }),
+        })
+        if (atsRes.ok) {
+          const atsText = await atsRes.text()
+          try {
+            const atsData = safeJsonParse(atsText, 'handleApplyAiChanges(): ats-checker response')
+            const score = typeof atsData.overall_score === 'number' ? Math.min(100, Math.max(0, Math.round(atsData.overall_score))) : 0
+            const strengths = Array.isArray(atsData.what_is_working) ? atsData.what_is_working.slice(0, 5) : []
+            const improvements = Array.isArray(atsData.quick_wins) ? atsData.quick_wins.slice(0, 3) : (Array.isArray(atsData.recommendations) ? atsData.recommendations.slice(0, 3).map((r) => (r?.tip != null ? r.tip : String(r))) : [])
+            setAtsReview({ score, strengths, improvements })
+          } catch (atsParseErr) {
+            console.error('[generating/page.js] handleApplyAiChanges(): ats-checker JSON parse failed:', atsParseErr)
+            setAtsReview({ score: 0, strengths: [], improvements: [] })
+          }
+        } else {
+          setAtsReview({ score: 0, strengths: [], improvements: [] })
+        }
+      } catch (atsErr) {
+        console.error('[generating/page.js] handleApplyAiChanges(): ats-checker request failed:', atsErr)
+        setAtsReview({ score: 0, strengths: [], improvements: [] })
+      }
+      await animateProgressTo(100, COMPLETE_PROGRESS_DURATION_MS)
+      setStatus('review')
+      setAiEditInstruction('')
+    } catch (err) {
+      console.error('[generating/page.js] handleApplyAiChanges():', err)
+      setError(err.message || 'Failed to apply AI changes')
+      setStatus('error')
+    } finally {
+      setAiEditLoading(false)
     }
   }
 
@@ -1147,7 +1257,7 @@ export default function GeneratingPage() {
                     <button
                       type="button"
                       onClick={handleBoostResume}
-                      disabled={boostResumeLoading || !boostAnswers.some((a, i) => boostAnswers[i]?.yes)}
+                      disabled={boostResumeLoading || aiEditLoading || regenerateLoading || !boostAnswers.some((a, i) => boostAnswers[i]?.yes)}
                       className="w-full py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-600 hover:to-teal-600 disabled:opacity-50 text-white font-semibold rounded-lg transition-opacity text-[13px]"
                     >
                       {boostResumeLoading ? 'Boosting…' : 'Boost My Resume With These'}
@@ -1158,29 +1268,46 @@ export default function GeneratingPage() {
             </div>
           </div>
 
-          {/* Full-width bottom: Download + Make Changes */}
+          {/* Full-width bottom: Edit with AI, section editor, then actions */}
           <div className="w-full py-6 bg-white border-t border-slate-200 flex flex-col gap-4">
-            <div className="flex gap-3 w-full">
-              <a
-                href={pdfBlobUrl}
-                download={pdfFilename}
-                className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-center transition-colors text-[14px]"
-              >
-                Download Resume
-              </a>
-              <button
-                type="button"
-                onClick={() => setShowMakeChanges(!showMakeChanges)}
-                className="flex-1 py-3.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-semibold rounded-xl transition-colors text-[14px]"
-              >
-                Make Changes
-              </button>
-              <Link
-                href="/dashboard"
-                className="flex-1 py-3.5 bg-white border-[1.5px] border-[#e5e7eb] text-slate-900 font-semibold rounded-xl text-center transition-colors text-[14px] hover:bg-slate-50"
-              >
-                Back to Dashboard
-              </Link>
+            <div className="rounded-xl border border-slate-200/90 bg-white shadow-lg shadow-slate-200/50 overflow-hidden">
+              <div className="relative px-5 py-5 sm:p-6">
+                <div className="absolute left-0 right-0 top-0 h-1 bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4]" />
+                <div className="mb-4 flex items-start gap-3">
+                  <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-[#6366f1]/15 to-[#06b6d4]/15 text-[#6366f1] ring-1 ring-[#6366f1]/25">
+                    <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
+                    </svg>
+                  </span>
+                  <div className="min-w-0 pt-0.5">
+                    <h3 className="text-[15px] font-bold text-slate-900">Edit with AI</h3>
+                    <p className="mt-0.5 text-[12px] text-slate-500 leading-snug">
+                      Describe what to change — your instruction is sent with the current resume JSON to refine wording, keywords, or tone. Facts stay tied to your profile.
+                    </p>
+                  </div>
+                </div>
+                <textarea
+                  value={aiEditInstruction}
+                  onChange={(e) => setAiEditInstruction(e.target.value)}
+                  placeholder='e.g. "Make my summary more concise" or "Add more marketing keywords"'
+                  rows={4}
+                  disabled={aiEditLoading || regenerateLoading || boostResumeLoading}
+                  className="w-full px-4 py-3 border border-slate-200 rounded-xl focus:ring-2 focus:ring-[#6366f1]/30 focus:border-[#6366f1] outline-none text-slate-900 placeholder-slate-400 resize-y text-[13px] disabled:opacity-60"
+                />
+                <button
+                  type="button"
+                  onClick={handleApplyAiChanges}
+                  disabled={
+                    aiEditLoading ||
+                    regenerateLoading ||
+                    boostResumeLoading ||
+                    !sanitizeString(aiEditInstruction).trim()
+                  }
+                  className="mt-3 w-full py-3 rounded-xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] hover:opacity-95 disabled:opacity-50 text-white font-semibold text-[14px] shadow-md shadow-indigo-200/50 transition-opacity"
+                >
+                  {aiEditLoading ? 'Applying AI changes…' : 'Apply AI Changes'}
+                </button>
+              </div>
             </div>
 
             <div className="rounded-xl border border-slate-200/90 bg-white shadow-lg shadow-slate-200/50 overflow-hidden">
@@ -1624,6 +1751,29 @@ export default function GeneratingPage() {
               )}
             </div>
 
+            <div className="flex gap-3 w-full">
+              <a
+                href={pdfBlobUrl}
+                download={pdfFilename}
+                className="flex-1 py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-semibold rounded-xl text-center transition-colors text-[14px]"
+              >
+                Download Resume
+              </a>
+              <button
+                type="button"
+                onClick={() => setShowMakeChanges(!showMakeChanges)}
+                className="flex-1 py-3.5 bg-[#6366f1] hover:bg-[#4f46e5] text-white font-semibold rounded-xl transition-colors text-[14px]"
+              >
+                Make Changes
+              </button>
+              <Link
+                href="/dashboard"
+                className="flex-1 py-3.5 bg-white border-[1.5px] border-[#e5e7eb] text-slate-900 font-semibold rounded-xl text-center transition-colors text-[14px] hover:bg-slate-50"
+              >
+                Back to Dashboard
+              </Link>
+            </div>
+
             {showMakeChanges && (
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
                 <label className="block text-[13px] font-medium text-slate-800">
@@ -1639,7 +1789,7 @@ export default function GeneratingPage() {
                 <button
                   type="button"
                   onClick={handleRegenerate}
-                  disabled={regenerateLoading || !changeFeedback.trim()}
+                  disabled={regenerateLoading || aiEditLoading || boostResumeLoading || !changeFeedback.trim()}
                   className="px-6 py-2.5 bg-gradient-to-r from-[#6366f1] to-[#a855f7] disabled:opacity-50 text-white font-semibold rounded-lg transition-opacity text-[13px]"
                 >
                   {regenerateLoading ? 'Regenerating…' : 'Regenerate'}
