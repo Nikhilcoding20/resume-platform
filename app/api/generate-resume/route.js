@@ -98,11 +98,11 @@ const PDF_STYLES = `
 </style>
 `
 
-/** PDF-only overrides so the modern template stays compact (global PDF_STYLES use 11px). */
+/** PDF-only overrides for modern template (global PDF_STYLES target 11px). */
 const MODERN_RESUME_PDF_OVERRIDES = `
 <style id="modern-resume-pdf-overrides">
   body {
-    font-size: 9px !important;
+    font-size: 10px !important;
     line-height: 1.35 !important;
   }
   body > div:first-child {
@@ -112,17 +112,12 @@ const MODERN_RESUME_PDF_OVERRIDES = `
     box-sizing: border-box !important;
   }
   body > div:first-child h1 {
-    font-size: 11px !important;
+    font-size: 14px !important;
     line-height: 1.2 !important;
     margin: 0 0 8px 0 !important;
   }
-  body > div:first-child h2 {
-    font-size: 10px !important;
-    margin: 10px 0 5px 0 !important;
-    color: #fff !important;
-  }
   body > div:first-child p {
-    font-size: 8px !important;
+    font-size: 10px !important;
     line-height: 1.35 !important;
     margin: 0 0 5px 0 !important;
   }
@@ -133,7 +128,7 @@ const MODERN_RESUME_PDF_OVERRIDES = `
   .modern-main > h2,
   .modern-main .resume-education-block > h2,
   .modern-main .resume-certifications-block > h2 {
-    font-size: 10px !important;
+    font-size: 12px !important;
     margin: 8px 0 4px 0 !important;
     padding-bottom: 3px !important;
     line-height: 1.2 !important;
@@ -143,10 +138,10 @@ const MODERN_RESUME_PDF_OVERRIDES = `
   .modern-main > p,
   .modern-main .resume-education-block,
   .modern-main .resume-certifications-block {
-    font-size: 9px !important;
+    font-size: 10px !important;
   }
   .modern-main .experience-item > p {
-    font-size: 9px !important;
+    font-size: 10px !important;
     font-weight: bold !important;
     margin: 0 0 3px 0 !important;
     line-height: 1.25 !important;
@@ -157,14 +152,18 @@ const MODERN_RESUME_PDF_OVERRIDES = `
   }
   .modern-main .experience-item li {
     margin-bottom: 2px !important;
-    line-height: 1.22 !important;
-    font-size: 9px !important;
+    line-height: 1.25 !important;
+    font-size: 10px !important;
   }
   .modern-main .education-item p,
   .modern-main .cert-item p {
-    font-size: 9px !important;
+    font-size: 10px !important;
     line-height: 1.25 !important;
     margin-bottom: 3px !important;
+  }
+  .modern-main .skill-group {
+    font-size: 10px !important;
+    line-height: 1.35 !important;
   }
   .modern-main .resume-section {
     margin-bottom: 6px !important;
@@ -172,49 +171,9 @@ const MODERN_RESUME_PDF_OVERRIDES = `
 </style>
 `
 
-function skillStarRating(skillIndex, totalSkills) {
-  if (totalSkills <= 0) return 5
-  if (totalSkills === 1) return 5
-  const t = skillIndex / (totalSkills - 1)
-  return Math.max(1, Math.round(5 - t * 4))
-}
-
-/** Modern sidebar: ordered skills with 1–5 star display (first skills rated highest). */
-function formatSkillGroupsSidebarStarsHtml(skillGroups) {
-  if (!Array.isArray(skillGroups) || skillGroups.length === 0) {
-    return ''
-  }
-  const total = skillGroups.reduce(
-    (acc, g) => acc + (Array.isArray(g?.skills) ? g.skills.filter((x) => String(x).trim()).length : 0),
-    0,
-  )
-  let idx = 0
-  const rows = []
-  for (const g of skillGroups) {
-    const skills = (Array.isArray(g?.skills) ? g.skills : []).map((x) => String(x).trim()).filter(Boolean)
-    if (!skills.length) continue
-    const category = escapeHtml(String(g?.category || 'Skills').trim() || 'Skills')
-    rows.push(
-      `<div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.9);margin:7px 0 3px 0;text-transform:uppercase;letter-spacing:0.05em;line-height:1.15;">${category}</div>`,
-    )
-    for (const s of skills) {
-      const r = skillStarRating(idx++, total)
-      const stars = '\u2605'.repeat(r) + '\u2606'.repeat(5 - r)
-      rows.push(
-        `<div style="font-size:9px;line-height:1.25;color:#fff;margin:0 0 3px 0;">${escapeHtml(s)} <span style="color:#fff;">${stars}</span></div>`,
-      )
-    }
-  }
-  return rows.join('')
-}
-
-function skillsPlaceholderHtml(skillGroups, template) {
-  return template === 'modern' ? formatSkillGroupsSidebarStarsHtml(skillGroups) : formatSkillGroupsHtml(skillGroups)
-}
-
 function formatExperienceHtml(experience, template = '') {
   const modern = template === 'modern'
-  const titleFs = modern ? '9px' : '11px'
+  const titleFs = modern ? '10px' : '11px'
   const titleMb = modern ? '3px' : '6px'
   const liMb = modern ? '2px' : '6px'
   const liLh = modern ? '1.22' : '1.5'
@@ -239,14 +198,18 @@ function formatExperienceHtml(experience, template = '') {
     .join('')
 }
 
-function formatSkillGroupsHtml(skillGroups) {
+function formatSkillGroupsHtml(skillGroups, template = '') {
   if (!Array.isArray(skillGroups) || skillGroups.length === 0) {
     return ''
   }
+  const modern = template === 'modern'
+  const mb = modern ? '6px' : '8px'
+  const catStyle = modern ? 'font-weight: 700; color: #2563eb;' : 'font-weight: bold;'
+  const fontBlock = modern ? 'font-size: 10px; line-height: 1.35;' : 'line-height: 1.5;'
   return skillGroups
     .map((g) => {
       const items = (g.skills || []).map((s) => escapeHtml(String(s))).join(', ')
-      return `<div class="skill-group resume-section" style="margin-bottom: 8px;"><span style="font-weight: bold;">${escapeHtml(g.category || 'Skills')}:</span> ${items}</div>`
+      return `<div class="skill-group resume-section" style="margin-bottom: ${mb}; ${fontBlock}"><span style="${catStyle}">${escapeHtml(g.category || 'Skills')}:</span> ${items}</div>`
     })
     .join('')
 }
@@ -364,7 +327,7 @@ function normalizeSkillGroups(parsed, profile) {
 
 function formatEducationHtml(items, template = '') {
   const modern = template === 'modern'
-  const fs = modern ? '9px' : '11px'
+  const fs = modern ? '10px' : '11px'
   const mb = modern ? '4px' : '8px'
   if (!Array.isArray(items) || items.length === 0) return ''
   return items
@@ -387,7 +350,7 @@ function formatEducationBlock(items, template = '') {
 
 function formatCertificationsHtml(items, template = '') {
   const modern = template === 'modern'
-  const fs = modern ? '9px' : '11px'
+  const fs = modern ? '10px' : '11px'
   const mb = modern ? '4px' : '8px'
   if (!Array.isArray(items) || items.length === 0) return ''
   return items
@@ -422,7 +385,7 @@ function formatContactUrlsLine(profile) {
 
 function formatSidebarUrls(profile, template = '') {
   const modern = template === 'modern'
-  const fs = modern ? '8px' : '10pt'
+  const fs = modern ? '10px' : '10pt'
   const lh = modern ? '1.35' : '1.5'
   const mb = modern ? '5px' : '8px'
   const blocks = []
@@ -502,7 +465,7 @@ function normalizeClientResumeContentForRender(clientContent, profile, template 
     '{{experience}}': formatExperienceHtml(experience, template),
     '{{education_block}}': formatEducationBlock(education, template),
     '{{certifications_block}}': formatCertificationsBlock(certifications, template),
-    '{{skills}}': skillsPlaceholderHtml(skillGroups, template),
+    '{{skills}}': formatSkillGroupsHtml(skillGroups, template),
   }
 
   return { output, replacements }
@@ -784,7 +747,7 @@ export async function POST(request) {
         '{{experience}}': formatExperienceHtml(parsed.experience || [], template),
         '{{education_block}}': formatEducationBlock(mergedEducation, template),
         '{{certifications_block}}': formatCertificationsBlock(mergedCertifications, template),
-        '{{skills}}': skillsPlaceholderHtml(skillGroups, template),
+        '{{skills}}': formatSkillGroupsHtml(skillGroups, template),
       }
     }
 
