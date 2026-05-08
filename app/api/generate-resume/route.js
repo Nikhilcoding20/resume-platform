@@ -171,12 +171,152 @@ const MODERN_RESUME_PDF_OVERRIDES = `
 </style>
 `
 
+/** True for templates that share one-page compact HTML + PDF density (ATS baseline extended to minimal/creative; modern uses its own PDF block). */
+function usesOnePageCompactFormatters(template) {
+  return (
+    template === 'modern' ||
+    template === 'ats' ||
+    template === 'minimal' ||
+    template === 'creative'
+  )
+}
+
+/**
+ * PDF overrides for ATS, minimal, and creative (scoped by body.tpl-*).
+ * Mirrors the intent of MODERN_RESUME_PDF_OVERRIDES: ~10–10.5px body, 12px section headings, tight line-height.
+ */
+function getStandardOnePagePdfOverrides(template) {
+  if (!['ats', 'minimal', 'creative'].includes(template)) return ''
+  const c = `tpl-${template}`
+  let layoutExtra = ''
+  if (template === 'minimal') {
+    layoutExtra = `
+  body.${c} > div {
+    margin-bottom: 10px !important;
+    padding-top: 8px !important;
+  }
+  body.${c} > div:first-child {
+    margin-bottom: 8px !important;
+    padding-top: 0 !important;
+    border: none !important;
+  }
+  body.${c} > div:last-child {
+    margin-bottom: 0 !important;
+  }`
+  }
+  if (template === 'creative') {
+    layoutExtra = `
+  body.${c} header {
+    padding: 12px 14px !important;
+  }
+  body.${c} header h1 {
+    font-size: 14px !important;
+    margin: 0 !important;
+    line-height: 1.2 !important;
+  }
+  body.${c} header p {
+    font-size: 10px !important;
+    margin: 6px 0 0 0 !important;
+    line-height: 1.3 !important;
+  }
+  body.${c} .creative-body-wrap {
+    padding: 10px 12px !important;
+  }
+  body.${c} .creative-section {
+    margin-bottom: 10px !important;
+    padding-left: 12px !important;
+  }`
+  }
+
+  return `
+<style id="one-page-${template}-pdf-overrides">
+  body.${c} {
+    font-size: 10.5px !important;
+    line-height: 1.3 !important;
+    margin: 0 !important;
+    padding: 12px 16px !important;
+    box-sizing: border-box !important;
+  }
+  body.${c} h1 {
+    font-size: 14px !important;
+    font-weight: bold !important;
+    margin: 0 0 4px 0 !important;
+    line-height: 1.2 !important;
+    page-break-after: avoid !important;
+  }
+  body.${c} h2 {
+    font-size: 12px !important;
+    font-weight: bold !important;
+    margin: 8px 0 4px 0 !important;
+    padding-bottom: 2px !important;
+    line-height: 1.3 !important;
+    page-break-after: avoid !important;
+  }
+  body.${c} p {
+    margin-bottom: 6px !important;
+    line-height: 1.3 !important;
+    font-size: 10.5px !important;
+  }
+  body.${c} .contact-line {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+    margin-top: 4px !important;
+  }
+  body.${c} .experience-item {
+    margin-bottom: 8px !important;
+    page-break-inside: avoid !important;
+  }
+  body.${c} .experience-item > p {
+    font-size: 10px !important;
+    font-weight: bold !important;
+    margin: 0 0 4px 0 !important;
+    line-height: 1.25 !important;
+  }
+  body.${c} ul {
+    margin: 2px 0 6px 0 !important;
+    padding-left: 14px !important;
+  }
+  body.${c} li {
+    margin-bottom: 2px !important;
+    line-height: 1.3 !important;
+    font-size: 10.5px !important;
+  }
+  body.${c} .education-item p,
+  body.${c} .cert-item p {
+    font-size: 10px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 4px !important;
+  }
+  body.${c} .skill-group {
+    font-size: 10.5px !important;
+    line-height: 1.3 !important;
+    margin-bottom: 6px !important;
+  }
+  body.${c} .resume-section {
+    margin-bottom: 8px !important;
+  }
+  body.${c} .resume-education-block > h2,
+  body.${c} .resume-certifications-block > h2 {
+    font-size: 12px !important;
+    margin: 8px 0 4px !important;
+    line-height: 1.3 !important;
+  }
+  ${layoutExtra}
+</style>
+`
+}
+
+function pdfInjectionForTemplate(template) {
+  if (template === 'modern') return MODERN_RESUME_PDF_OVERRIDES
+  return getStandardOnePagePdfOverrides(template)
+}
+
 function formatExperienceHtml(experience, template = '') {
-  const modern = template === 'modern'
-  const titleFs = modern ? '10px' : '11px'
-  const titleMb = modern ? '3px' : '6px'
-  const liMb = modern ? '2px' : '6px'
-  const liLh = modern ? '1.22' : '1.5'
+  const compact = usesOnePageCompactFormatters(template)
+  const titleFs = compact ? '10px' : '11px'
+  const titleMb = compact ? '3px' : '6px'
+  const liMb = compact ? '2px' : '6px'
+  const liLh = compact ? '1.3' : '1.5'
   if (!Array.isArray(experience) || experience.length === 0) {
     return '<p class="resume-section">No experience listed.</p>'
   }
@@ -186,8 +326,8 @@ function formatExperienceHtml(experience, template = '') {
         .map((b) => `<li style="margin-bottom: ${liMb}; line-height: ${liLh};">${escapeHtml(b)}</li>`)
         .join('')
       const dates = job.dates || ''
-      const ulMargin = modern ? '1px 0 5px 0' : '6px 0 12px 0'
-      const ulPad = modern ? '13px' : '24px'
+      const ulMargin = compact ? '1px 0 5px 0' : '6px 0 12px 0'
+      const ulPad = compact ? '13px' : '24px'
       return `
         <div class="experience-item resume-section">
           <p style="margin: 0 0 ${titleMb} 0; font-weight: bold; font-size: ${titleFs}; line-height: 1.25;">${escapeHtml(job.title || '')} at ${escapeHtml(job.company || '')}${dates ? ` | ${escapeHtml(dates)}` : ''}</p>
@@ -202,10 +342,11 @@ function formatSkillGroupsHtml(skillGroups, template = '') {
   if (!Array.isArray(skillGroups) || skillGroups.length === 0) {
     return ''
   }
+  const compact = usesOnePageCompactFormatters(template)
   const modern = template === 'modern'
-  const mb = modern ? '6px' : '8px'
+  const mb = compact ? '6px' : '8px'
   const catStyle = modern ? 'font-weight: 700; color: #2563eb;' : 'font-weight: bold;'
-  const fontBlock = modern ? 'font-size: 10px; line-height: 1.35;' : 'line-height: 1.5;'
+  const fontBlock = compact ? 'font-size: 10.5px; line-height: 1.3;' : 'line-height: 1.5;'
   return skillGroups
     .map((g) => {
       const items = (g.skills || []).map((s) => escapeHtml(String(s))).join(', ')
@@ -326,9 +467,10 @@ function normalizeSkillGroups(parsed, profile) {
 }
 
 function formatEducationHtml(items, template = '') {
-  const modern = template === 'modern'
-  const fs = modern ? '10px' : '11px'
-  const mb = modern ? '4px' : '8px'
+  const compact = usesOnePageCompactFormatters(template)
+  const fs = compact ? '10px' : '11px'
+  const mb = compact ? '4px' : '8px'
+  const lh = compact ? '1.3' : '1.25'
   if (!Array.isArray(items) || items.length === 0) return ''
   return items
     .map((e) => {
@@ -337,7 +479,7 @@ function formatEducationHtml(items, template = '') {
       const year = e.graduationYear ? escapeHtml(String(e.graduationYear)) : ''
       const main = [degree, inst].filter(Boolean).join(' — ')
       const yearPart = year ? ` · ${year}` : ''
-      return `<div class="education-item resume-section" style="margin-bottom: ${mb};"><p style="margin: 0; font-size: ${fs}; line-height: 1.25;">${main}${yearPart}</p></div>`
+      return `<div class="education-item resume-section" style="margin-bottom: ${mb};"><p style="margin: 0; font-size: ${fs}; line-height: ${lh};">${main}${yearPart}</p></div>`
     })
     .join('')
 }
@@ -349,9 +491,10 @@ function formatEducationBlock(items, template = '') {
 }
 
 function formatCertificationsHtml(items, template = '') {
-  const modern = template === 'modern'
-  const fs = modern ? '10px' : '11px'
-  const mb = modern ? '4px' : '8px'
+  const compact = usesOnePageCompactFormatters(template)
+  const fs = compact ? '10px' : '11px'
+  const mb = compact ? '4px' : '8px'
+  const lh = compact ? '1.3' : '1.25'
   if (!Array.isArray(items) || items.length === 0) return ''
   return items
     .map((c) => {
@@ -360,7 +503,7 @@ function formatCertificationsHtml(items, template = '') {
       const year = c.year ? escapeHtml(String(c.year)) : ''
       const mid = [name, issuer].filter(Boolean).join(' — ')
       const tail = year ? ` · ${year}` : ''
-      return `<div class="cert-item resume-section" style="margin-bottom: ${mb};"><p style="margin: 0; font-size: ${fs}; line-height: 1.25;">${mid}${tail}</p></div>`
+      return `<div class="cert-item resume-section" style="margin-bottom: ${mb};"><p style="margin: 0; font-size: ${fs}; line-height: ${lh};">${mid}${tail}</p></div>`
     })
     .join('')
 }
@@ -766,7 +909,7 @@ export async function POST(request) {
 
     filledHtml = filledHtml.replace(
       '</head>',
-      `${PDF_STYLES}${template === 'modern' ? MODERN_RESUME_PDF_OVERRIDES : ''}</head>`
+      `${PDF_STYLES}${pdfInjectionForTemplate(template)}</head>`
     )
 
     const filename = (() => {
