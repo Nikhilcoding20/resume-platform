@@ -206,25 +206,69 @@ function getStandardOnePagePdfOverrides(template) {
   }
   if (template === 'creative') {
     layoutExtra = `
-  body.${c} header {
-    padding: 12px 14px !important;
+  body.${c} {
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+    padding: 0 !important;
   }
-  body.${c} header h1 {
+  body.${c} .creative-layout {
+    min-height: auto !important;
+  }
+  body.${c} .creative-left-header {
+    padding: 10px 12px !important;
+  }
+  body.${c} .creative-left-header h1 {
     font-size: 14px !important;
     margin: 0 !important;
     line-height: 1.2 !important;
   }
-  body.${c} header p {
+  body.${c} .creative-left-header .creative-contact-line {
     font-size: 10px !important;
     margin: 6px 0 0 0 !important;
-    line-height: 1.3 !important;
+    line-height: 1.4 !important;
   }
-  body.${c} .creative-body-wrap {
-    padding: 10px 12px !important;
+  body.${c} .creative-left-body {
+    padding: 8px 10px !important;
   }
-  body.${c} .creative-section {
-    margin-bottom: 10px !important;
+  body.${c} .creative-col-right {
+    padding: 8px 12px !important;
+  }
+  body.${c} .creative-panel {
+    margin-bottom: 8px !important;
     padding-left: 12px !important;
+  }
+  body.${c} .creative-col-right .resume-education-block,
+  body.${c} .creative-col-right .resume-certifications-block {
+    margin-bottom: 8px !important;
+    padding-left: 12px !important;
+  }
+  body.${c} p {
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+  }
+  body.${c} li {
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+  }
+  body.${c} .skill-group {
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+  }
+  body.${c} .contact-line {
+    line-height: 1.4 !important;
+  }
+  body.${c} .education-item p,
+  body.${c} .cert-item p {
+    line-height: 1.4 !important;
+  }
+  body.${c} .creative-h2 {
+    margin: 0 0 6px 0 !important;
+    padding-bottom: 0 !important;
+  }
+  body.${c} .creative-col-right .resume-education-block > h2,
+  body.${c} .creative-col-right .resume-certifications-block > h2 {
+    margin: 0 0 6px 0 !important;
+    padding-bottom: 0 !important;
   }`
   }
 
