@@ -27,5 +27,20 @@
     {{education_block}}
     {{certifications_block}}
   </div>
+
+  <!-- After PDF-injected head styles so spacing overrides apply when generating PDFs -->
+  <style>
+    .modern-main .experience-item {
+      margin-bottom: 8px !important;
+    }
+    .modern-main .experience-item > p {
+      margin-bottom: 4px !important;
+    }
+    .modern-main > h2,
+    .modern-main .resume-education-block > h2,
+    .modern-main .resume-certifications-block > h2 {
+      margin-top: 6px !important;
+    }
+  </style>
 </body>
 </html>
