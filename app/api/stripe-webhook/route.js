@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import Stripe from 'stripe'
 import { createSupabaseAdmin } from '@/lib/supabase-admin'
+import { sendProSubscriptionWelcomeEmail } from '@/lib/emails/sendProSubscriptionWelcomeEmail'
 
 export const dynamic = 'force-dynamic'
 export const runtime = 'nodejs'
@@ -34,6 +35,64 @@ async function ensureUserUsageRow(admin, userId) {
     { onConflict: 'user_id', ignoreDuplicates: true }
   )
   if (error) console.error('[stripe-webhook] ensureUserUsageRow', error)
+}
+
+/**
+ * One branded Pro welcome email per Stripe subscription id (checkout fires multiple events).
+ */
+async function maybeSendProSubscriptionWelcome(admin, { userId, plan, stripeSubscriptionId }) {
+  if (!userId || !stripeSubscriptionId || !plan) return
+  if (plan !== 'pro_monthly' && plan !== 'pro_annual') return
+
+  const uid = String(userId)
+
+  const { data: row, error: selErr } = await admin
+    .from('subscriptions')
+    .select('pro_welcome_email_subscription_id')
+    .eq('user_id', uid)
+    .maybeSingle()
+
+  if (selErr) {
+    console.error('[stripe-webhook] pro welcome select:', selErr.message)
+    return
+  }
+
+  if (row?.pro_welcome_email_subscription_id === stripeSubscriptionId) {
+    return
+  }
+
+  let toEmail = null
+  try {
+    const { data: authData, error: authErr } = await admin.auth.admin.getUserById(uid)
+    if (authErr) {
+      console.error('[stripe-webhook] pro welcome getUserById:', authErr.message)
+      return
+    }
+    toEmail = authData?.user?.email?.trim() || null
+  } catch (e) {
+    console.error('[stripe-webhook] pro welcome getUserById failed:', e)
+    return
+  }
+
+  if (!toEmail) {
+    console.warn('[stripe-webhook] pro welcome: no email for user', uid)
+    return
+  }
+
+  const sent = await sendProSubscriptionWelcomeEmail({ toEmail, plan, returnSoft: true })
+  if (!sent.ok) {
+    console.warn('[stripe-webhook] pro welcome email not sent:', sent.error || sent.skipped)
+    return
+  }
+
+  const { error: upErr } = await admin
+    .from('subscriptions')
+    .update({ pro_welcome_email_subscription_id: stripeSubscriptionId })
+    .eq('user_id', uid)
+
+  if (upErr) {
+    console.error('[stripe-webhook] pro welcome dedupe update:', upErr.message)
+  }
 }
 
 export async function POST(request) {
@@ -110,6 +169,14 @@ export async function POST(request) {
         )
 
         await ensureUserUsageRow(admin, userId)
+
+        if (sub.status === 'active' || sub.status === 'trialing') {
+          await maybeSendProSubscriptionWelcome(admin, {
+            userId,
+            plan,
+            stripeSubscriptionId: sub.id,
+          })
+        }
         break
       }
       case 'customer.subscription.deleted': {
@@ -138,6 +205,9 @@ export async function POST(request) {
       }
       case 'invoice.payment_succeeded': {
         const invoice = event.data.object
+        const billingReason = invoice.billing_reason
+        if (billingReason !== 'subscription_create') break
+
         const subId = typeof invoice.subscription === 'string' ? invoice.subscription : null
         if (!subId) break
 
@@ -173,6 +243,12 @@ export async function POST(request) {
           { onConflict: 'user_id' }
         )
         await ensureUserUsageRow(admin, userId)
+
+        await maybeSendProSubscriptionWelcome(admin, {
+          userId,
+          plan,
+          stripeSubscriptionId: sub.id,
+        })
         break
       }
       case 'invoice.payment_failed': {
