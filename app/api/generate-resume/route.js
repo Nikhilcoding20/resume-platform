@@ -5,6 +5,7 @@ import Anthropic from '@anthropic-ai/sdk'
 import { launchChromiumForPdf } from '@/lib/launchChromiumForPdf'
 import { createClient } from '@supabase/supabase-js'
 import { getUsage, canCreateResumeForUser } from '@/lib/checkUsage'
+import { persistGeneratedResumeServer } from '@/lib/persistGeneratedResumeServer'
 
 const PROMPT = `You are a professional resume writer and layout designer. Rewrite this person's resume to perfectly match the following job description. Never invent experience that does not exist. Keep all content ATS-friendly. Naturally include important keywords from the job description.
 
@@ -753,6 +754,19 @@ export async function POST(request) {
           })
         } catch (insertErr) {
           console.error('[generate-resume] Failed to track generated resume:', insertErr)
+        }
+      }
+
+      const persistClient = supabaseService ?? supabase
+      if (supabase && persistClient && normalizedUserId) {
+        const persisted = await persistGeneratedResumeServer(persistClient, {
+          userId: normalizedUserId,
+          pdfBuffer: buffer,
+          template,
+          jobDescription,
+        })
+        if (!persisted.ok) {
+          console.warn('[generate-resume] generated_resumes persist skipped or failed:', persisted.error || '')
         }
       }
 

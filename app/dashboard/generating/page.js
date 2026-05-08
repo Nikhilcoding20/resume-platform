@@ -4,7 +4,6 @@ import { useEffect, useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
-import { persistGeneratedResume } from '@/lib/persistGeneratedResume'
 import UpgradeLimitModal from '@/app/components/UpgradeLimitModal'
 
 async function generateResumeApiHeaders() {
@@ -593,12 +592,6 @@ export default function GeneratingPage() {
         }
         await animateProgressTo(100, COMPLETE_PROGRESS_DURATION_MS)
         setStatus('review')
-        void persistGeneratedResume({
-          userId: user.id,
-          pdfBlob: blob,
-          templateName,
-          jobDescription: sanitizeString(jobDescription),
-        }).catch((err) => console.warn('[generating/page.js] persist resume:', err))
       } catch (err) {
         console.error('[generating/page.js] generate():', err)
         setError(err.message || 'Failed to generate resume')
@@ -746,12 +739,6 @@ export default function GeneratingPage() {
       setStatus('review')
       setShowMakeChanges(false)
       setChangeFeedback('')
-      void persistGeneratedResume({
-        userId: user.id,
-        pdfBlob: blob,
-        templateName,
-        jobDescription: sanitizeString(jobDescription),
-      }).catch((err) => console.warn('[generating/page.js] handleRegenerate persist resume:', err))
     } catch (err) {
       console.error('[generating/page.js] handleRegenerate():', err)
       setError(err.message || 'Failed to regenerate resume')
@@ -865,12 +852,6 @@ export default function GeneratingPage() {
       }
       await animateProgressTo(100, COMPLETE_PROGRESS_DURATION_MS)
       setStatus('review')
-      void persistGeneratedResume({
-        userId: user.id,
-        pdfBlob: blob,
-        templateName,
-        jobDescription: sanitizeString(jobDescription),
-      }).catch((err) => console.warn('[generating/page.js] handleBoostResume persist resume:', err))
     } catch (err) {
       console.error('[generating/page.js] handleBoostResume():', err)
       setError(err.message || 'Failed to boost resume')
@@ -972,12 +953,6 @@ export default function GeneratingPage() {
       } catch (atsErr) {
         console.error('[generating/page.js] handleSaveEditedResume(): ats-checker failed:', atsErr)
       }
-      void persistGeneratedResume({
-        userId: user.id,
-        pdfBlob: blob,
-        templateName,
-        jobDescription: sanitizeString(jobDescription || ''),
-      }).catch((err) => console.warn('[generating/page.js] handleSaveEditedResume persist resume:', err))
     } catch (err) {
       console.error('[generating/page.js] handleSaveEditedResume():', err)
       setSaveEditorError(err.message || 'Failed to update PDF')

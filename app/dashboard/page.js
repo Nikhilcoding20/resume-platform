@@ -4,6 +4,7 @@ import { useEffect, useState, useRef } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { getResumeProfileCompletionPercent } from '@/lib/resumeProfileChecklist'
 import AtsScoreLoadingOverlay from '@/app/components/AtsScoreLoadingOverlay'
 
 const DAILY_TIP_STORAGE_KEY = 'unemployed-club-daily-career-tip'
@@ -179,16 +180,17 @@ export default function DashboardPage() {
 
     async function fetchResumesCount() {
       try {
-        const { count, error } = await supabase
-          .from('generated_resumes')
-          .select('*', { count: 'exact', head: true })
+        const { data, error } = await supabase
+          .from('user_usage')
+          .select('resumes_generated')
           .eq('user_id', user.id)
+          .maybeSingle()
         if (cancelled) return
         if (error) {
           setResumesCount(0)
           return
         }
-        setResumesCount(count ?? 0)
+        setResumesCount(Number(data?.resumes_generated) || 0)
       } catch {
         if (!cancelled) setResumesCount(0)
       }
@@ -284,20 +286,7 @@ export default function DashboardPage() {
 
   const displayName = user?.user_metadata?.full_name || user?.email?.split('@')[0] || 'there'
 
-  const calculateProfileCompletion = () => {
-    if (!profile) return 0
-    let score = 0
-    if (profile.full_name) score += 10
-    if (profile.email) score += 10
-    if (profile.phone_number) score += 10
-    if (profile.city || profile.country) score += 10
-    if (profile.work_experience?.length > 0) score += 20
-    if (profile.education?.length > 0) score += 15
-    if (profile.skills?.length > 0) score += 15
-    if (profile.linkedin_url) score += 5
-    if (profile.portfolio_url) score += 5
-    return Math.min(score, 100)
-  }
+  const calculateProfileCompletion = () => getResumeProfileCompletionPercent(profile)
 
   const openModal = (suggestion) => {
     const type = getSectionType(suggestion?.section)
@@ -800,17 +789,24 @@ export default function DashboardPage() {
                 </div>
               </div>
 
-              <div className="p-4 bg-[#f8f8ff] rounded-xl border border-[#eaeaf2] flex items-center justify-between hover:border-[#a855f7]/30 transition-colors">
-                <div className="flex items-center gap-4">
-                  <div className="w-10 h-10 rounded-lg bg-[#a855f7]/20 text-[#a855f7] flex items-center justify-center ring-1 ring-[#a855f7]/30">
+              <Link
+                href="/dashboard/profile"
+                className="group p-4 bg-[#f8f8ff] rounded-xl border border-[#eaeaf2] flex items-center justify-between hover:border-[#a855f7]/40 transition-colors ds-card-interactive focus:outline-none focus-visible:ring-2 focus-visible:ring-[#6366f1]/35 focus-visible:ring-offset-2"
+              >
+                <div className="flex items-center gap-4 min-w-0">
+                  <div className="w-10 h-10 shrink-0 rounded-lg bg-[#a855f7]/20 text-[#a855f7] flex items-center justify-center ring-1 ring-[#a855f7]/30 group-hover:ring-[#a855f7]/50">
                     <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
                   </div>
-                  <div>
+                  <div className="min-w-0">
                     <p className="text-sm font-medium text-[#5c5c7a]">Profile Completion</p>
                     <p className="text-xl font-bold text-[#1a1a2e]">{completionScore}%</p>
+                    <p className="text-xs text-[#6366f1] font-medium mt-0.5 opacity-0 group-hover:opacity-100 transition-opacity">View checklist →</p>
                   </div>
                 </div>
-              </div>
+                <svg className="w-5 h-5 shrink-0 text-[#a855f7]/60 group-hover:text-[#7c3aed] transition-colors" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden>
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                </svg>
+              </Link>
             </div>
           </div>
         </div>
