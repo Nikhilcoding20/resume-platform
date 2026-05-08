@@ -5,27 +5,27 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resume - Modern</title>
 </head>
-<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; display: flex; min-height: 100vh;">
-  <div style="width: 200px; background: #2563eb; color: #fff; padding: 40px 24px; flex-shrink: 0;">
-    <h1 style="margin: 0 0 24px 0; font-size: 22pt; font-weight: 600;">{{name}}</h1>
-    <p style="margin: 0 0 8px 0; font-size: 10pt; line-height: 1.5;">{{email}}</p>
-    <p style="margin: 0 0 8px 0; font-size: 10pt; line-height: 1.5;">{{phone}}</p>
-    <p style="margin: 0; font-size: 10pt; line-height: 1.5;">{{location}}</p>
+<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 9px; line-height: 1.35; display: flex; min-height: 100vh; color: #333;">
+  <!-- Compact blue sidebar: contact + LinkedIn/Website + skills (star ratings injected server-side) -->
+  <div style="width: 168px; background: #2563eb; color: #fff; padding: 18px 10px 14px; flex-shrink: 0;">
+    <h1 style="margin: 0 0 8px 0; font-size: 11px; font-weight: 700; line-height: 1.2; color: #fff;">{{name}}</h1>
+    <p style="margin: 0 0 5px 0; font-size: 8px; line-height: 1.35; color: rgba(255,255,255,0.95);">{{email}}</p>
+    <p style="margin: 0 0 5px 0; font-size: 8px; line-height: 1.35; color: rgba(255,255,255,0.95);">{{phone}}</p>
+    <p style="margin: 0 0 8px 0; font-size: 8px; line-height: 1.35; color: rgba(255,255,255,0.95);">{{location}}</p>
     {{sidebar_urls}}
+    <h2 style="margin: 10px 0 5px 0; padding: 0; font-size: 10px; font-weight: 700; color: #fff; line-height: 1.2;">Skills</h2>
+    {{skills}}
   </div>
 
-  <div style="flex: 1; padding: 40px; background: #fff; color: #333;">
-    <h2 style="margin: 0 0 12px 0; font-size: 12pt; font-weight: 600; color: #2563eb;">Summary</h2>
-    <p style="margin: 0 0 24px 0; font-size: 11pt; line-height: 1.5;">{{summary}}</p>
+  <div class="modern-main" style="flex: 1; padding: 18px 16px; background: #fff; color: #333; min-width: 0;">
+    <h2 style="margin: 0 0 5px 0; padding: 0; font-size: 10px; font-weight: 700; color: #2563eb; line-height: 1.2;">Summary</h2>
+    <p style="margin: 0 0 10px 0; font-size: 9px; line-height: 1.35;">{{summary}}</p>
 
-    <h2 style="margin: 0 0 12px 0; font-size: 12pt; font-weight: 600; color: #2563eb;">Experience</h2>
-    <div style="margin-bottom: 24px; font-size: 11pt; line-height: 1.5;">{{experience}}</div>
+    <h2 style="margin: 0 0 5px 0; padding: 0; font-size: 10px; font-weight: 700; color: #2563eb; line-height: 1.2;">Experience</h2>
+    <div style="margin-bottom: 10px; font-size: 9px; line-height: 1.35;">{{experience}}</div>
 
     {{education_block}}
     {{certifications_block}}
-
-    <h2 style="margin: 0 0 12px 0; font-size: 12pt; font-weight: 600; color: #2563eb;">Skills</h2>
-    <div style="margin: 0; font-size: 11pt; line-height: 1.5;">{{skills}}</div>
   </div>
 </body>
 </html>

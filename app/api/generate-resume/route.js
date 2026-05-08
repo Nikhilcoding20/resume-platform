@@ -98,20 +98,141 @@ const PDF_STYLES = `
 </style>
 `
 
-function formatExperienceHtml(experience) {
+/** PDF-only overrides so the modern template stays compact (global PDF_STYLES use 11px). */
+const MODERN_RESUME_PDF_OVERRIDES = `
+<style id="modern-resume-pdf-overrides">
+  body {
+    font-size: 9px !important;
+    line-height: 1.35 !important;
+  }
+  body > div:first-child {
+    width: 168px !important;
+    max-width: 168px !important;
+    padding: 18px 10px 14px !important;
+    box-sizing: border-box !important;
+  }
+  body > div:first-child h1 {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    margin: 0 0 8px 0 !important;
+  }
+  body > div:first-child h2 {
+    font-size: 10px !important;
+    margin: 10px 0 5px 0 !important;
+    color: #fff !important;
+  }
+  body > div:first-child p {
+    font-size: 8px !important;
+    line-height: 1.35 !important;
+    margin: 0 0 5px 0 !important;
+  }
+  body > div:nth-child(2).modern-main {
+    padding: 18px 16px !important;
+    box-sizing: border-box !important;
+  }
+  .modern-main > h2,
+  .modern-main .resume-education-block > h2,
+  .modern-main .resume-certifications-block > h2 {
+    font-size: 10px !important;
+    margin: 8px 0 4px 0 !important;
+    padding-bottom: 3px !important;
+    line-height: 1.2 !important;
+    color: #2563eb !important;
+    border-bottom-color: #2563eb !important;
+  }
+  .modern-main > p,
+  .modern-main .resume-education-block,
+  .modern-main .resume-certifications-block {
+    font-size: 9px !important;
+  }
+  .modern-main .experience-item > p {
+    font-size: 9px !important;
+    font-weight: bold !important;
+    margin: 0 0 3px 0 !important;
+    line-height: 1.25 !important;
+  }
+  .modern-main .experience-item ul {
+    margin: 1px 0 5px 0 !important;
+    padding-left: 13px !important;
+  }
+  .modern-main .experience-item li {
+    margin-bottom: 2px !important;
+    line-height: 1.22 !important;
+    font-size: 9px !important;
+  }
+  .modern-main .education-item p,
+  .modern-main .cert-item p {
+    font-size: 9px !important;
+    line-height: 1.25 !important;
+    margin-bottom: 3px !important;
+  }
+  .modern-main .resume-section {
+    margin-bottom: 6px !important;
+  }
+</style>
+`
+
+function skillStarRating(skillIndex, totalSkills) {
+  if (totalSkills <= 0) return 5
+  if (totalSkills === 1) return 5
+  const t = skillIndex / (totalSkills - 1)
+  return Math.max(1, Math.round(5 - t * 4))
+}
+
+/** Modern sidebar: ordered skills with 1–5 star display (first skills rated highest). */
+function formatSkillGroupsSidebarStarsHtml(skillGroups) {
+  if (!Array.isArray(skillGroups) || skillGroups.length === 0) {
+    return ''
+  }
+  const total = skillGroups.reduce(
+    (acc, g) => acc + (Array.isArray(g?.skills) ? g.skills.filter((x) => String(x).trim()).length : 0),
+    0,
+  )
+  let idx = 0
+  const rows = []
+  for (const g of skillGroups) {
+    const skills = (Array.isArray(g?.skills) ? g.skills : []).map((x) => String(x).trim()).filter(Boolean)
+    if (!skills.length) continue
+    const category = escapeHtml(String(g?.category || 'Skills').trim() || 'Skills')
+    rows.push(
+      `<div style="font-size:8px;font-weight:700;color:rgba(255,255,255,0.9);margin:7px 0 3px 0;text-transform:uppercase;letter-spacing:0.05em;line-height:1.15;">${category}</div>`,
+    )
+    for (const s of skills) {
+      const r = skillStarRating(idx++, total)
+      const stars = '\u2605'.repeat(r) + '\u2606'.repeat(5 - r)
+      rows.push(
+        `<div style="font-size:9px;line-height:1.25;color:#fff;margin:0 0 3px 0;">${escapeHtml(s)} <span style="color:#fff;">${stars}</span></div>`,
+      )
+    }
+  }
+  return rows.join('')
+}
+
+function skillsPlaceholderHtml(skillGroups, template) {
+  return template === 'modern' ? formatSkillGroupsSidebarStarsHtml(skillGroups) : formatSkillGroupsHtml(skillGroups)
+}
+
+function formatExperienceHtml(experience, template = '') {
+  const modern = template === 'modern'
+  const titleFs = modern ? '9px' : '11px'
+  const titleMb = modern ? '3px' : '6px'
+  const liMb = modern ? '2px' : '6px'
+  const liLh = modern ? '1.22' : '1.5'
   if (!Array.isArray(experience) || experience.length === 0) {
     return '<p class="resume-section">No experience listed.</p>'
   }
   return experience
     .map((job) => {
       const bullets = (job.bullets || [])
-        .map((b) => `<li>${escapeHtml(b)}</li>`)
+        .map((b) => `<li style="margin-bottom: ${liMb}; line-height: ${liLh};">${escapeHtml(b)}</li>`)
         .join('')
       const dates = job.dates || ''
+      const ulMargin = modern ? '1px 0 5px 0' : '6px 0 12px 0'
+      const ulPad = modern ? '13px' : '24px'
       return `
         <div class="experience-item resume-section">
-          <p style="margin: 0 0 6px 0; font-weight: bold; font-size: 11px;">${escapeHtml(job.title || '')} at ${escapeHtml(job.company || '')}${dates ? ` | ${escapeHtml(dates)}` : ''}</p>
-          ${bullets ? `<ul>${bullets}</ul>` : ''}
+          <p style="margin: 0 0 ${titleMb} 0; font-weight: bold; font-size: ${titleFs}; line-height: 1.25;">${escapeHtml(job.title || '')} at ${escapeHtml(job.company || '')}${dates ? ` | ${escapeHtml(dates)}` : ''}</p>
+          ${bullets ? `<ul style="margin: ${ulMargin}; padding-left: ${ulPad};">${bullets}</ul>` : ''}
         </div>
       `
     })
@@ -241,7 +362,10 @@ function normalizeSkillGroups(parsed, profile) {
   return { skillGroups: groups, flatSkills: flat }
 }
 
-function formatEducationHtml(items) {
+function formatEducationHtml(items, template = '') {
+  const modern = template === 'modern'
+  const fs = modern ? '9px' : '11px'
+  const mb = modern ? '4px' : '8px'
   if (!Array.isArray(items) || items.length === 0) return ''
   return items
     .map((e) => {
@@ -250,18 +374,21 @@ function formatEducationHtml(items) {
       const year = e.graduationYear ? escapeHtml(String(e.graduationYear)) : ''
       const main = [degree, inst].filter(Boolean).join(' — ')
       const yearPart = year ? ` · ${year}` : ''
-      return `<div class="education-item resume-section" style="margin-bottom: 8px;"><p style="margin: 0; font-size: 11px;">${main}${yearPart}</p></div>`
+      return `<div class="education-item resume-section" style="margin-bottom: ${mb};"><p style="margin: 0; font-size: ${fs}; line-height: 1.25;">${main}${yearPart}</p></div>`
     })
     .join('')
 }
 
-function formatEducationBlock(items) {
-  const inner = formatEducationHtml(items)
+function formatEducationBlock(items, template = '') {
+  const inner = formatEducationHtml(items, template)
   if (!inner) return ''
   return `<div class="resume-education-block resume-section"><h2>Education</h2>${inner}</div>`
 }
 
-function formatCertificationsHtml(items) {
+function formatCertificationsHtml(items, template = '') {
+  const modern = template === 'modern'
+  const fs = modern ? '9px' : '11px'
+  const mb = modern ? '4px' : '8px'
   if (!Array.isArray(items) || items.length === 0) return ''
   return items
     .map((c) => {
@@ -270,13 +397,13 @@ function formatCertificationsHtml(items) {
       const year = c.year ? escapeHtml(String(c.year)) : ''
       const mid = [name, issuer].filter(Boolean).join(' — ')
       const tail = year ? ` · ${year}` : ''
-      return `<div class="cert-item resume-section" style="margin-bottom: 8px;"><p style="margin: 0; font-size: 11px;">${mid}${tail}</p></div>`
+      return `<div class="cert-item resume-section" style="margin-bottom: ${mb};"><p style="margin: 0; font-size: ${fs}; line-height: 1.25;">${mid}${tail}</p></div>`
     })
     .join('')
 }
 
-function formatCertificationsBlock(items) {
-  const inner = formatCertificationsHtml(items)
+function formatCertificationsBlock(items, template = '') {
+  const inner = formatCertificationsHtml(items, template)
   if (!inner) return ''
   return `<div class="resume-certifications-block resume-section"><h2>Certifications</h2>${inner}</div>`
 }
@@ -293,22 +420,26 @@ function formatContactUrlsLine(profile) {
   return `<p style="margin: 4px 0 0 0;" class="contact-line">${parts.join(' · ')}</p>`
 }
 
-function formatSidebarUrls(profile) {
+function formatSidebarUrls(profile, template = '') {
+  const modern = template === 'modern'
+  const fs = modern ? '8px' : '10pt'
+  const lh = modern ? '1.35' : '1.5'
+  const mb = modern ? '5px' : '8px'
   const blocks = []
   if (profile.linkedin_url && String(profile.linkedin_url).trim()) {
     blocks.push(
-      `<p style="margin: 0 0 8px 0; font-size: 10pt; line-height: 1.5; word-break: break-all;">LinkedIn<br/>${escapeHtml(String(profile.linkedin_url).trim())}</p>`
+      `<p style="margin: 0 0 ${mb} 0; font-size: ${fs}; line-height: ${lh}; word-break: break-all;">LinkedIn<br/>${escapeHtml(String(profile.linkedin_url).trim())}</p>`
     )
   }
   if (profile.portfolio_url && String(profile.portfolio_url).trim()) {
     blocks.push(
-      `<p style="margin: 0; font-size: 10pt; line-height: 1.5; word-break: break-all;">Website<br/>${escapeHtml(String(profile.portfolio_url).trim())}</p>`
+      `<p style="margin: 0; font-size: ${fs}; line-height: ${lh}; word-break: break-all;">Website<br/>${escapeHtml(String(profile.portfolio_url).trim())}</p>`
     )
   }
   return blocks.join('')
 }
 
-function normalizeClientResumeContentForRender(clientContent, profile) {
+function normalizeClientResumeContentForRender(clientContent, profile, template = '') {
   const summary = String(clientContent?.summary ?? '').trim()
 
   const experience = (Array.isArray(clientContent?.experience) ? clientContent.experience : [])
@@ -366,12 +497,12 @@ function normalizeClientResumeContentForRender(clientContent, profile) {
     '{{phone}}': profile.phone_number || '',
     '{{location}}': location,
     '{{contact_urls_block}}': formatContactUrlsLine(profile),
-    '{{sidebar_urls}}': formatSidebarUrls(profile),
+    '{{sidebar_urls}}': formatSidebarUrls(profile, template),
     '{{summary}}': summary,
-    '{{experience}}': formatExperienceHtml(experience),
-    '{{education_block}}': formatEducationBlock(education),
-    '{{certifications_block}}': formatCertificationsBlock(certifications),
-    '{{skills}}': formatSkillGroupsHtml(skillGroups),
+    '{{experience}}': formatExperienceHtml(experience, template),
+    '{{education_block}}': formatEducationBlock(education, template),
+    '{{certifications_block}}': formatCertificationsBlock(certifications, template),
+    '{{skills}}': skillsPlaceholderHtml(skillGroups, template),
   }
 
   return { output, replacements }
@@ -564,7 +695,7 @@ export async function POST(request) {
     let contentOut
 
     if (isRenderOnly) {
-      const { output, replacements: r } = normalizeClientResumeContentForRender(clientResumeContent, profile)
+      const { output, replacements: r } = normalizeClientResumeContentForRender(clientResumeContent, profile, template)
       contentOut = output
       replacements = r
     } else {
@@ -648,12 +779,12 @@ export async function POST(request) {
         '{{phone}}': profile.phone_number || '',
         '{{location}}': location,
         '{{contact_urls_block}}': formatContactUrlsLine(profile),
-        '{{sidebar_urls}}': formatSidebarUrls(profile),
+        '{{sidebar_urls}}': formatSidebarUrls(profile, template),
         '{{summary}}': parsed.summary || '',
-        '{{experience}}': formatExperienceHtml(parsed.experience || []),
-        '{{education_block}}': formatEducationBlock(mergedEducation),
-        '{{certifications_block}}': formatCertificationsBlock(mergedCertifications),
-        '{{skills}}': formatSkillGroupsHtml(skillGroups),
+        '{{experience}}': formatExperienceHtml(parsed.experience || [], template),
+        '{{education_block}}': formatEducationBlock(mergedEducation, template),
+        '{{certifications_block}}': formatCertificationsBlock(mergedCertifications, template),
+        '{{skills}}': skillsPlaceholderHtml(skillGroups, template),
       }
     }
 
@@ -672,7 +803,7 @@ export async function POST(request) {
 
     filledHtml = filledHtml.replace(
       '</head>',
-      `${PDF_STYLES}</head>`
+      `${PDF_STYLES}${template === 'modern' ? MODERN_RESUME_PDF_OVERRIDES : ''}</head>`
     )
 
     const filename = (() => {
