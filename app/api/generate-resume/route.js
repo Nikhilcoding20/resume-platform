@@ -19,9 +19,10 @@ SOURCE DATA — USE EVERYTHING RELEVANT (DO NOT DROP):
 RESUME LENGTH & LAYOUT RULES (STRICT — ONE PAGE ONLY):
 - The rendered resume MUST fit on exactly ONE standard page (**A4 or US Letter**) assuming approximately **10.5px body text** and **0.6 inch margins** on all sides. Think and write with that fixed “canvas” in mind.
 - One page only: **no second page, no overflow.** Never generate enough material for two pages “just in case.”
-- Generate **only** as much content as needed to fill **one** page well — no filler, no padded wording, no oversized gaps between sections.
+- **Minimum fill (~85% of the page):** The resume must **fill at least ~85%** of one standard page and look **full and professional**, not sparse. **Never leave more than ~15%** of the page empty (no large bare band below the last section). Avoid **vacuous** filler phrases; use **substantive** detail (metrics, scope, outcomes) to earn density.
+- **When content is too short for a full page:** Expand existing bullets with **more concrete detail** (still CAR: context, action, result), add **stronger measurable achievements** and **specific metrics** grounded in the role and industry; write a **longer, compelling summary** (see Summary rules — **up to 4 sentences**); enrich skillGroups only where it adds real clarity — **never invent employers, titles, dates, degrees, or certifications.**
 - **No excessive whitespace:** keep sections visually tight; do not imply huge margins or sparse blocks that waste vertical space.
-- If length is borderline, **shorten bullets and tighten wording** before dropping roles (while still obeying the max 4 jobs rule). If slightly short, modestly enrich existing bullets — never add extra bullets beyond the per-job cap.
+- If length is borderline **over** the page, **shorten bullets and tighten wording** before dropping roles (while still obeying the max 4 jobs rule). If **underfilled**, expand bullets and summary per above — never add extra bullets beyond the per-job cap.
 
 JOB EXPERIENCE RULES:
 - If the person has **more than 4 jobs**, include **only the 4 most recent AND most relevant** roles for this job description; drop all others.
@@ -35,7 +36,7 @@ BULLET POINT RULES - USE CAR METHOD STRICTLY:
 - Never write vague bullets like "Responsible for managing social media"
 - Be specific; include results; start with an action verb.
 - If the original resume contains numbers or percentages use them. If none exist, estimate realistic metrics from the role and industry. Never use placeholder text like ADD METRIC.
-- Keep each bullet **compact for ~10.5px text**: aim for **about one line** when possible; avoid long multi-line bullets unless essential.
+- Keep each bullet **readable for ~10.5px text**: aim for **about one line** when the page is already dense; when filling a sparse page, **two lines** per bullet is acceptable if every clause adds substance (still CAR, still metrics where appropriate).
 
 SKILLS SECTION RULES:
 - Output "skillGroups" as an array of category objects (see JSON schema). Keep labels **short** and lists **concise** — dense and scannable, not sprawling.
@@ -45,15 +46,15 @@ SKILLS SECTION RULES:
 - The skills section must read as tight grouped blocks (category + skills), never a bloated comma-separated paragraph.
 
 SUMMARY RULES:
-- **Maximum 3 sentences — never a fourth.** Prefer **exactly 3** crisp sentences.
-- Those sentences must stay compact enough for **one page at 10.5px / 0.6in margins** alongside the rest of the resume.
-- Mention years of experience, top 2 skills, and one impressive achievement (without adding extra sentences).
+- **Maximum 4 sentences — never a fifth.** Use **4 sentences** when the rest of the resume is thin and you need a strong, **full-page** look; use **2–3 tighter sentences** when experience already occupies most of the page.
+- Every sentence must earn its space: years/scope of experience, **top skills aligned to the job**, standout achievements with **metrics where truthful**, and role fit — no generic fluff.
+- The summary must still fit **one page at 10.5px / 0.6in margins** together with all other sections.
 
 OVERALL PAGE COMPOSITION:
-- Target **one full page** on **A4/Letter** at **~10.5px body text** and **0.6in margins**: summary, experience, education (when present), certifications (when present), and skillGroups must **all fit** without overflow.
-- Use **bullet count (3–4 per job, never more)** and **tight skills** to stay within the canvas — do not rely on tiny fonts or margins; the model must write less, not assume cheating layout.
+- Target **one full page** on **A4/Letter** at **~10.5px body text** and **0.6in margins**: summary, experience, education (when present), certifications (when present), and skillGroups must **all fit** without overflow **and** meet the **~85% minimum fill** (no more than **~15%** empty).
+- Use **bullet count (3–4 per job, never more)** and purposeful skills lists to stay within the canvas — do not rely on tiny fonts or margins; balance trimming vs. expanding so the page is **full**, not overcrowded or bare.
 - If overfilled: remove bullets from less relevant roles first, then shorten wording while keeping CAR and real metrics.
-- If underfilled: deepen existing bullets slightly — **never** add a 5th bullet or extra roles.
+- If underfilled: expand bullets with detail and metrics, lengthen the summary (up to 4 sentences), and enrich achievements — **never** add a 5th bullet per job or extra roles beyond the cap.
 
 JSON SCHEMA (STRICT — include every key; use empty arrays where nothing applies):
 - summary (string)
@@ -68,7 +69,7 @@ const REGENERATE_PROMPT = `You are a professional resume writer. The user has an
 
 You MUST preserve and return the full JSON structure: summary, experience, skillGroups (grouped skills — never a single comma-only blob), education, certifications. Use the profile JSON in the request if you need to restore any education or certification rows that must not be dropped.
 
-ONE-PAGE CONSTRAINTS (same as initial generation): Output must fit **one** standard page (**A4/Letter**) at **~10.5px body text** and **0.6 inch margins**. **Maximum 3 sentences** in summary (never more). **At most 4 jobs**; if more exist in source, keep only the 4 most recent/relevant. **3–4 bullets per job maximum — never 5 or 6.** Keep skillGroups **concise** (fewer, relevant skills; no bloated lists). No excessive whitespace implied by sparse or padded content.
+ONE-PAGE CONSTRAINTS (same as initial generation): Output must fit **one** standard page (**A4/Letter**) at **~10.5px body text** and **0.6 inch margins**. Fill **at least ~85%** of the page; **never more than ~15%** empty — if content is thin, expand bullets (detail, CAR, metrics), strengthen the summary (**up to 4 sentences**, never 5), and add substantive achievements — still **never invent** employers, titles, dates, or degrees. **At most 4 jobs**; if more exist in source, keep only the 4 most recent/relevant. **3–4 bullets per job maximum — never 5 or 6.** Keep skillGroups purposeful (no bloated lists; enrich only when it improves density). No excessive whitespace from sparse sections.
 
 Return ONLY a raw JSON object with these fields: summary (string), experience (array of objects each with title, company, dates, and bullets as array of strings), skillGroups (array of objects each with category string and skills array of strings), education (array of objects each with degree, institution, graduationYear), certifications (array of objects each with name, issuer, year). Use empty arrays for education or certifications only when the user's profile truly has none. Return nothing else.`
 
