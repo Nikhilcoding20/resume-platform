@@ -19,42 +19,44 @@ SOURCE DATA — USE EVERYTHING RELEVANT (DO NOT DROP):
 RESUME LENGTH & LAYOUT RULES (STRICT — ONE PAGE ONLY):
 - The rendered resume MUST fit on exactly ONE standard page (**A4 or US Letter**) assuming approximately **10.5px body text** and **0.6 inch margins** on all sides. Think and write with that fixed “canvas” in mind.
 - One page only: **no second page, no overflow.** Never generate enough material for two pages “just in case.”
-- **Minimum fill (~85% of the page):** The resume must **fill at least ~85%** of one standard page and look **full and professional**, not sparse. **Never leave more than ~15%** of the page empty (no large bare band below the last section). Avoid **vacuous** filler phrases; use **substantive** detail (metrics, scope, outcomes) to earn density.
-- **When content is too short for a full page:** Expand existing bullets with **more concrete detail** (still CAR: context, action, result), add **stronger measurable achievements** and **specific metrics** grounded in the role and industry; write a **longer, compelling summary** (see Summary rules — **up to 4 sentences**); enrich skillGroups only where it adds real clarity — **never invent employers, titles, dates, degrees, or certifications.**
-- **No excessive whitespace:** keep sections visually tight; do not imply huge margins or sparse blocks that waste vertical space.
-- If length is borderline **over** the page, **shorten bullets and tighten wording** before dropping roles (while still obeying the max 4 jobs rule). If **underfilled**, expand bullets and summary per above — never add extra bullets beyond the per-job cap.
+- **The resume MUST look completely full.** The page must read as a dense, professional, edge-to-edge document. **Never leave white space at the bottom** of the page and never allow a bare band below the last section. Use **substantive** detail (metrics, scope, tools, outcomes) — never vacuous filler — to earn that density.
+- **When the person has fewer than 3 jobs:** add MORE detail to each existing job to fill the page — longer 2-line bullets, additional context, stronger metrics, more tools/stack named, more business impact stated. **Never leave the bottom of the page empty.** You may also lengthen the summary and enrich skillGroups, but the primary lever is expanding each existing job. **Never invent employers, titles, dates, degrees, or certifications.**
+- **When content is otherwise too short for a full page:** Expand existing bullets with **more concrete detail** (still CAR: context, action, result), add **stronger measurable achievements** and **specific metrics** grounded in the role and industry; write a **longer, compelling summary** (see Summary rules — **at least 4 sentences**); enrich skillGroups (12–15 skills across groups) where it adds real clarity.
+- **No excessive whitespace anywhere:** keep sections visually tight; do not imply huge margins or sparse blocks that waste vertical space.
+- If length is borderline **over** the page, **tighten wording within bullets** (keep all 4 bullets per job — never drop to 3) before dropping roles (while still obeying the max 4 jobs rule).
 
 JOB EXPERIENCE RULES:
 - If the person has **more than 4 jobs**, include **only the 4 most recent AND most relevant** roles for this job description; drop all others.
 - Never show more than **4** roles.
-- Each role: **3–4 bullet points maximum** (that is the ceiling — **never 5 or 6 bullets per job**). Prefer **3 strong bullets** when 4 would crowd the page. Use **minimum 2 bullets** only when the source role truly has very little detail.
+- Each role: **EXACTLY 4 bullet points — never 3, never 5, never 2.** Every role must have all 4 bullets. If the source role has thin detail, expand truthfully with concrete context, tools, scope, and realistic metrics derived from the role and industry (never invent employers, titles, or dates). The only acceptable bullet count per job is 4.
 
-BULLET POINT RULES - USE CAR METHOD STRICTLY:
-- Every bullet must follow CAR: Challenge or Context, Action taken, Result achieved.
-- Format: Start with a strong past-tense action verb; describe what you did; end with a measurable result.
-- Example: "Redesigned email marketing strategy using Mailchimp automation, reducing churn by 23% and increasing open rates from 18% to 31%"
-- Never write vague bullets like "Responsible for managing social media"
-- Be specific; include results; start with an action verb.
-- If the original resume contains numbers or percentages use them. If none exist, estimate realistic metrics from the role and industry. Never use placeholder text like ADD METRIC.
-- Keep each bullet **readable for ~10.5px text**: aim for **about one line** when the page is already dense; when filling a sparse page, **two lines** per bullet is acceptable if every clause adds substance (still CAR, still metrics where appropriate).
+BULLET POINT RULES - USE CAR METHOD STRICTLY WITH QUANTIFIED RESULTS:
+- Every bullet MUST follow CAR strictly: Challenge or Context, Action taken, Result achieved — and the Result MUST be **quantified** (a number, %, $, time delta, scale, or magnitude). No bullet is allowed without a quantified result.
+- Every bullet MUST also name the **specific tools, technologies, platforms, or methodologies used** AND the **business impact** (revenue, cost, retention, conversion, efficiency, customer satisfaction, etc.).
+- Format: Start with a strong past-tense action verb; describe the context/challenge; describe the action with the specific tool(s) used; end with a measurable result that ties to business impact.
+- Length: Each bullet MUST be **2 lines long** at ~10.5px body text. One-line bullets are not allowed. Every clause must add substance — no padding, no fluff.
+- Example: "Redesigned the lifecycle email program in Mailchimp and Segment by rebuilding 12 automated journeys and A/B testing subject lines weekly, cutting churn 23% and lifting open rates from 18% to 31% — driving an additional $1.4M in annual recurring revenue."
+- Never write vague bullets like "Responsible for managing social media."
+- If the original resume contains numbers or percentages use them. If none exist, estimate **realistic, defensible** metrics from the role and industry. Never use placeholder text like ADD METRIC.
 
 SKILLS SECTION RULES:
-- Output "skillGroups" as an array of category objects (see JSON schema). Keep labels **short** and lists **concise** — dense and scannable, not sprawling.
-- Across all categories combined: **cap at ~12 skills** unless the profile lists fewer (include all real profile skills that fit the role; do not invent). Prefer fewer, sharper skills over long enumerations.
+- Output "skillGroups" as an array of category objects (see JSON schema). Keep labels **short** and lists **scannable**.
+- Across all categories combined: list **at least 12–15 skills** spread across the groups (unless the profile genuinely has fewer real skills — in that case, include every real profile skill that fits the role and do not invent the rest). Use **multiple named categories** (e.g., Technical, Tools & Platforms, Languages & Frameworks, Methodologies) so the section reads as several grouped blocks, not one long list.
 - Only include skills relevant to the job description when choosing among many; still cover profile skills that fit the role.
 - No soft skills like "team player" or "hard worker".
 - The skills section must read as tight grouped blocks (category + skills), never a bloated comma-separated paragraph.
 
 SUMMARY RULES:
-- **Maximum 4 sentences — never a fifth.** Use **4 sentences** when the rest of the resume is thin and you need a strong, **full-page** look; use **2–3 tighter sentences** when experience already occupies most of the page.
-- Every sentence must earn its space: years/scope of experience, **top skills aligned to the job**, standout achievements with **metrics where truthful**, and role fit — no generic fluff.
+- **Minimum 4 sentences — never fewer.** A longer, denser summary is required.
+- The 4+ sentences MUST collectively cover ALL of the following: (1) **years of experience** and scope/industry, (2) **top skills** aligned to the job description, (3) the **biggest achievement with a specific metric** (number, %, $, scale), and (4) a **career goal** that ties the candidate to this role.
+- Every sentence must earn its space — no generic fluff, no soft-skill platitudes.
 - The summary must still fit **one page at 10.5px / 0.6in margins** together with all other sections.
 
 OVERALL PAGE COMPOSITION:
-- Target **one full page** on **A4/Letter** at **~10.5px body text** and **0.6in margins**: summary, experience, education (when present), certifications (when present), and skillGroups must **all fit** without overflow **and** meet the **~85% minimum fill** (no more than **~15%** empty).
-- Use **bullet count (3–4 per job, never more)** and purposeful skills lists to stay within the canvas — do not rely on tiny fonts or margins; balance trimming vs. expanding so the page is **full**, not overcrowded or bare.
-- If overfilled: remove bullets from less relevant roles first, then shorten wording while keeping CAR and real metrics.
-- If underfilled: expand bullets with detail and metrics, lengthen the summary (up to 4 sentences), and enrich achievements — **never** add a 5th bullet per job or extra roles beyond the cap.
+- Target **one completely full page** on **A4/Letter** at **~10.5px body text** and **0.6in margins**: summary, experience, education (when present), certifications (when present), and skillGroups must **all fit** without overflow **and** the page must look **completely full with no white space at the bottom**.
+- Use the locked structure — **exactly 4 bullets per job**, **≥4-sentence summary**, **12–15 skills across groups** — and balance wording so the page is dense and full, never overcrowded or bare.
+- If overfilled: tighten the wording inside each 2-line bullet while preserving CAR + quantified result + tools + business impact. Do NOT drop below 4 bullets per job and do NOT drop the summary below 4 sentences.
+- If underfilled (e.g., the person has fewer than 3 jobs): make each existing job richer — fuller 2-line bullets, more specific tools, more granular metrics, more business impact — and lengthen the summary further while keeping it truthful. **Never** exceed 4 jobs and **never** leave the bottom of the page empty.
 
 JSON SCHEMA (STRICT — include every key; use empty arrays where nothing applies):
 - summary (string)
@@ -69,7 +71,16 @@ const REGENERATE_PROMPT = `You are a professional resume writer. The user has an
 
 You MUST preserve and return the full JSON structure: summary, experience, skillGroups (grouped skills — never a single comma-only blob), education, certifications. Use the profile JSON in the request if you need to restore any education or certification rows that must not be dropped.
 
-ONE-PAGE CONSTRAINTS (same as initial generation): Output must fit **one** standard page (**A4/Letter**) at **~10.5px body text** and **0.6 inch margins**. Fill **at least ~85%** of the page; **never more than ~15%** empty — if content is thin, expand bullets (detail, CAR, metrics), strengthen the summary (**up to 4 sentences**, never 5), and add substantive achievements — still **never invent** employers, titles, dates, or degrees. **At most 4 jobs**; if more exist in source, keep only the 4 most recent/relevant. **3–4 bullets per job maximum — never 5 or 6.** Keep skillGroups purposeful (no bloated lists; enrich only when it improves density). No excessive whitespace from sparse sections.
+ONE-PAGE CONSTRAINTS (same as initial generation — apply STRICTLY):
+- Output must fit **one** standard page (**A4/Letter**) at **~10.5px body text** and **0.6 inch margins**.
+- The page must look **completely full**. **Never leave white space at the bottom.** No bare band below the last section. If the person has fewer than 3 jobs, add MORE detail to each existing job (fuller 2-line bullets, more tools, more metrics, more business impact) to fill the page.
+- **At most 4 jobs.** If more exist in source, keep only the 4 most recent/relevant.
+- **EXACTLY 4 bullet points per job — never 3, never 5, never 2.** Every role must have all 4 bullets.
+- Every bullet MUST follow CAR strictly with a **quantified result** (number, %, $, time delta, scale), MUST name the **specific tools/technologies/methodologies used**, and MUST state the **business impact** (revenue, cost, retention, conversion, efficiency, etc.).
+- Each bullet MUST be **2 lines long** at ~10.5px body text. One-line bullets are not allowed.
+- Summary: **minimum 4 sentences — never fewer**. The sentences must collectively cover (1) years of experience and scope/industry, (2) top skills aligned to the job, (3) the biggest achievement with a specific metric, and (4) a career goal.
+- Skills: list **at least 12–15 skills** spread across multiple named groups (Technical, Tools & Platforms, Languages & Frameworks, Methodologies, etc.), unless the profile genuinely has fewer real skills.
+- **Never invent** employers, titles, dates, degrees, or certifications. If a real source role has thin detail, expand truthfully with realistic, defensible context, tools, scope, and metrics derived from the role and industry.
 
 Return ONLY a raw JSON object with these fields: summary (string), experience (array of objects each with title, company, dates, and bullets as array of strings), skillGroups (array of objects each with category string and skills array of strings), education (array of objects each with degree, institution, graduationYear), certifications (array of objects each with name, issuer, year). Use empty arrays for education or certifications only when the user's profile truly has none. Return nothing else.`
 
@@ -141,6 +152,10 @@ const MODERN_RESUME_PDF_OVERRIDES = `
   .modern-main .resume-certifications-block {
     font-size: 10px !important;
   }
+  .modern-main .experience-item {
+    margin-bottom: 4px !important;
+    page-break-inside: avoid !important;
+  }
   .modern-main .experience-item > p {
     font-size: 10px !important;
     font-weight: bold !important;
@@ -148,11 +163,11 @@ const MODERN_RESUME_PDF_OVERRIDES = `
     line-height: 1.25 !important;
   }
   .modern-main .experience-item ul {
-    margin: 1px 0 5px 0 !important;
+    margin: 1px 0 2px 0 !important;
     padding-left: 13px !important;
   }
   .modern-main .experience-item li {
-    margin-bottom: 2px !important;
+    margin-bottom: 1px !important;
     line-height: 1.25 !important;
     font-size: 10px !important;
   }
@@ -235,12 +250,12 @@ function getStandardOnePagePdfOverrides(template) {
     padding: 8px 12px !important;
   }
   body.${c} .creative-panel {
-    margin-bottom: 8px !important;
+    margin-bottom: 6px !important;
     padding-left: 12px !important;
   }
   body.${c} .creative-col-right .resume-education-block,
   body.${c} .creative-col-right .resume-certifications-block {
-    margin-bottom: 8px !important;
+    margin-bottom: 6px !important;
     padding-left: 12px !important;
   }
   body.${c} p {
@@ -308,7 +323,7 @@ function getStandardOnePagePdfOverrides(template) {
     margin-top: 4px !important;
   }
   body.${c} .experience-item {
-    margin-bottom: 8px !important;
+    margin-bottom: 4px !important;
     page-break-inside: avoid !important;
   }
   body.${c} .experience-item > p {
@@ -318,11 +333,11 @@ function getStandardOnePagePdfOverrides(template) {
     line-height: 1.25 !important;
   }
   body.${c} ul {
-    margin: 2px 0 6px 0 !important;
+    margin: 2px 0 2px 0 !important;
     padding-left: 14px !important;
   }
   body.${c} li {
-    margin-bottom: 2px !important;
+    margin-bottom: 1px !important;
     line-height: 1.3 !important;
     font-size: 10.5px !important;
   }
@@ -338,7 +353,7 @@ function getStandardOnePagePdfOverrides(template) {
     margin-bottom: 6px !important;
   }
   body.${c} .resume-section {
-    margin-bottom: 8px !important;
+    margin-bottom: 6px !important;
   }
   body.${c} .resume-education-block > h2,
   body.${c} .resume-certifications-block > h2 {
