@@ -12,7 +12,7 @@ const PROMPT = `You are a professional resume writer and layout designer. Rewrit
 SOURCE DATA — USE EVERYTHING RELEVANT (DO NOT DROP):
 - You receive the full resume profile as JSON (built manually or from an uploaded resume). Use every field that is present.
 - CONTACT: The profile may include email, phone_number, city, country, linkedin_url, and portfolio_url. Never contradict these in the summary. (The PDF header uses the profile values directly; your job is to keep wording consistent and not omit facts that appear in the profile.)
-- EDUCATION: If the profile's "education" array has any entries, you MUST include an "education" array in your JSON with one object per real entry (same count). Each object must use keys: degree (string), institution (string), graduationYear (string). Map from profile fields degreeName → degree, schoolName → institution, graduationYear → graduationYear. You may tighten wording but must not remove a real degree/school/year.
+- EDUCATION: If the profile's "education" array has any entries, you MUST include an "education" array in your JSON with one object per real entry (same count). Each object must use keys: **institution** (string), **degree** (string), **graduationYear** (string), **location** (optional string — school city/state/country or campus location **only** if it appears in the profile or verifiable resume source; never invent), **gpa** (optional string — **include only** if the user/profile **explicitly** provided a GPA; never infer, estimate, or copy from a job posting), **honors** (optional array of strings — Dean's List, scholarships, cum laude, etc. **only** if explicitly provided; otherwise omit or use []). Map profile fields degreeName → degree, schoolName → institution, graduationYear → graduationYear; map schoolLocation/city/location → location when present. You may tighten wording but must not remove a real degree/school/year.
 - CERTIFICATIONS: If the profile's "certifications" array has any entries with certificationName, issuer, or year, you MUST include a "certifications" array in your JSON with one object per real entry. Use keys: name (string), issuer (string), year (string). Map certificationName → name. Do not invent certifications.
 - SKILLS: Never output skills as one flat comma-separated blob only. Always use "skillGroups" (see JSON schema below): several named categories, each with its own skill list.
 
@@ -56,14 +56,14 @@ JSON SCHEMA (STRICT — include every key; use empty arrays where nothing applie
 - summary (string)
 - experience (array of objects: title, company, dates, bullets as array of strings)
 - skillGroups (array of objects: each has "category" (string) and "skills" (array of strings))
-- education (array of objects: degree, institution, graduationYear — required entries whenever profile education exists)
+- education (array of objects: degree, institution, graduationYear, optional location string, optional gpa string only if user-provided, optional honors array of strings only if user-provided — required entries whenever profile education exists)
 - certifications (array of objects: name, issuer, year — required entries whenever profile certifications exist)
 
 Return ONLY that raw JSON object. Return nothing else.`
 
 const REGENERATE_PROMPT = `You are a professional resume writer. The user has an existing resume and requested specific changes. Apply their feedback to the resume content below. Never invent experience that does not exist. Keep all content ATS-friendly.
 
-You MUST preserve and return the full JSON structure: summary, experience, skillGroups (grouped skills — never a single comma-only blob), education, certifications. Use the profile JSON in the request if you need to restore any education or certification rows that must not be dropped.
+You MUST preserve and return the full JSON structure: summary, experience, skillGroups (grouped skills — never a single comma-only blob), education, certifications. Use the profile JSON in the request if you need to restore any education or certification rows that must not be dropped. For each education object include **degree**, **institution**, **graduationYear**, optional **location** if present in the profile/source, optional **gpa** only when the user/profile explicitly provided a GPA (never invent), and optional **honors** (array of strings) only when explicitly provided.
 
 ONE-PAGE & ADAPTIVE DENSITY (same logic as initial generation — apply STRICTLY):
 - Output must fit **exactly one** standard page (**A4/Letter**) at **~10.5px body text** and **0.6 inch margins**. **Never overflow to page 2.**
@@ -76,7 +76,7 @@ ONE-PAGE & ADAPTIVE DENSITY (same logic as initial generation — apply STRICTLY
 - **Never more than 4 roles** on the resume. Bullets per job, line length, summary length, and skill totals **must match the tier** while balancing **90–100% fill** and **zero overflow**.
 - Every bullet: **CAR** with **quantified result** where possible; name **tools** and **business impact** when space allows (compress in the 5+ / 1-line tier).
 
-Return ONLY a raw JSON object with these fields: summary (string), experience (array of objects each with title, company, dates, and bullets as array of strings), skillGroups (array of objects each with category string and skills array of strings), education (array of objects each with degree, institution, graduationYear), certifications (array of objects each with name, issuer, year). Use empty arrays for education or certifications only when the user's profile truly has none. Return nothing else.`
+Return ONLY a raw JSON object with these fields: summary (string), experience (array of objects each with title, company, dates, and bullets as array of strings), skillGroups (array of objects each with category string and skills array of strings), education (array of objects each with degree, institution, graduationYear, optional location, optional gpa only if explicitly user-provided, optional honors array), certifications (array of objects each with name, issuer, year). Use empty arrays for education or certifications only when the user's profile truly has none. Return nothing else.`
 
 const VALID_TEMPLATES = ['ats', 'modern', 'minimal', 'creative']
 
@@ -101,6 +101,10 @@ const PDF_STYLES = `
   p { margin-bottom: 12px !important; }
   ul { margin: 6px 0 12px 0 !important; padding-left: 24px !important; }
   li { margin-bottom: 6px !important; line-height: 1.5 !important; }
+  .education-item .edu-row { box-sizing: border-box !important; }
+  .education-item .edu-gpa { margin: 2px 0 0 0 !important; }
+  .education-item ul.edu-honors { margin: 4px 0 0 0 !important; padding-left: 18px !important; }
+  .education-item ul.edu-honors li { margin-bottom: 2px !important; }
 </style>
 `
 
@@ -165,10 +169,26 @@ const MODERN_RESUME_PDF_OVERRIDES = `
     line-height: 1.25 !important;
     font-size: 10px !important;
   }
-  .modern-main .education-item p,
+  .modern-main .education-item .edu-row,
+  .modern-main .education-item .edu-gpa,
+  .modern-main .education-item ul.edu-honors,
+  .modern-main .education-item ul.edu-honors li,
   .modern-main .cert-item p {
     font-size: 10px !important;
     line-height: 1.25 !important;
+    margin-bottom: 0 !important;
+  }
+  .modern-main .education-item .edu-gpa {
+    margin: 2px 0 0 0 !important;
+  }
+  .modern-main .education-item ul.edu-honors {
+    margin: 2px 0 0 0 !important;
+    padding-left: 13px !important;
+  }
+  .modern-main .education-item ul.edu-honors li {
+    margin-bottom: 1px !important;
+  }
+  .modern-main .cert-item p {
     margin-bottom: 3px !important;
   }
   .modern-main .skill-group {
@@ -267,8 +287,25 @@ function getStandardOnePagePdfOverrides(template) {
   body.${c} .contact-line {
     line-height: 1.4 !important;
   }
-  body.${c} .education-item p,
+  body.${c} .education-item .edu-row,
+  body.${c} .education-item .edu-gpa,
+  body.${c} .education-item ul.edu-honors,
+  body.${c} .education-item ul.edu-honors li {
+    font-size: 10px !important;
+    line-height: 1.4 !important;
+  }
+  body.${c} .education-item .edu-gpa {
+    margin: 2px 0 0 0 !important;
+  }
+  body.${c} .education-item ul.edu-honors {
+    margin: 2px 0 0 0 !important;
+    padding-left: 14px !important;
+  }
+  body.${c} .education-item ul.edu-honors li {
+    margin-bottom: 1px !important;
+  }
   body.${c} .cert-item p {
+    font-size: 10px !important;
     line-height: 1.4 !important;
   }
   body.${c} .creative-h2 {
@@ -335,10 +372,28 @@ function getStandardOnePagePdfOverrides(template) {
     line-height: 1.3 !important;
     font-size: 10.5px !important;
   }
-  body.${c} .education-item p,
+  body.${c} .education-item .edu-row,
+  body.${c} .education-item .edu-gpa,
+  body.${c} .education-item ul.edu-honors,
+  body.${c} .education-item ul.edu-honors li,
   body.${c} .cert-item p {
     font-size: 10px !important;
     line-height: 1.3 !important;
+  }
+  body.${c} .education-item .edu-row {
+    margin: 0 !important;
+  }
+  body.${c} .education-item .edu-gpa {
+    margin: 2px 0 0 0 !important;
+  }
+  body.${c} .education-item ul.edu-honors {
+    margin: 2px 0 0 0 !important;
+    padding-left: 14px !important;
+  }
+  body.${c} .education-item ul.edu-honors li {
+    margin-bottom: 1px !important;
+  }
+  body.${c} .cert-item p {
     margin-bottom: 4px !important;
   }
   body.${c} .skill-group {
@@ -409,20 +464,46 @@ function formatSkillGroupsHtml(skillGroups, template = '') {
     .join('')
 }
 
+function stripGpaPrefix(value) {
+  if (value == null || value === '') return ''
+  const s = String(value).trim()
+  if (!s) return ''
+  return s.replace(/^\s*GPA\s*:\s*/i, '').trim()
+}
+
+function normalizeHonorsArray(raw) {
+  if (!raw || typeof raw !== 'object') return []
+  const h = raw.honors ?? raw.awards ?? raw.honorsAndAwards ?? raw.award
+  if (Array.isArray(h)) return h.map((x) => String(x).trim()).filter(Boolean)
+  if (typeof h === 'string' && h.trim()) return h.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
+  return []
+}
+
 function normalizeEducationEntry(raw) {
   if (!raw || typeof raw !== 'object') return null
   const degree = raw.degree ?? raw.degreeName ?? ''
   const institution = raw.institution ?? raw.schoolName ?? raw.school ?? ''
   const graduationYear = raw.graduationYear ?? raw.year ?? ''
+  const location = raw.location ?? raw.schoolLocation ?? raw.institutionLocation ?? raw.schoolCity ?? raw.city ?? ''
   const degreeS = String(degree).trim()
   const institutionS = String(institution).trim()
   const yearS = String(graduationYear).trim()
-  if (!degreeS && !institutionS && !yearS) return null
-  return { degree: degreeS, institution: institutionS, graduationYear: yearS }
+  const locationS = String(location).trim()
+  const gpa = stripGpaPrefix(raw.gpa ?? raw.GPA ?? '')
+  const honors = normalizeHonorsArray(raw)
+  if (!degreeS && !institutionS && !yearS && !locationS && !gpa && honors.length === 0) return null
+  return {
+    degree: degreeS,
+    institution: institutionS,
+    graduationYear: yearS,
+    location: locationS,
+    gpa,
+    honors,
+  }
 }
 
 function educationKey(entry) {
-  return `${entry.institution.toLowerCase()}|${entry.degree.toLowerCase()}`
+  return `${entry.institution.toLowerCase()}|${entry.degree.toLowerCase()}|${(entry.graduationYear || '').toLowerCase()}`
 }
 
 function educationFromProfile(profile) {
@@ -433,13 +514,33 @@ function educationFromProfile(profile) {
 function mergeEducationFromProfile(parsedList, profile) {
   const profileEdu = educationFromProfile(profile)
   const parsedEdu = (Array.isArray(parsedList) ? parsedList : []).map(normalizeEducationEntry).filter(Boolean)
-  if (profileEdu.length === 0) return parsedEdu
-  const seen = new Set(parsedEdu.map(educationKey))
-  const out = [...parsedEdu]
+
+  function enrichEntry(entry) {
+    if (profileEdu.length === 0) {
+      return {
+        ...entry,
+        gpa: stripGpaPrefix(entry.gpa),
+        honors: Array.isArray(entry.honors) ? entry.honors : [],
+      }
+    }
+    const m = profileEdu.find((p) => educationKey(p) === educationKey(entry))
+    if (!m) {
+      return { ...entry, gpa: '', honors: [], location: String(entry.location || '').trim() }
+    }
+    const location = (String(entry.location || '').trim() || m.location || '').trim()
+    const honors = entry.honors?.length ? entry.honors : m.honors?.length ? m.honors : []
+    const gpa = m.gpa ? stripGpaPrefix(entry.gpa || m.gpa) : ''
+    return { ...entry, location, honors, gpa }
+  }
+
+  let out = parsedEdu.map(enrichEntry)
+  if (profileEdu.length === 0) return out
+
+  const seen = new Set(out.map(educationKey))
   for (const row of profileEdu) {
     const k = educationKey(row)
     if (!seen.has(k)) {
-      out.push(row)
+      out.push(enrichEntry(row))
       seen.add(k)
     }
   }
@@ -525,15 +626,46 @@ function formatEducationHtml(items, template = '') {
   const fs = compact ? '10px' : '11px'
   const mb = compact ? '4px' : '8px'
   const lh = compact ? '1.3' : '1.25'
+  const rowStyle = `display:flex;justify-content:space-between;align-items:baseline;gap:8px;width:100%;margin:0;font-size:${fs};line-height:${lh};`
+  const leftGrow = 'flex:1;min-width:0;word-wrap:break-word;overflow-wrap:break-word;'
+  const rightCell = 'flex-shrink:0;text-align:right;margin-left:8px;max-width:40%;word-wrap:break-word;overflow-wrap:break-word;'
   if (!Array.isArray(items) || items.length === 0) return ''
   return items
     .map((e) => {
-      const degree = escapeHtml(e.degree || '')
       const inst = escapeHtml(e.institution || '')
-      const year = e.graduationYear ? escapeHtml(String(e.graduationYear)) : ''
-      const main = [degree, inst].filter(Boolean).join(' — ')
-      const yearPart = year ? ` · ${year}` : ''
-      return `<div class="education-item resume-section" style="margin-bottom: ${mb};"><p style="margin: 0; font-size: ${fs}; line-height: ${lh};">${main}${yearPart}</p></div>`
+      const loc = escapeHtml(String(e.location || '').trim())
+      const degree = escapeHtml(e.degree || '')
+      const year = escapeHtml(String(e.graduationYear || '').trim())
+      const gpaRaw = stripGpaPrefix(e.gpa)
+      const gpa = gpaRaw ? escapeHtml(gpaRaw) : ''
+      const honors = Array.isArray(e.honors) ? e.honors.map((h) => String(h).trim()).filter(Boolean) : []
+
+      const row1Right = loc
+        ? `<span style="font-weight:normal;${rightCell}">${loc}</span>`
+        : `<span style="${rightCell}" aria-hidden="true"></span>`
+      const row1Left = inst || '&#160;'
+      const row1 = `<div class="edu-row" style="${rowStyle}"><span style="font-weight:bold;${leftGrow}">${row1Left}</span>${row1Right}</div>`
+
+      const row2Right = year
+        ? `<span style="font-weight:normal;${rightCell}">${year}</span>`
+        : `<span style="${rightCell}" aria-hidden="true"></span>`
+      const row2Left = degree || '&#160;'
+      const row2 = `<div class="edu-row" style="${rowStyle}"><span style="font-weight:normal;${leftGrow}">${row2Left}</span>${row2Right}</div>`
+
+      const gpaBlock = gpa
+        ? `<p class="edu-gpa" style="margin:2px 0 0 0;padding:0;font-size:${fs};line-height:${lh};font-weight:normal;">GPA: ${gpa}</p>`
+        : ''
+
+      const ulMt = compact ? '2px' : '4px'
+      const ulPad = compact ? '14px' : '18px'
+      const honorsItems = honors
+        .map((h) => `<li style="margin-bottom:2px;line-height:${lh};font-size:${fs};">${escapeHtml(h)}</li>`)
+        .join('')
+      const honorsBlock = honorsItems
+        ? `<ul class="edu-honors" style="margin:${ulMt} 0 0 0;padding-left:${ulPad};list-style-type:disc;">${honorsItems}</ul>`
+        : ''
+
+      return `<div class="education-item resume-section" style="margin-bottom:${mb};">${row1}${row2}${gpaBlock}${honorsBlock}</div>`
     })
     .join('')
 }
