@@ -1,7 +1,19 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
+import { headers } from "next/headers";
 import "./globals.css";
 import Footer from "./components/Footer";
+
+async function getCanonicalHref(): Promise<string> {
+  const base = (
+    process.env.NEXT_PUBLIC_SITE_URL || "https://unemployedclub.com"
+  ).replace(/\/$/, "");
+  const h = await headers();
+  const pathname = h.get("x-pathname") ?? "/";
+  const search = h.get("x-search") ?? "";
+  const path = pathname.startsWith("/") ? pathname : `/${pathname}`;
+  return `${base}${path}${search}`;
+}
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -46,11 +58,13 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
+  const canonicalHref = await getCanonicalHref();
+
   return (
     <html lang="en" className="scroll-smooth">
       <head>
@@ -59,6 +73,7 @@ export default function RootLayout({
             __html: `(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src='https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);})(window,document,'script','dataLayer','GTM-WR7M98XK');`,
           }}
         />
+        <link rel="canonical" href={canonicalHref} />
         <link rel="icon" href="/favicon.png" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>

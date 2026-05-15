@@ -1,4 +1,14 @@
+# https://www.robotstxt.org/robotstxt.html
 User-agent: *
 Allow: /
+Allow: /pricing
+Allow: /about
+Allow: /contact
+Allow: /privacy
+Allow: /terms
+Allow: /login
+Allow: /signup
 Disallow: /dashboard/
+Disallow: /api/
+
 Sitemap: https://unemployedclub.com/sitemap.xml
