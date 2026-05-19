@@ -6,107 +6,26 @@ import { launchChromiumForPdf } from '@/lib/launchChromiumForPdf'
 import { createClient } from '@supabase/supabase-js'
 import { getUsage, canCreateResumeForUser } from '@/lib/checkUsage'
 import { persistGeneratedResumeServer } from '@/lib/persistGeneratedResumeServer'
-
-const PROMPT = `You are a professional resume writer and layout designer. Rewrite this person's resume to perfectly match the following job description. Never invent experience that does not exist. Keep all content ATS-friendly. Naturally include important keywords from the job description.
-
-SOURCE DATA — USE EVERYTHING RELEVANT (DO NOT DROP):
-- You receive the full resume profile as JSON (built manually or from an uploaded resume). Use every field that is present.
-- CONTACT: The profile may include email, phone_number, city, country, linkedin_url, and portfolio_url. Never contradict these in the summary. (The PDF header uses the profile values directly; your job is to keep wording consistent and not omit facts that appear in the profile.)
-- EDUCATION: If the profile's "education" array has any entries, you MUST include an "education" array in your JSON with one object per real entry (same count). Each object must use keys: **institution** (string), **degree** (string), **graduationYear** (string), **location** (optional string — school city/state/country or campus location **only** if it appears in the profile or verifiable resume source; never invent), **gpa** (optional string — **include only** if the user/profile **explicitly** provided a GPA; never infer, estimate, or copy from a job posting), **honors** (optional array of strings — Dean's List, scholarships, cum laude, etc. **only** if explicitly provided; otherwise omit or use []). Map profile fields degreeName → degree, schoolName → institution, graduationYear → graduationYear; map schoolLocation/city/location → location when present. You may tighten wording but must not remove a real degree/school/year.
-- CERTIFICATIONS: If the profile's "certifications" array has any entries with certificationName, issuer, or year, you MUST include a "certifications" array in your JSON with one object per real entry. Use keys: name (string), issuer (string), year (string). Map certificationName → name. Do not invent certifications.
-- SKILLS: Never output skills as one flat comma-separated blob only. Always use "skillGroups" (see JSON schema below): several named categories, each with its own skill list.
-
-RESUME LENGTH, ONE PAGE & PAGE FILL (STRICT — ADAPTIVE):
-- The rendered resume MUST fit on **exactly ONE** standard page (**A4 or US Letter**) at approximately **10.5px body text** and **0.6 inch margins**. **Never overflow to page 2.** There is no second page.
-- **Page fill:** Aim to use **90–100%** of that one-page canvas with substantive content. **Never leave more than ~10%** of the page empty (no large bare band at the bottom). If the layout would look sparse, add detail (metrics, tools, scope, outcomes). If bullets are getting long and risk overflow, shorten them. **Estimate content length** as you write and adjust bullet verbosity, line count, and summary length accordingly.
-- **Overflow trim order (if still too long for one page):** (1) **Remove the oldest job first** among the roles you are showing (only when more than one job remains — never delete the candidate’s sole role); (2) **shorten bullets** on the remaining jobs (fewer words, fewer lines, fewer bullets within the tier’s allowed range); (3) **shorten the summary last** (fewer sentences within the tier’s allowed range). Still **never invent** employers, titles, dates, degrees, or certifications.
-
-JOB COUNT → DENSITY TIER (apply to the profile’s employment / experience — count **distinct jobs** the person has):
-- **If the profile has 1–2 jobs:** For each job on the resume, write **4–5 bullets**; each bullet **2–3 lines** at ~10.5px. **Summary: exactly 4 sentences.** **Skills:** **15+** items total across skillGroups (unless the profile has fewer real skills — include all that fit; do not invent).
-- **If the profile has 3–4 jobs:** For each job, write **3–4 bullets**; each bullet **1–2 lines**. **Summary: 3 sentences.** **Skills:** **12–15** items total across skillGroups (same caveat on real profile skills).
-- **If the profile has 5+ jobs:** Include **only the 4 most recent AND most relevant** roles for the job description. For each shown job, write **2–3 bullets**; each bullet **1 line maximum**. **Summary: 2–3 sentences.** **Skills:** **10–12** items total across skillGroups (same caveat).
-
-ADAPTIVE BALANCING (within the chosen tier):
-- Stay inside the tier’s bullet counts, line-length bounds, summary sentence range, and skill totals while hitting **~90–100% fill** and **zero overflow**. When space is tight, prefer **shorter bullets** and the **lower** end of each range; when the page would be under-filled, prefer the **upper** end (more bullets within range, longer lines within range, richer summary within range).
-
-JOB EXPERIENCE RULES:
-- **Never show more than 4 roles** on the resume. If the profile has **more than 4 jobs**, keep only the **4 most recent and most relevant** (this matches the **5+** tier above).
-- If the profile has **1–4 jobs**, output that many roles (up to 4) — do not invent extra employers to pad the page.
-- Bullet counts and line length per job **must follow the tier** tied to the profile’s job count (see JOB COUNT → DENSITY TIER).
-
-BULLET POINT RULES — CAR WITH QUANTIFIED RESULTS (tier sets length; CAR is always required):
-- Every bullet MUST follow CAR: Challenge or Context, Action taken, Result — and the Result MUST be **quantified** (number, %, $, time delta, scale, or magnitude) where truthful; if the source lacks numbers, use **realistic, defensible** estimates from the role and industry. Never use placeholder text like ADD METRIC.
-- Name **specific tools, technologies, platforms, or methodologies** and **business impact** when space allows; in the **5+** tier (1-line bullets), compress to the essentials while still including at least one quantified outcome where possible.
-- Format: strong past-tense action verb; substantive clauses — no vague lines like "Responsible for managing social media."
-- **Line length and bullet count:** obey the active tier (1–2 jobs vs 3–4 vs 5+). Do not exceed **1 line per bullet** in the 5+ tier.
-
-SKILLS SECTION RULES:
-- Output "skillGroups" as an array of category objects (see JSON schema). Keep labels **short** and lists **scannable**. Use **multiple named categories** (e.g., Technical, Tools & Platforms, Languages & Frameworks, Methodologies).
-- **Total skills across all groups:** follow the active tier (**15+** / **12–15** / **10–12**). If the profile lists fewer real skills than the tier minimum, include every real skill that fits the role and do not invent the rest.
-- Only include skills relevant to the job description when choosing among many; still cover profile skills that fit the role.
-- No soft skills like "team player" or "hard worker".
-- Never output skills as one flat comma-separated blob only; use grouped blocks.
-
-SUMMARY RULES (sentence count = tier):
-- **1–2 jobs in profile:** **4 sentences.** **3–4 jobs:** **3 sentences.** **5+ jobs:** **2–3 sentences.**
-- Every sentence must earn its space: years/scope, top skills aligned to the job, standout achievement with **metrics where truthful**, and role/career fit — no generic fluff.
-- The summary must fit **one page** together with all other sections; if trimming is needed after jobs and bullets, shorten the summary **last** (per overflow trim order above).
-
-JSON SCHEMA (STRICT — include every key; use empty arrays where nothing applies):
-- summary (string)
-- experience (array of objects: title, company, dates, bullets as array of strings)
-- skillGroups (array of objects: each has "category" (string) and "skills" (array of strings))
-- education (array of objects: degree, institution, graduationYear, optional location string, optional gpa string only if user-provided, optional honors array of strings only if user-provided — required entries whenever profile education exists)
-- certifications (array of objects: name, issuer, year — required entries whenever profile certifications exist)
-
-Return ONLY that raw JSON object. Return nothing else.`
-
-const REGENERATE_PROMPT = `You are a professional resume writer. The user has an existing resume and requested specific changes. Apply their feedback to the resume content below. Never invent experience that does not exist. Keep all content ATS-friendly.
-
-You MUST preserve and return the full JSON structure: summary, experience, skillGroups (grouped skills — never a single comma-only blob), education, certifications. Use the profile JSON in the request if you need to restore any education or certification rows that must not be dropped. For each education object include **degree**, **institution**, **graduationYear**, optional **location** if present in the profile/source, optional **gpa** only when the user/profile explicitly provided a GPA (never invent), and optional **honors** (array of strings) only when explicitly provided.
-
-ONE-PAGE & ADAPTIVE DENSITY (same logic as initial generation — apply STRICTLY):
-- Output must fit **exactly one** standard page (**A4/Letter**) at **~10.5px body text** and **0.6 inch margins**. **Never overflow to page 2.**
-- **Page fill:** Aim for **90–100%** of the page with real content; **never more than ~10%** empty at the bottom. Estimate length as you revise: if bullets are too long, shorten; if sparse, add substantive detail within the tier.
-- **Overflow trim order:** (1) remove the **oldest** shown job first (only when more than one job remains); (2) **shorten bullets** on remaining jobs; (3) **shorten the summary last**. Never invent employers, titles, dates, degrees, or certifications.
-- **Count jobs** in the profile (or in the resume JSON you are editing — use the **source-of-truth profile** job count for tier selection). Apply one tier:
-  - **1–2 jobs:** **4–5 bullets** per job, **2–3 lines** each; summary **4 sentences**; skills **15+** across skillGroups (unless profile has fewer real skills).
-  - **3–4 jobs:** **3–4 bullets** per job, **1–2 lines** each; summary **3 sentences**; skills **12–15**.
-  - **5+ jobs:** Show **only the 4 most recent/relevant** roles; **2–3 bullets** per job, **1 line max** per bullet; summary **2–3 sentences**; skills **10–12**.
-- **Never more than 4 roles** on the resume. Bullets per job, line length, summary length, and skill totals **must match the tier** while balancing **90–100% fill** and **zero overflow**.
-- Every bullet: **CAR** with **quantified result** where possible; name **tools** and **business impact** when space allows (compress in the 5+ / 1-line tier).
-
-Return ONLY a raw JSON object with these fields: summary (string), experience (array of objects each with title, company, dates, and bullets as array of strings), skillGroups (array of objects each with category string and skills array of strings), education (array of objects each with degree, institution, graduationYear, optional location, optional gpa only if explicitly user-provided, optional honors array), certifications (array of objects each with name, issuer, year). Use empty arrays for education or certifications only when the user's profile truly has none. Return nothing else.`
+import { PROMPT, REGENERATE_PROMPT } from '@/lib/resumeGeneration/prompts'
+import {
+  parseAiJson,
+  normalizeResumeDocument,
+  toLegacyContentOut,
+  countProfileJobs,
+} from '@/lib/resumeGeneration/normalizeResumeDocument'
+import { runResumeCritic } from '@/lib/resumeGeneration/criticResume'
+import {
+  PDF_STYLES,
+  PDF_MARGIN_IN,
+  buildReplacements,
+  normalizeClientResumeContentForRender,
+} from '@/lib/resumeGeneration/renderResumeHtml'
 
 const VALID_TEMPLATES = ['ats', 'modern', 'minimal', 'creative']
 
 function jsonError(message, status = 500) {
   return NextResponse.json({ error: message }, { status })
 }
-
-const PDF_STYLES = `
-<style>
-  html, body, body * {
-    font-family: 'Calibri', 'Trebuchet MS', sans-serif !important;
-  }
-  body { font-size: 11px !important; line-height: 1.5 !important; margin: 0 !important; padding: 0 !important; }
-  body > div:first-child, body > header, body header { text-align: center !important; }
-  h1 { font-size: 14px !important; font-weight: bold !important; page-break-after: avoid; margin-bottom: 4px !important; }
-  h1 + p, header p, .contact-line { font-size: 11px !important; line-height: 1.5 !important; }
-  h2 { font-size: 12px !important; font-weight: bold !important; border-bottom: 1px solid currentColor !important; padding-bottom: 4px !important; margin: 12px 0 12px 0 !important; page-break-after: avoid; }
-  h2:first-of-type { margin-top: 0 !important; }
-  .resume-section { margin-bottom: 12px !important; page-break-inside: avoid; }
-  .experience-item { margin-bottom: 12px !important; page-break-inside: avoid; }
-  p, li { line-height: 1.5 !important; }
-  p { margin-bottom: 12px !important; }
-  ul { margin: 6px 0 12px 0 !important; padding-left: 24px !important; }
-  li { margin-bottom: 6px !important; line-height: 1.5 !important; }
-  .education-item .edu-row { box-sizing: border-box !important; }
-  .education-item .edu-gpa { margin: 2px 0 0 0 !important; }
-  .education-item ul.edu-honors { margin: 4px 0 0 0 !important; padding-left: 18px !important; }
-  .education-item ul.edu-honors li { margin-bottom: 2px !important; }
-</style>
-`
 
 /** PDF-only overrides for modern template (global PDF_STYLES target 11px). */
 const MODERN_RESUME_PDF_OVERRIDES = `
@@ -420,395 +339,6 @@ function pdfInjectionForTemplate(template) {
   return getStandardOnePagePdfOverrides(template)
 }
 
-function formatExperienceHtml(experience, template = '') {
-  const compact = usesOnePageCompactFormatters(template)
-  const titleFs = compact ? '10px' : '11px'
-  const titleMb = compact ? '3px' : '6px'
-  const liMb = compact ? '2px' : '6px'
-  const liLh = compact ? '1.3' : '1.5'
-  if (!Array.isArray(experience) || experience.length === 0) {
-    return '<p class="resume-section">No experience listed.</p>'
-  }
-  return experience
-    .map((job) => {
-      const bullets = (job.bullets || [])
-        .map((b) => `<li style="margin-bottom: ${liMb}; line-height: ${liLh};">${escapeHtml(b)}</li>`)
-        .join('')
-      const dates = job.dates || ''
-      const ulMargin = compact ? '1px 0 5px 0' : '6px 0 12px 0'
-      const ulPad = compact ? '13px' : '24px'
-      return `
-        <div class="experience-item resume-section">
-          <p style="margin: 0 0 ${titleMb} 0; font-weight: bold; font-size: ${titleFs}; line-height: 1.25;">${escapeHtml(job.title || '')} at ${escapeHtml(job.company || '')}${dates ? ` | ${escapeHtml(dates)}` : ''}</p>
-          ${bullets ? `<ul style="margin: ${ulMargin}; padding-left: ${ulPad};">${bullets}</ul>` : ''}
-        </div>
-      `
-    })
-    .join('')
-}
-
-function formatSkillGroupsHtml(skillGroups, template = '') {
-  if (!Array.isArray(skillGroups) || skillGroups.length === 0) {
-    return ''
-  }
-  const compact = usesOnePageCompactFormatters(template)
-  const modern = template === 'modern'
-  const mb = compact ? '6px' : '8px'
-  const catStyle = modern ? 'font-weight: 700; color: #2563eb;' : 'font-weight: bold;'
-  const fontBlock = compact ? 'font-size: 10.5px; line-height: 1.3;' : 'line-height: 1.5;'
-  return skillGroups
-    .map((g) => {
-      const items = (g.skills || []).map((s) => escapeHtml(String(s))).join(', ')
-      return `<div class="skill-group resume-section" style="margin-bottom: ${mb}; ${fontBlock}"><span style="${catStyle}">${escapeHtml(g.category || 'Skills')}:</span> ${items}</div>`
-    })
-    .join('')
-}
-
-function stripGpaPrefix(value) {
-  if (value == null || value === '') return ''
-  const s = String(value).trim()
-  if (!s) return ''
-  return s.replace(/^\s*GPA\s*:\s*/i, '').trim()
-}
-
-function normalizeHonorsArray(raw) {
-  if (!raw || typeof raw !== 'object') return []
-  const h = raw.honors ?? raw.awards ?? raw.honorsAndAwards ?? raw.award
-  if (Array.isArray(h)) return h.map((x) => String(x).trim()).filter(Boolean)
-  if (typeof h === 'string' && h.trim()) return h.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
-  return []
-}
-
-function normalizeEducationEntry(raw) {
-  if (!raw || typeof raw !== 'object') return null
-  const degree = raw.degree ?? raw.degreeName ?? ''
-  const institution = raw.institution ?? raw.schoolName ?? raw.school ?? ''
-  const graduationYear = raw.graduationYear ?? raw.year ?? ''
-  const location = raw.location ?? raw.schoolLocation ?? raw.institutionLocation ?? raw.schoolCity ?? raw.city ?? ''
-  const degreeS = String(degree).trim()
-  const institutionS = String(institution).trim()
-  const yearS = String(graduationYear).trim()
-  const locationS = String(location).trim()
-  const gpa = stripGpaPrefix(raw.gpa ?? raw.GPA ?? '')
-  const honors = normalizeHonorsArray(raw)
-  if (!degreeS && !institutionS && !yearS && !locationS && !gpa && honors.length === 0) return null
-  return {
-    degree: degreeS,
-    institution: institutionS,
-    graduationYear: yearS,
-    location: locationS,
-    gpa,
-    honors,
-  }
-}
-
-function educationKey(entry) {
-  return `${entry.institution.toLowerCase()}|${entry.degree.toLowerCase()}|${(entry.graduationYear || '').toLowerCase()}`
-}
-
-function educationFromProfile(profile) {
-  const arr = Array.isArray(profile?.education) ? profile.education : []
-  return arr.map(normalizeEducationEntry).filter(Boolean)
-}
-
-function mergeEducationFromProfile(parsedList, profile) {
-  const profileEdu = educationFromProfile(profile)
-  const parsedEdu = (Array.isArray(parsedList) ? parsedList : []).map(normalizeEducationEntry).filter(Boolean)
-
-  function enrichEntry(entry) {
-    if (profileEdu.length === 0) {
-      return {
-        ...entry,
-        gpa: stripGpaPrefix(entry.gpa),
-        honors: Array.isArray(entry.honors) ? entry.honors : [],
-      }
-    }
-    const m = profileEdu.find((p) => educationKey(p) === educationKey(entry))
-    if (!m) {
-      return { ...entry, gpa: '', honors: [], location: String(entry.location || '').trim() }
-    }
-    const location = (String(entry.location || '').trim() || m.location || '').trim()
-    const honors = entry.honors?.length ? entry.honors : m.honors?.length ? m.honors : []
-    const gpa = m.gpa ? stripGpaPrefix(entry.gpa || m.gpa) : ''
-    return { ...entry, location, honors, gpa }
-  }
-
-  let out = parsedEdu.map(enrichEntry)
-  if (profileEdu.length === 0) return out
-
-  const seen = new Set(out.map(educationKey))
-  for (const row of profileEdu) {
-    const k = educationKey(row)
-    if (!seen.has(k)) {
-      out.push(enrichEntry(row))
-      seen.add(k)
-    }
-  }
-  return out
-}
-
-function normalizeCertEntry(raw) {
-  if (!raw || typeof raw !== 'object') return null
-  const name = raw.name ?? raw.certificationName ?? ''
-  const issuer = raw.issuer ?? ''
-  const year = raw.year ?? ''
-  const nameS = String(name).trim()
-  const issuerS = String(issuer).trim()
-  const yearS = String(year).trim()
-  if (!nameS && !issuerS && !yearS) return null
-  return { name: nameS, issuer: issuerS, year: yearS }
-}
-
-function certKey(entry) {
-  return `${entry.name.toLowerCase()}|${entry.issuer.toLowerCase()}|${entry.year.toLowerCase()}`
-}
-
-function certificationsFromProfile(profile) {
-  const arr = Array.isArray(profile?.certifications) ? profile.certifications : []
-  return arr.map(normalizeCertEntry).filter(Boolean)
-}
-
-function mergeCertificationsFromProfile(parsedList, profile) {
-  const profileCerts = certificationsFromProfile(profile)
-  const parsedCerts = (Array.isArray(parsedList) ? parsedList : []).map(normalizeCertEntry).filter(Boolean)
-  if (profileCerts.length === 0) return parsedCerts
-  const seen = new Set(parsedCerts.map(certKey))
-  const out = [...parsedCerts]
-  for (const row of profileCerts) {
-    const k = certKey(row)
-    if (!seen.has(k)) {
-      out.push(row)
-      seen.add(k)
-    }
-  }
-  return out
-}
-
-function chunkSkillsIntoGroups(skills) {
-  if (!Array.isArray(skills) || skills.length === 0) return []
-  const labels = ['Technical', 'Tools & platforms', 'Languages & frameworks', 'Other']
-  const n = Math.min(4, Math.max(2, Math.ceil(skills.length / 5)))
-  const chunkSize = Math.ceil(skills.length / n)
-  const out = []
-  for (let i = 0; i < n; i++) {
-    const slice = skills.slice(i * chunkSize, (i + 1) * chunkSize).filter(Boolean)
-    if (slice.length) out.push({ category: labels[i] || `Skills ${i + 1}`, skills: slice })
-  }
-  return out
-}
-
-function normalizeSkillGroups(parsed, profile) {
-  let groups = []
-  if (Array.isArray(parsed?.skillGroups)) {
-    groups = parsed.skillGroups
-      .filter((g) => g && typeof g === 'object')
-      .map((g) => ({
-        category: String(g.category || g.name || 'Skills').trim() || 'Skills',
-        skills: (Array.isArray(g.skills) ? g.skills : []).map((s) => String(s).trim()).filter(Boolean),
-      }))
-      .filter((g) => g.skills.length > 0)
-  }
-  let flat = groups.flatMap((g) => g.skills)
-  if (!flat.length && Array.isArray(parsed?.skills)) {
-    flat = parsed.skills.map((s) => String(s).trim()).filter(Boolean)
-  }
-  if (!flat.length && Array.isArray(profile?.skills)) {
-    flat = profile.skills.map((s) => String(s).trim()).filter(Boolean)
-  }
-  if (!groups.length && flat.length) {
-    groups = chunkSkillsIntoGroups(flat)
-  }
-  return { skillGroups: groups, flatSkills: flat }
-}
-
-function formatEducationHtml(items, template = '') {
-  const compact = usesOnePageCompactFormatters(template)
-  const fs = compact ? '10px' : '11px'
-  const mb = compact ? '4px' : '8px'
-  const lh = compact ? '1.3' : '1.25'
-  const rowStyle = `display:flex;justify-content:space-between;align-items:baseline;gap:8px;width:100%;margin:0;font-size:${fs};line-height:${lh};`
-  const leftGrow = 'flex:1;min-width:0;word-wrap:break-word;overflow-wrap:break-word;'
-  const rightCell = 'flex-shrink:0;text-align:right;margin-left:8px;max-width:40%;word-wrap:break-word;overflow-wrap:break-word;'
-  if (!Array.isArray(items) || items.length === 0) return ''
-  return items
-    .map((e) => {
-      const inst = escapeHtml(e.institution || '')
-      const loc = escapeHtml(String(e.location || '').trim())
-      const degree = escapeHtml(e.degree || '')
-      const year = escapeHtml(String(e.graduationYear || '').trim())
-      const gpaRaw = stripGpaPrefix(e.gpa)
-      const gpa = gpaRaw ? escapeHtml(gpaRaw) : ''
-      const honors = Array.isArray(e.honors) ? e.honors.map((h) => String(h).trim()).filter(Boolean) : []
-
-      const row1Right = loc
-        ? `<span style="font-weight:normal;${rightCell}">${loc}</span>`
-        : `<span style="${rightCell}" aria-hidden="true"></span>`
-      const row1Left = inst || '&#160;'
-      const row1 = `<div class="edu-row" style="${rowStyle}"><span style="font-weight:bold;${leftGrow}">${row1Left}</span>${row1Right}</div>`
-
-      const row2Right = year
-        ? `<span style="font-weight:normal;${rightCell}">${year}</span>`
-        : `<span style="${rightCell}" aria-hidden="true"></span>`
-      const row2Left = degree || '&#160;'
-      const row2 = `<div class="edu-row" style="${rowStyle}"><span style="font-weight:normal;${leftGrow}">${row2Left}</span>${row2Right}</div>`
-
-      const gpaBlock = gpa
-        ? `<p class="edu-gpa" style="margin:2px 0 0 0;padding:0;font-size:${fs};line-height:${lh};font-weight:normal;">GPA: ${gpa}</p>`
-        : ''
-
-      const ulMt = compact ? '2px' : '4px'
-      const ulPad = compact ? '14px' : '18px'
-      const honorsItems = honors
-        .map((h) => `<li style="margin-bottom:2px;line-height:${lh};font-size:${fs};">${escapeHtml(h)}</li>`)
-        .join('')
-      const honorsBlock = honorsItems
-        ? `<ul class="edu-honors" style="margin:${ulMt} 0 0 0;padding-left:${ulPad};list-style-type:disc;">${honorsItems}</ul>`
-        : ''
-
-      return `<div class="education-item resume-section" style="margin-bottom:${mb};">${row1}${row2}${gpaBlock}${honorsBlock}</div>`
-    })
-    .join('')
-}
-
-function formatEducationBlock(items, template = '') {
-  const inner = formatEducationHtml(items, template)
-  if (!inner) return ''
-  return `<div class="resume-education-block resume-section"><h2>Education</h2>${inner}</div>`
-}
-
-function formatCertificationsHtml(items, template = '') {
-  const compact = usesOnePageCompactFormatters(template)
-  const fs = compact ? '10px' : '11px'
-  const mb = compact ? '4px' : '8px'
-  const lh = compact ? '1.3' : '1.25'
-  if (!Array.isArray(items) || items.length === 0) return ''
-  return items
-    .map((c) => {
-      const name = escapeHtml(c.name || '')
-      const issuer = c.issuer ? escapeHtml(c.issuer) : ''
-      const year = c.year ? escapeHtml(String(c.year)) : ''
-      const mid = [name, issuer].filter(Boolean).join(' — ')
-      const tail = year ? ` · ${year}` : ''
-      return `<div class="cert-item resume-section" style="margin-bottom: ${mb};"><p style="margin: 0; font-size: ${fs}; line-height: ${lh};">${mid}${tail}</p></div>`
-    })
-    .join('')
-}
-
-function formatCertificationsBlock(items, template = '') {
-  const inner = formatCertificationsHtml(items, template)
-  if (!inner) return ''
-  return `<div class="resume-certifications-block resume-section"><h2>Certifications</h2>${inner}</div>`
-}
-
-function formatContactUrlsLine(profile) {
-  const parts = []
-  if (profile.linkedin_url && String(profile.linkedin_url).trim()) {
-    parts.push(`LinkedIn: ${escapeHtml(String(profile.linkedin_url).trim())}`)
-  }
-  if (profile.portfolio_url && String(profile.portfolio_url).trim()) {
-    parts.push(`Website: ${escapeHtml(String(profile.portfolio_url).trim())}`)
-  }
-  if (!parts.length) return ''
-  return `<p style="margin: 4px 0 0 0;" class="contact-line">${parts.join(' · ')}</p>`
-}
-
-function formatSidebarUrls(profile, template = '') {
-  const modern = template === 'modern'
-  const fs = modern ? '10px' : '10pt'
-  const lh = modern ? '1.35' : '1.5'
-  const mb = modern ? '5px' : '8px'
-  const blocks = []
-  if (profile.linkedin_url && String(profile.linkedin_url).trim()) {
-    blocks.push(
-      `<p style="margin: 0 0 ${mb} 0; font-size: ${fs}; line-height: ${lh}; word-break: break-all;">LinkedIn<br/>${escapeHtml(String(profile.linkedin_url).trim())}</p>`
-    )
-  }
-  if (profile.portfolio_url && String(profile.portfolio_url).trim()) {
-    blocks.push(
-      `<p style="margin: 0; font-size: ${fs}; line-height: ${lh}; word-break: break-all;">Website<br/>${escapeHtml(String(profile.portfolio_url).trim())}</p>`
-    )
-  }
-  return blocks.join('')
-}
-
-function normalizeClientResumeContentForRender(clientContent, profile, template = '') {
-  const summary = String(clientContent?.summary ?? '').trim()
-
-  const experience = (Array.isArray(clientContent?.experience) ? clientContent.experience : [])
-    .map((job) => {
-      if (!job || typeof job !== 'object') return null
-      const title = String(job.title ?? '').trim()
-      const company = String(job.company ?? '').trim()
-      const dates = String(job.dates ?? '').trim()
-      let bullets = job.bullets
-      if (typeof bullets === 'string') {
-        bullets = bullets.split(/\r?\n/).map((s) => s.trim()).filter(Boolean)
-      } else if (Array.isArray(bullets)) {
-        bullets = bullets.map((b) => String(b).trim()).filter(Boolean)
-      } else {
-        bullets = []
-      }
-      if (!title && !company && !dates && bullets.length === 0) return null
-      return { title, company, dates, bullets }
-    })
-    .filter(Boolean)
-
-  const education = (Array.isArray(clientContent?.education) ? clientContent.education : [])
-    .map((row) => normalizeEducationEntry(row))
-    .filter(Boolean)
-
-  const certifications = (Array.isArray(clientContent?.certifications) ? clientContent.certifications : [])
-    .map((row) => normalizeCertEntry(row))
-    .filter(Boolean)
-
-  const { skillGroups, flatSkills } = normalizeSkillGroups(
-    { skillGroups: clientContent?.skillGroups, skills: clientContent?.skills },
-    profile
-  )
-
-  const location = [profile.city, profile.country].filter(Boolean).join(', ') || ''
-
-  const output = {
-    name: profile.full_name || '',
-    email: profile.email || '',
-    phone: profile.phone_number || '',
-    location,
-    linkedin_url: profile.linkedin_url || '',
-    portfolio_url: profile.portfolio_url || '',
-    summary,
-    experience,
-    skillGroups,
-    skills: flatSkills,
-    education,
-    certifications,
-  }
-
-  const replacements = {
-    '{{name}}': profile.full_name || '',
-    '{{email}}': profile.email || '',
-    '{{phone}}': profile.phone_number || '',
-    '{{location}}': location,
-    '{{contact_urls_block}}': formatContactUrlsLine(profile),
-    '{{sidebar_urls}}': formatSidebarUrls(profile, template),
-    '{{summary}}': summary,
-    '{{experience}}': formatExperienceHtml(experience, template),
-    '{{education_block}}': formatEducationBlock(education, template),
-    '{{certifications_block}}': formatCertificationsBlock(certifications, template),
-    '{{skills}}': formatSkillGroupsHtml(skillGroups, template),
-  }
-
-  return { output, replacements }
-}
-
-function escapeHtml(text) {
-  if (text == null) return ''
-  return String(text)
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
 
 /** Service role client for user_usage insert/update only (bypasses RLS). */
 function createSupabaseServiceRoleClient() {
@@ -1016,7 +546,8 @@ export async function POST(request) {
         })
       } else {
         const resumeContext = JSON.stringify(profile, null, 2)
-        let userMessage = `Resume profile data:\n${resumeContext}\n\nJob description:\n${jobDescription}`
+        const jobCount = countProfileJobs(profile)
+        let userMessage = `Resume profile data:\n${resumeContext}\n\nProfile job count for adaptive density tier: ${jobCount}\n\nJob description:\n${jobDescription}`
         if (additionalInstructions) {
           userMessage += `\n\n---\nAdditional instructions from ATS checker (apply thoroughly; never invent employers, titles, dates, or degrees):\n${additionalInstructions}`
         }
@@ -1036,48 +567,21 @@ export async function POST(request) {
         return jsonError('AI returned no data', 500)
       }
 
-      const cleaned = rawText.replace(/^```(?:json)?\s*|\s*```$/g, '').trim()
       let parsed
       try {
-        parsed = JSON.parse(cleaned)
+        parsed = parseAiJson(rawText)
       } catch {
         return jsonError('Failed to parse AI response', 500)
       }
 
-      const location = [profile.city, profile.country].filter(Boolean).join(', ') || ''
+      const profileForAi = { ...profile, _jobDescription: jobDescription }
+      let { document, skillGroups, flatSkills } = normalizeResumeDocument(parsed, profileForAi)
 
-      const mergedEducation = mergeEducationFromProfile(parsed.education, profile)
-      const mergedCertifications = mergeCertificationsFromProfile(parsed.certifications, profile)
-      const { skillGroups, flatSkills } = normalizeSkillGroups(parsed, profile)
+      document = await runResumeCritic(anthropic, document, profileForAi)
+      ;({ document, skillGroups, flatSkills } = normalizeResumeDocument(document, profileForAi))
 
-      contentOut = {
-        name: profile.full_name || '',
-        email: profile.email || '',
-        phone: profile.phone_number || '',
-        location,
-        linkedin_url: profile.linkedin_url || '',
-        portfolio_url: profile.portfolio_url || '',
-        summary: parsed.summary || '',
-        experience: parsed.experience || [],
-        skillGroups,
-        skills: flatSkills,
-        education: mergedEducation,
-        certifications: mergedCertifications,
-      }
-
-      replacements = {
-        '{{name}}': profile.full_name || '',
-        '{{email}}': profile.email || '',
-        '{{phone}}': profile.phone_number || '',
-        '{{location}}': location,
-        '{{contact_urls_block}}': formatContactUrlsLine(profile),
-        '{{sidebar_urls}}': formatSidebarUrls(profile, template),
-        '{{summary}}': parsed.summary || '',
-        '{{experience}}': formatExperienceHtml(parsed.experience || [], template),
-        '{{education_block}}': formatEducationBlock(mergedEducation, template),
-        '{{certifications_block}}': formatCertificationsBlock(mergedCertifications, template),
-        '{{skills}}': formatSkillGroupsHtml(skillGroups, template),
-      }
+      contentOut = toLegacyContentOut(document, skillGroups, flatSkills)
+      replacements = buildReplacements(document, template)
     }
 
     const templatePath = join(process.cwd(), 'public', 'templates', `${template}.html`)
@@ -1129,7 +633,12 @@ export async function POST(request) {
         pdfBuffer = await page.pdf({
           format: 'A4',
           printBackground: true,
-          margin: { top: '0.6in', right: '0.6in', bottom: '0.6in', left: '0.6in' },
+          margin: {
+            top: PDF_MARGIN_IN,
+            right: PDF_MARGIN_IN,
+            bottom: PDF_MARGIN_IN,
+            left: PDF_MARGIN_IN,
+          },
         })
       } catch (pdfErr) {
         console.error('[generate-resume] page.pdf() failed:', pdfErr)
