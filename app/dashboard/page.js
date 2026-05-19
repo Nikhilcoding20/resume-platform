@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { getResumeProfileCompletionPercent } from '@/lib/resumeProfileChecklist'
 import AtsScoreLoadingOverlay from '@/app/components/AtsScoreLoadingOverlay'
+import { fireStripeCheckoutPurchaseGa4 } from '@/lib/stripeCheckoutGa4'
 
 const DAILY_TIP_STORAGE_KEY = 'unemployed-club-daily-career-tip'
 
@@ -136,6 +137,7 @@ export default function DashboardPage() {
     const params = new URLSearchParams(window.location.search)
     if (params.get('payment') === 'success') {
       setPaymentSuccessBanner(true)
+      fireStripeCheckoutPurchaseGa4()
       window.history.replaceState({}, '', '/dashboard')
     }
   }, [])

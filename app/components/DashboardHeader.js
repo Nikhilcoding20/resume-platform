@@ -7,10 +7,10 @@ import { supabase } from '@/lib/supabase'
 
 const navItems = [
   { href: '/dashboard', label: 'Dashboard' },
-  { href: '/dashboard/start', label: 'Build Resume' },
-  { href: '/dashboard/jobs', label: 'Jobs' },
-  { href: '/dashboard/cover-letter', label: 'Cover Letter' },
-  { href: '/dashboard/ats-checker', label: 'ATS Checker' },
+  { href: '/dashboard/start', label: 'Build Resume', tourId: 'resume-builder' },
+  { href: '/dashboard/jobs', label: 'Jobs', tourId: 'job-board' },
+  { href: '/dashboard/cover-letter', label: 'Cover Letter', tourId: 'cover-letter' },
+  { href: '/dashboard/ats-checker', label: 'ATS Checker', tourId: 'ats-checker' },
   { href: '/dashboard/interview', label: 'Interview Prep' },
   { href: '/dashboard/pricing', label: 'Pricing' },
 ]
@@ -25,6 +25,12 @@ export default function DashboardHeader({ user, postLogoutHref = '/' }) {
   useEffect(() => {
     setMobileNavOpen(false)
   }, [pathname])
+
+  useEffect(() => {
+    const openNav = () => setMobileNavOpen(true)
+    window.addEventListener('dashboard-onboarding-open-nav', openNav)
+    return () => window.removeEventListener('dashboard-onboarding-open-nav', openNav)
+  }, [])
 
   async function handleLogout() {
     await supabase.auth.signOut()
@@ -44,10 +50,11 @@ export default function DashboardHeader({ user, postLogoutHref = '/' }) {
 
           <div className="flex items-center gap-1 sm:gap-2">
             <nav className="hidden items-center gap-1 lg:flex">
-              {navItems.map(({ href, label }) => (
+              {navItems.map(({ href, label, tourId }) => (
                 <Link
                   key={href}
                   href={href}
+                  {...(tourId ? { 'data-tour-nav': tourId } : {})}
                   className={`inline-flex min-h-11 items-center rounded-xl px-3 py-2 text-sm font-medium transition-all duration-200 ${
                     pathname === href
                       ? 'bg-[#f5f3ff] text-[#6366f1] shadow-sm ring-1 ring-[#6366f1]/20'
@@ -128,10 +135,11 @@ export default function DashboardHeader({ user, postLogoutHref = '/' }) {
           }`}
         >
           <nav className="flex flex-col px-2 py-2" aria-label="Dashboard">
-            {navItems.map(({ href, label }) => (
+            {navItems.map(({ href, label, tourId }) => (
               <Link
                 key={href}
                 href={href}
+                {...(tourId ? { 'data-tour-nav': tourId } : {})}
                 onClick={() => setMobileNavOpen(false)}
                 className={`flex min-h-11 items-center rounded-xl px-4 text-sm font-medium transition-colors ${
                   pathname === href

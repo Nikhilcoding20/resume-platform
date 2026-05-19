@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import DashboardHeader from '@/app/components/DashboardHeader'
+import DashboardOnboardingTour from '@/app/components/DashboardOnboardingTour'
 
 export default function DashboardLayout({ children }) {
   const router = useRouter()
@@ -58,6 +59,7 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="ds-page flex min-h-screen flex-col overflow-x-hidden">
       <DashboardHeader user={user} />
+      <DashboardOnboardingTour userId={user.id} />
 
       <main className="mx-auto w-full min-w-0 max-w-[90rem] flex-1 overflow-x-hidden p-4 text-[#1a1a2e] sm:p-6 lg:p-8">
         {children}

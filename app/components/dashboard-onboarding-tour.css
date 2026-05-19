@@ -1,0 +1,79 @@
+/* Unemployed Club — dashboard onboarding (purple #6366f1, teal #06b6d4) */
+.shepherd-element.uc-onboarding-step {
+  border-radius: 14px;
+  border: 1px solid #eaeaf2;
+  box-shadow: 0 16px 48px -12px rgba(99, 102, 241, 0.35);
+  max-width: min(360px, calc(100vw - 24px));
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-header {
+  background: linear-gradient(135deg, #6366f1 0%, #7c3aed 55%, #06b6d4 100%);
+  padding: 12px 16px;
+  border-radius: 13px 13px 0 0;
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-title {
+  color: #fff;
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-cancel-icon {
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-cancel-icon:hover {
+  color: #fff;
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-text {
+  color: #1a1a2e;
+  font-size: 14px;
+  line-height: 1.5;
+  padding: 14px 16px 4px;
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-footer {
+  padding: 8px 12px 14px;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-button {
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 16px;
+  border: none;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-button:hover {
+  opacity: 0.92;
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-button-secondary {
+  background: #f5f3ff;
+  color: #6366f1;
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-button:not(.shepherd-button-secondary) {
+  background: linear-gradient(135deg, #6366f1 0%, #06b6d4 100%);
+  color: #fff;
+}
+
+.shepherd-element.uc-onboarding-step .shepherd-arrow::before {
+  background: #fff;
+}
+
+.shepherd-modal-overlay-container.shepherd-modal-is-visible {
+  opacity: 0.45;
+}
+
+.shepherd-element.uc-onboarding-step.shepherd-centered .shepherd-header {
+  border-radius: 13px 13px 0 0;
+}
