@@ -12,6 +12,8 @@ import './dashboard-onboarding-tour.css'
 export default function DashboardOnboardingTour({ userId }) {
   const pathname = usePathname()
   const startedRef = useRef(false)
+  const savingRef = useRef(false)
+  const persistAllowedRef = useRef(true)
 
   useEffect(() => {
     if (!userId || pathname !== '/dashboard' || startedRef.current) return
@@ -19,8 +21,90 @@ export default function DashboardOnboardingTour({ userId }) {
     let cancelled = false
     let tourInstance = null
 
+    async function markOnboardingComplete() {
+      if (!persistAllowedRef.current || savingRef.current) return
+      savingRef.current = true
+
+      const uid = String(userId)
+
+      try {
+        const {
+          data: { session },
+          error: sessionError,
+        } = await supabase.auth.getSession()
+
+        if (sessionError || !session?.access_token) {
+          console.warn('[DashboardOnboardingTour] mark complete: no session', sessionError?.message)
+          return
+        }
+
+        const res = await fetch('/api/user-usage/complete-onboarding', {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+          },
+        })
+
+        const body = await res.json().catch(() => ({}))
+
+        if (!res.ok) {
+          console.warn('[DashboardOnboardingTour] API mark complete failed:', {
+            status: res.status,
+            error: body.error,
+            body,
+          })
+          await markCompleteViaClient(uid)
+          return
+        }
+
+        console.log('[DashboardOnboardingTour] onboarding_tour_completed saved via API', {
+          ok: body.ok,
+          user_id: body.data?.user_id,
+          onboarding_tour_completed: body.data?.onboarding_tour_completed,
+        })
+      } catch (e) {
+        console.error('[DashboardOnboardingTour] mark complete threw:', e)
+        await markCompleteViaClient(uid)
+      } finally {
+        savingRef.current = false
+      }
+    }
+
+    async function markCompleteViaClient(uid) {
+      const { data, error } = await supabase
+        .from('user_usage')
+        .upsert(
+          {
+            user_id: uid,
+            onboarding_tour_completed: true,
+          },
+          { onConflict: 'user_id' }
+        )
+        .select('user_id, onboarding_tour_completed')
+        .maybeSingle()
+
+      if (error) {
+        console.warn('[DashboardOnboardingTour] client upsert fallback failed:', error.message)
+        return
+      }
+
+      console.log('[DashboardOnboardingTour] onboarding_tour_completed saved via client fallback', {
+        user_id: data?.user_id,
+        onboarding_tour_completed: data?.onboarding_tour_completed,
+      })
+    }
+
     async function maybeStartTour() {
       const uid = String(userId)
+
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
+      if (!session?.access_token) {
+        console.warn('[DashboardOnboardingTour] skip tour: no auth session yet')
+        return
+      }
 
       const { data: row, error } = await supabase
         .from('user_usage')
@@ -31,37 +115,34 @@ export default function DashboardOnboardingTour({ userId }) {
       if (cancelled) return
 
       if (error) {
-        console.warn('[DashboardOnboardingTour] user_usage read:', error.message)
+        console.warn('[DashboardOnboardingTour] user_usage read:', error.message, error.code)
         return
       }
 
-      if (row?.onboarding_tour_completed === true) return
+      if (row?.onboarding_tour_completed === true) {
+        console.log('[DashboardOnboardingTour] tour already completed for user', uid)
+        return
+      }
 
       if (!row) {
-        await supabase.from('user_usage').upsert(
+        const { error: bootstrapErr } = await supabase.from('user_usage').upsert(
           {
             user_id: uid,
             resumes_generated: 0,
             cover_letters_generated: 0,
             onboarding_tour_completed: false,
           },
-          { onConflict: 'user_id', ignoreDuplicates: true }
+          { onConflict: 'user_id' }
         )
+        if (bootstrapErr) {
+          console.warn('[DashboardOnboardingTour] bootstrap user_usage row:', bootstrapErr.message)
+        }
       }
 
       if (cancelled) return
 
       startedRef.current = true
-
-      const markComplete = async () => {
-        const { error: upErr } = await supabase
-          .from('user_usage')
-          .update({ onboarding_tour_completed: true })
-          .eq('user_id', uid)
-        if (upErr) console.warn('[DashboardOnboardingTour] mark complete:', upErr.message)
-      }
-
-      tourInstance = startDashboardOnboardingTour({ onComplete: markComplete })
+      tourInstance = startDashboardOnboardingTour({ onComplete: markOnboardingComplete })
     }
 
     const timer = window.setTimeout(() => {
@@ -70,6 +151,7 @@ export default function DashboardOnboardingTour({ userId }) {
 
     return () => {
       cancelled = true
+      persistAllowedRef.current = false
       window.clearTimeout(timer)
       if (tourInstance?.isActive?.()) {
         tourInstance.cancel()
