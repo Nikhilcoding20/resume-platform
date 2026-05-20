@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import UpgradeLimitModal from '@/app/components/UpgradeLimitModal'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 
 async function generateResumeApiHeaders() {
   const { data: { session } } = await supabase.auth.getSession()
@@ -376,6 +377,13 @@ export default function GeneratingPage() {
   const [pdfPreviewScale, setPdfPreviewScale] = useState(1)
   const A4_PDF_WIDTH = 595
   const A4_PDF_HEIGHT = 850
+  const resumeGeneratedTrackedRef = useRef(false)
+
+  useEffect(() => {
+    if (status !== 'review' || !resumeContent || resumeGeneratedTrackedRef.current) return
+    resumeGeneratedTrackedRef.current = true
+    pushGtmEvent('resume_generated')
+  }, [status, resumeContent])
 
   useEffect(() => {
     progressValueRef.current = progress

@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import { isPro } from '@/lib/subscription'
@@ -263,6 +264,7 @@ function JobCardWithFreeGate({ job, index, userIsPro, onBuildResume }) {
         <Link
           href="/dashboard/pricing"
           className="inline-flex px-8 py-3 btn-gradient ds-btn-glow rounded-xl font-semibold text-white shadow-md hover:shadow-lg transition-all"
+          onClick={() => pushGtmEvent('upgrade_clicked')}
         >
           Upgrade to Pro
         </Link>

@@ -1,5 +1,5 @@
-import Link from 'next/link'
 import PublicOrDashboardHeader from '@/app/components/PublicOrDashboardHeader'
+import GetStartedFreeLink from '@/app/components/GetStartedFreeLink'
 
 export const metadata = {
   title: 'About Us — Unemployed Club',
@@ -134,12 +134,9 @@ export default function AboutPage() {
           <p className="mx-auto mt-4 max-w-2xl text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
             Join thousands of job seekers using Unemployed Club to build better resumes, ace interviews, and land their next role.
           </p>
-          <Link
-            href="/signup"
-            className="mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] px-7 py-3 text-sm font-bold text-white shadow-[0_10px_30px_-10px_rgba(99,102,241,0.5)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-10px_rgba(99,102,241,0.55)]"
-          >
+          <GetStartedFreeLink className="mt-8 inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] px-7 py-3 text-sm font-bold text-white shadow-[0_10px_30px_-10px_rgba(99,102,241,0.5)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_14px_36px_-10px_rgba(99,102,241,0.55)]">
             Get Started Free
-          </Link>
+          </GetStartedFreeLink>
         </div>
       </section>
     </div>

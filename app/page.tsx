@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
 import PublicSiteHeader from '@/app/components/PublicSiteHeader'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 
 const FEATURE_TOOLKIT_CARDS = [
   {
@@ -1508,6 +1509,7 @@ export default function LandingPage() {
           <Link
             href="/signup"
             className="inline-flex min-h-11 w-full max-w-sm items-center justify-center gap-2 rounded-xl bg-white px-8 py-3.5 text-base font-extrabold text-[#6366f1] shadow-[0_12px_40px_-8px_rgba(15,23,42,0.35)] transition-[transform,box-shadow] hover:-translate-y-0.5 hover:shadow-[0_16px_48px_-8px_rgba(15,23,42,0.4)] sm:w-auto sm:max-w-none"
+            onClick={() => pushGtmEvent('get_started_click')}
           >
             Get Started Free <span aria-hidden>→</span>
           </Link>

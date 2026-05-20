@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 import { supabase } from '@/lib/supabase'
 import { getActiveStripeSubscriptionPlan } from '@/lib/subscription'
 
@@ -223,6 +224,7 @@ export default function AccountPage() {
           <Link
             href="/dashboard/pricing"
             className="px-4 py-2 btn-gradient ds-btn-glow rounded-xl font-semibold text-sm text-white transition-all"
+            onClick={() => pushGtmEvent('upgrade_clicked')}
           >
             Upgrade to Pro
           </Link>

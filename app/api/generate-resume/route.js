@@ -734,6 +734,7 @@ export async function POST(request) {
           console.error('[generate-resume] base64 string is empty or invalid')
           return jsonError('Failed to encode PDF', 500)
         }
+        // Note: dataLayer is client-side only — fire resume_generated on the frontend result page instead.
         return NextResponse.json({
           pdfBase64,
           filename,

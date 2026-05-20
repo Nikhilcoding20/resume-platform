@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 
 const COPY = {
   resume: {
@@ -61,6 +62,7 @@ export default function UpgradeLimitModal({ open, variant = 'resume', onClose })
           <Link
             href="/dashboard/pricing"
             className="inline-flex items-center justify-center w-full py-4 px-6 rounded-xl bg-gradient-to-r from-[#6366f1] to-[#06b6d4] text-white text-base font-semibold shadow-lg shadow-indigo-500/25 hover:shadow-xl hover:shadow-indigo-500/30 transition-shadow"
+            onClick={() => pushGtmEvent('upgrade_clicked')}
           >
             Upgrade Now →
           </Link>

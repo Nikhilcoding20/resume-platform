@@ -4,6 +4,7 @@ import { Suspense, useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { supabase } from '@/lib/supabase'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 import AuthGoogleButton, { AuthDividerOr } from '@/app/components/AuthGoogleButton'
 
 const ACCOUNT_EXISTS_COPY = {
@@ -79,6 +80,7 @@ function SignUpContent() {
         headers: { Authorization: `Bearer ${data.session.access_token}` },
       }).catch(() => {})
     }
+    pushGtmEvent('sign_up')
     const redirectTo = redirectAts ? '/dashboard/ats-checker?from=homepage' : '/dashboard'
     router.push(redirectTo)
   }

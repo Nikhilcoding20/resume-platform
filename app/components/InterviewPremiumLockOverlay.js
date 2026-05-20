@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 
 /**
  * Full-viewport lock for AI Interview Coach when the user is on the free plan.
@@ -21,6 +22,7 @@ export default function InterviewPremiumLockOverlay() {
         <Link
           href="/dashboard/pricing"
           className="inline-flex w-full items-center justify-center rounded-xl bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-6 py-4 text-base font-semibold text-white shadow-lg shadow-indigo-500/25 transition-shadow hover:shadow-xl hover:shadow-indigo-500/30"
+          onClick={() => pushGtmEvent('upgrade_clicked')}
         >
           Upgrade Now →
         </Link>

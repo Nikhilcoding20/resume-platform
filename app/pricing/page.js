@@ -5,6 +5,7 @@ import Link from 'next/link'
 import PublicOrDashboardHeader from '@/app/components/PublicOrDashboardHeader'
 import { supabase } from '@/lib/supabase'
 import { useStripeBilling } from '@/lib/useStripeBilling'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 
 /** Included / excluded — plain typography, no emoji */
 function renderCell(v) {
@@ -363,6 +364,7 @@ function PlanCard({
         <Link
           href="/signup"
           className="mt-6 flex min-h-11 w-full items-center justify-center rounded-lg bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-4 py-2.5 text-sm font-semibold text-white shadow-sm transition-opacity hover:opacity-95"
+          onClick={() => pushGtmEvent('upgrade_clicked')}
         >
           Upgrade now
         </Link>

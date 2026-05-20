@@ -7,6 +7,7 @@ import { getUsage, canCreateCoverLetterForUser } from '@/lib/checkUsage'
 import Link from 'next/link'
 import UpgradeLimitModal from '@/app/components/UpgradeLimitModal'
 import { formatDateWithOrdinal } from '@/lib/coverLetterDocument'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 
 const APP_BRAND = 'Unemployed Club'
 
@@ -174,6 +175,13 @@ export default function CoverLetterPage() {
   const [result, setResult] = useState(null)
   const [editedBody, setEditedBody] = useState('')
   const [downloadLoading, setDownloadLoading] = useState(false)
+  const coverLetterGeneratedTrackedRef = useRef(false)
+
+  useEffect(() => {
+    if (!result || coverLetterGeneratedTrackedRef.current) return
+    coverLetterGeneratedTrackedRef.current = true
+    pushGtmEvent('cover_letter_generated')
+  }, [result])
 
   const stopProgress = () => {
     if (progressIntervalRef.current) {
@@ -401,6 +409,7 @@ export default function CoverLetterPage() {
   }
 
   const handleBackToInputs = () => {
+    coverLetterGeneratedTrackedRef.current = false
     setResult(null)
     setEditedBody('')
     setError(null)

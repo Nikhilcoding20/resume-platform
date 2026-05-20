@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 
 /**
  * Sticky public header: logo left; Pricing, Log In, primary CTA grouped on the right.
@@ -43,6 +44,7 @@ export default function PublicSiteHeader() {
               href="/signup"
               className="shrink-0 whitespace-nowrap rounded-lg bg-[linear-gradient(135deg,#6366f1,#06b6d4)] px-2 py-1.5 text-xs font-semibold leading-none text-white shadow-sm sm:px-5 sm:py-2 sm:text-sm"
               aria-label="Get started free — sign up"
+              onClick={() => pushGtmEvent('get_started_click')}
             >
               <span className="sm:hidden">Start Free</span>
               <span className="hidden sm:inline">Get Started Free</span>

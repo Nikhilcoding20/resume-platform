@@ -4,6 +4,7 @@ import { useState, useCallback, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
 import AtsScoreLoadingOverlay from '@/app/components/AtsScoreLoadingOverlay'
+import { pushGtmEvent } from '@/lib/gtmDataLayer'
 
 const JOB_DESCRIPTION_STORAGE_KEY = 'job-description'
 
@@ -161,6 +162,13 @@ export default function AtsCheckerPage() {
   }, [loading])
   const [result, setResult] = useState(null)
   const [resumeText, setResumeText] = useState(null)
+  const atsCheckCompletedTrackedRef = useRef(false)
+
+  useEffect(() => {
+    if (!result || atsCheckCompletedTrackedRef.current) return
+    atsCheckCompletedTrackedRef.current = true
+    pushGtmEvent('ats_check_completed')
+  }, [result])
 
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -374,6 +382,7 @@ export default function AtsCheckerPage() {
   }
 
   const handleCheckAnotherResume = () => {
+    atsCheckCompletedTrackedRef.current = false
     setResult(null)
     setResumeText(null)
     setError(null)
