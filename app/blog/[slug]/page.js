@@ -61,7 +61,8 @@ export default async function BlogPostPage({ params }) {
       <ReadingProgressBar />
       <PublicOrDashboardHeader />
 
-      <article className="mx-auto max-w-6xl px-4 pb-16 pt-8 sm:px-6 lg:px-8 lg:pb-24">
+      <article className="pb-16 pt-8 lg:pb-24">
+        <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <header className="mx-auto max-w-3xl text-center lg:max-w-4xl">
           {post.category?.title && (
             <Link
@@ -89,21 +90,23 @@ export default async function BlogPostPage({ params }) {
             <BlogShareButtons title={post.title} url={postUrl} />
           </div>
         </header>
+        </div>
 
         {heroUrl && (
-          <div className="relative mx-auto mt-10 aspect-[21/9] max-w-4xl overflow-hidden rounded-2xl border border-[#eaeaf2] shadow-lg">
+          <div className="relative mt-10 h-[400px] w-full overflow-hidden">
             <Image
               src={heroUrl}
               alt={post.mainImage?.alt || post.title}
               fill
               className="object-cover"
               priority
-              sizes="(max-width: 1024px) 100vw, 896px"
+              sizes="100vw"
             />
           </div>
         )}
 
-        <div className="mt-12 lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-12 xl:gap-16">
+        <div className="mx-auto mt-12 max-w-6xl px-4 sm:px-6 lg:px-8">
+          <div className="lg:grid lg:grid-cols-[minmax(0,1fr)_220px] lg:gap-12 xl:gap-16">
           <div className="min-w-0">
             {post.excerpt && (
               <p className="mb-8 text-lg font-medium leading-relaxed text-[#1a1a2e]">{post.excerpt}</p>
@@ -133,38 +136,39 @@ export default async function BlogPostPage({ params }) {
               </nav>
             </aside>
           )}
-        </div>
+          </div>
 
-        {related.length > 0 && (
-          <section className="mt-20 border-t border-[#eaeaf2] pt-14">
-            <h2 className="mb-8 text-2xl font-extrabold text-[#1a1a2e]">Related articles</h2>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
-              {related.map((p) => (
-                <BlogPostCard key={p._id} post={p} />
-              ))}
-            </div>
-          </section>
-        )}
+          {related.length > 0 && (
+            <section className="mt-20 border-t border-[#eaeaf2] pt-14">
+              <h2 className="mb-8 text-2xl font-extrabold text-[#1a1a2e]">Related articles</h2>
+              <div className="grid grid-cols-1 gap-8 md:grid-cols-3">
+                {related.map((p) => (
+                  <BlogPostCard key={p._id} post={p} />
+                ))}
+              </div>
+            </section>
+          )}
 
-        <section
-          className="mx-auto mt-16 flex max-w-3xl flex-col items-center overflow-hidden rounded-3xl px-6 py-10 text-center sm:px-10"
-          style={{
-            background:
-              'linear-gradient(128deg, #6366f1 0%, #4f46e5 32%, #6d28d9 52%, #0e7490 78%, #06b6d4 100%)',
-            boxShadow: '0 28px 60px rgba(99, 102, 241, 0.35)',
-          }}
-        >
-          <h2 className="text-xl font-extrabold text-white sm:text-2xl">Build Your Resume Free</h2>
-          <p className="mt-2 max-w-md text-sm text-white/90">
-            Turn what you learned into an ATS-ready resume in minutes.
-          </p>
-          <Link
-            href="/dashboard/start"
-            className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-8 py-3 text-sm font-extrabold text-[#6366f1] shadow-lg hover:-translate-y-0.5 transition-transform"
+          <section
+            className="mx-auto mt-16 flex max-w-3xl flex-col items-center overflow-hidden rounded-3xl px-6 py-10 text-center sm:px-10"
+            style={{
+              background:
+                'linear-gradient(128deg, #6366f1 0%, #4f46e5 32%, #6d28d9 52%, #0e7490 78%, #06b6d4 100%)',
+              boxShadow: '0 28px 60px rgba(99, 102, 241, 0.35)',
+            }}
           >
-            Get started →
-          </Link>
-        </section>
+            <h2 className="text-xl font-extrabold text-white sm:text-2xl">Build Your Resume Free</h2>
+            <p className="mt-2 max-w-md text-sm text-white/90">
+              Turn what you learned into an ATS-ready resume in minutes.
+            </p>
+            <Link
+              href="/dashboard/start"
+              className="mt-6 inline-flex min-h-11 items-center justify-center rounded-xl bg-white px-8 py-3 text-sm font-extrabold text-[#6366f1] shadow-lg hover:-translate-y-0.5 transition-transform"
+            >
+              Get started →
+            </Link>
+          </section>
+        </div>
       </article>
     </div>
   )

@@ -93,15 +93,25 @@ export default function BlogPortableText({ value, showInlineCta = false }) {
     return <PortableText value={value} components={components} />
   }
 
-  let introEnd = 1
-  for (let i = 0; i < value.length; i++) {
-    if (value[i]._type === 'block' && value[i].style === 'normal') {
-      introEnd = i + 1
-      break
-    }
+  const normalIndices = value
+    .map((block, i) =>
+      block._type === 'block' && block.style === 'normal' ? i : -1
+    )
+    .filter((i) => i >= 0)
+
+  let splitAfterIndex = value.length
+  if (normalIndices.length >= 5) {
+    splitAfterIndex = normalIndices[4] + 1
+  } else if (normalIndices.length >= 4) {
+    splitAfterIndex = normalIndices[3] + 1
+  } else if (normalIndices.length > 0) {
+    splitAfterIndex = normalIndices[Math.floor(normalIndices.length / 2)] + 1
+  } else {
+    splitAfterIndex = Math.min(5, value.length)
   }
-  const intro = value.slice(0, introEnd)
-  const body = value.slice(introEnd)
+
+  const intro = value.slice(0, splitAfterIndex)
+  const body = value.slice(splitAfterIndex)
 
   return (
     <>
