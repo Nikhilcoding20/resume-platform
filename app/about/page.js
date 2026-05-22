@@ -2,9 +2,9 @@ import PublicOrDashboardHeader from '@/app/components/PublicOrDashboardHeader'
 import GetStartedFreeLink from '@/app/components/GetStartedFreeLink'
 
 export const metadata = {
-  title: 'About Us — Unemployed Club',
+  title: 'About Unemployed Club — Helping Job Seekers Land Their Dream Jobs',
   description:
-    'Learn why we built Unemployed Club and our mission to make world-class career tools accessible to everyone.',
+    'Unemployed Club is an AI-powered career platform built to help job seekers create winning resumes, nail interviews, and land their dream jobs faster.',
 }
 
 export default function AboutPage() {
