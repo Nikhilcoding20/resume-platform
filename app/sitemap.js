@@ -24,6 +24,12 @@ export default function sitemap() {
       priority: 0.6,
     },
     {
+      url: `${siteUrl}/resume-builder`,
+      lastModified: now,
+      changeFrequency: weekly,
+      priority: 0.9,
+    },
+    {
       url: `${siteUrl}/contact`,
       lastModified: now,
       changeFrequency: weekly,

@@ -3,6 +3,7 @@ User-agent: *
 Allow: /
 Allow: /pricing
 Allow: /about
+Allow: /resume-builder
 Allow: /contact
 Allow: /privacy
 Allow: /terms
