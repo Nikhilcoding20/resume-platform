@@ -93,14 +93,14 @@ export default async function BlogPostPage({ params }) {
         </div>
 
         {heroUrl && (
-          <div className="relative mt-10 h-[400px] w-full overflow-hidden">
+          <div className="relative mx-auto mt-10 mb-8 h-[400px] max-w-[800px] overflow-hidden rounded-xl">
             <Image
               src={heroUrl}
               alt={post.mainImage?.alt || post.title}
               fill
-              className="object-cover"
+              className="h-full w-full object-cover"
               priority
-              sizes="100vw"
+              sizes="(max-width: 800px) 100vw, 800px"
             />
           </div>
         )}
@@ -111,7 +111,7 @@ export default async function BlogPostPage({ params }) {
             {post.excerpt && (
               <p className="mb-8 text-lg font-medium leading-relaxed text-[#1a1a2e]">{post.excerpt}</p>
             )}
-            <BlogPortableText value={post.body} showInlineCta />
+            <BlogPortableText value={post.body} />
           </div>
 
           {headings.length > 0 && (

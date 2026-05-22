@@ -1,25 +1,7 @@
 import Image from 'next/image'
-import Link from 'next/link'
 import { PortableText } from '@portabletext/react'
 import { urlFor } from '@/sanity/lib/image'
 import { slugifyHeading } from '@/sanity/lib/format'
-
-function InlineCta() {
-  return (
-    <div className="my-8 rounded-2xl border border-[#6366f1]/20 bg-gradient-to-r from-[#6366f1]/10 to-[#06b6d4]/10 px-6 py-6 sm:px-8 sm:py-7">
-      <p className="text-lg font-bold text-[#1a1a2e]">Build your ATS resume free</p>
-      <p className="mt-1 text-sm text-[#5c5c7a]">
-        Create a professional, ATS-optimized resume in minutes with AI.
-      </p>
-      <Link
-        href="/resume-builder"
-        className="mt-4 inline-flex min-h-10 items-center justify-center rounded-xl bg-gradient-to-r from-[#6366f1] to-[#06b6d4] px-5 py-2.5 text-sm font-semibold text-white shadow-sm hover:opacity-95"
-      >
-        Start building →
-      </Link>
-    </div>
-  )
-}
 
 const components = {
   block: {
@@ -86,38 +68,7 @@ const components = {
   },
 }
 
-export default function BlogPortableText({ value, showInlineCta = false }) {
+export default function BlogPortableText({ value }) {
   if (!value?.length) return null
-
-  if (!showInlineCta) {
-    return <PortableText value={value} components={components} />
-  }
-
-  const normalIndices = value
-    .map((block, i) =>
-      block._type === 'block' && block.style === 'normal' ? i : -1
-    )
-    .filter((i) => i >= 0)
-
-  let splitAfterIndex = value.length
-  if (normalIndices.length >= 5) {
-    splitAfterIndex = normalIndices[4] + 1
-  } else if (normalIndices.length >= 4) {
-    splitAfterIndex = normalIndices[3] + 1
-  } else if (normalIndices.length > 0) {
-    splitAfterIndex = normalIndices[Math.floor(normalIndices.length / 2)] + 1
-  } else {
-    splitAfterIndex = Math.min(5, value.length)
-  }
-
-  const intro = value.slice(0, splitAfterIndex)
-  const body = value.slice(splitAfterIndex)
-
-  return (
-    <>
-      <PortableText value={intro} components={components} />
-      <InlineCta />
-      <PortableText value={body} components={components} />
-    </>
-  )
+  return <PortableText value={value} components={components} />
 }
