@@ -17,9 +17,9 @@ export default function PublicSiteHeader() {
           >
             <img
               src="/logo.png"
-              alt=""
-              width={160}
-              height={36}
+              alt="Unemployed Club - AI Resume Builder"
+              width={150}
+              height={40}
               className="h-7 max-h-7 w-auto max-w-[min(104px,30vw)] object-contain object-left sm:h-9 sm:max-h-9 sm:max-w-[160px]"
             />
           </Link>

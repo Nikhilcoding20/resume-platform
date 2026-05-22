@@ -45,7 +45,13 @@ export default function DashboardHeader({ user, postLogoutHref = '/' }) {
       <div className="mx-auto max-w-[90rem] px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 min-h-16 items-center justify-between gap-2">
           <Link href="/" className="flex min-w-0 shrink-0 items-center" aria-label="Unemployed Club home">
-            <img src="/logo.png" alt="" width={140} height={36} className="h-9 w-auto max-w-[min(140px,42vw)]" />
+            <img
+              src="/logo.png"
+              alt="Unemployed Club - AI Resume Builder"
+              width={150}
+              height={40}
+              className="h-9 w-auto max-w-[min(140px,42vw)]"
+            />
           </Link>
 
           <div className="flex items-center gap-1 sm:gap-2">

@@ -55,9 +55,10 @@ export default function Footer() {
               <Link href="/" className="mb-4 inline-block" aria-label="Unemployed Club home">
                 <img
                   src="/logo.png"
-                  alt=""
+                  alt="Unemployed Club - AI Resume Builder"
+                  width={150}
+                  height={40}
                   className="mx-auto h-9 w-auto brightness-0 invert lg:mx-0"
-                  height={36}
                 />
               </Link>
               <p className="text-sm leading-relaxed text-[#9ca3af]">The club you join to leave.</p>

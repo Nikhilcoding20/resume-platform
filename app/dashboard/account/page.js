@@ -99,8 +99,9 @@ function MembershipCard({ user, plan }) {
           <div className="flex items-start justify-between gap-3">
             <img
               src="/logo.png"
-              alt="Unemployed Club"
-              height={28}
+              alt="Unemployed Club - AI Resume Builder"
+              width={150}
+              height={40}
               className="h-7 w-auto shrink-0"
               style={{ filter: 'brightness(0) invert(1)' }}
             />

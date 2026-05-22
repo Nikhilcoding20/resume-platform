@@ -56,7 +56,13 @@ function LoginContent() {
         <div className="h-1 bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4]" />
         <div className="px-8 pt-8 pb-2 flex flex-col items-center text-center">
           <Link href="/" className="mb-5 inline-block" aria-label="Unemployed Club home">
-            <img src="/logo.png" alt="" width={160} height={36} className="h-9 w-auto" />
+            <img
+              src="/logo.png"
+              alt="Unemployed Club - AI Resume Builder"
+              width={150}
+              height={40}
+              className="h-9 w-auto"
+            />
           </Link>
           <h1 className="text-2xl font-extrabold bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] bg-clip-text text-transparent">
             Welcome back to the club
