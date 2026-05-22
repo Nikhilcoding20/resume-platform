@@ -952,8 +952,7 @@ export default function LandingPage() {
                 Career Management Platform
               </div>
               <h1 className="mb-6 text-[1.65rem] font-extrabold leading-[1.15] tracking-tight text-[#1a1a2e] sm:text-4xl lg:text-[2.65rem] lg:leading-[1.12]">
-                The club we don&apos;t want you to be a part of for a{' '}
-                <GradientText>long time.</GradientText>
+                AI-Powered Resume Builder That Gets You Hired
               </h1>
               <p className="mb-8 max-w-xl text-base leading-relaxed text-[#5c5c7a] sm:text-lg">
                 A career platform that helps job seekers build stronger resumes, optimize applications, prepare for interviews, and track their job search in one place.
