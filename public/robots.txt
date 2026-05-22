@@ -9,7 +9,9 @@ Allow: /privacy
 Allow: /terms
 Allow: /login
 Allow: /signup
+Allow: /blog
 Disallow: /dashboard/
+Disallow: /studio
 Disallow: /api/
 
 Sitemap: https://unemployedclub.com/sitemap.xml
