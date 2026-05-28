@@ -1,6 +1,6 @@
+import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-import { createRouteHandlerClient } from '@/lib/createRouteHandlerClient'
 
 export const dynamic = 'force-dynamic'
 
@@ -13,77 +13,63 @@ function safeNextPath(next) {
   return t
 }
 
-/** Redact token-like strings for logs; keeps shape of data/session visible. */
-function redactForLog(value, depth = 0) {
-  if (depth > 10) return '[MaxDepth]'
-  if (value === null || value === undefined) return value
-  if (typeof value !== 'object') return value
-  if (Array.isArray(value)) return value.map((v) => redactForLog(v, depth + 1))
-  const out = {}
-  for (const [k, v] of Object.entries(value)) {
-    const lower = k.toLowerCase()
-    if (
-      (lower.includes('token') || lower.includes('secret') || lower === 'authorization') &&
-      typeof v === 'string'
-    ) {
-      out[k] = `[REDACTED length=${v.length}]`
-    } else if (typeof v === 'object' && v !== null) {
-      out[k] = redactForLog(v, depth + 1)
-    } else {
-      out[k] = v
-    }
-  }
-  return out
-}
-
-function serializeExchangeResult(result) {
-  if (!result) return null
-  const err = result.error
-  return {
-    data: result.data != null ? redactForLog(result.data) : null,
-    error:
-      err == null
-        ? null
-        : {
-            message: err.message,
-            name: err.name,
-            status: err.status,
-            stack: err.stack,
-            ...('code' in err ? { code: err.code } : {}),
-          },
-  }
-}
-
 export async function GET(request) {
   const requestUrl = new URL(request.url)
   const code = requestUrl.searchParams.get('code')
   const nextParam = requestUrl.searchParams.get('next')
   const redirectPath = safeNextPath(nextParam)
 
-  console.log(`${LOG} full request URL:`, request.url)
-  console.log(`${LOG} ?code exists:`, Boolean(code), code ? `(length=${code.length})` : '')
-
-  let exchangeResult = null
-  if (code) {
-    const supabase = await createRouteHandlerClient({ cookies })
-    exchangeResult = await supabase.auth.exchangeCodeForSession(code)
-  } else {
-    console.log(`${LOG} exchangeCodeForSession skipped (no code)`)
+  if (!code) {
+    console.warn(`${LOG} missing code — redirecting to login`)
+    const loginUrl = new URL('/login', requestUrl.origin)
+    loginUrl.searchParams.set('error', 'missing_code')
+    return NextResponse.redirect(loginUrl)
   }
 
-  if (exchangeResult !== null) {
-    console.log(
-      `${LOG} exchangeCodeForSession result (data redacted where tokens):`,
-      JSON.stringify(serializeExchangeResult(exchangeResult), null, 2),
-    )
+  const successUrl = new URL(redirectPath, requestUrl.origin)
+  let response = NextResponse.redirect(successUrl)
+
+  const cookieStore = await cookies()
+  const supabase = createServerClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL ?? '',
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ?? '',
+    {
+      cookies: {
+        getAll() {
+          return cookieStore.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            try {
+              cookieStore.set(name, value, options)
+            } catch (e) {
+              console.error(`${LOG} cookieStore.set failed`, e)
+            }
+            response.cookies.set(name, value, options)
+          })
+        },
+      },
+    }
+  )
+
+  const { data, error } = await supabase.auth.exchangeCodeForSession(code)
+
+  if (error) {
+    console.error(`${LOG} exchangeCodeForSession failed:`, error.message)
+    const loginUrl = new URL('/login', requestUrl.origin)
+    loginUrl.searchParams.set('error', 'oauth')
+    loginUrl.searchParams.set('error_description', error.message)
+    return NextResponse.redirect(loginUrl)
   }
 
-  const session = exchangeResult?.data?.session ?? null
-  const user = session?.user ?? exchangeResult?.data?.user ?? null
-  console.log(`${LOG} after exchange — session exists:`, Boolean(session), '| user exists:', Boolean(user))
+  const hasSession = Boolean(data?.session)
+  console.log(`${LOG} exchange ok — session:`, hasSession, '| redirect:', successUrl.href)
 
-  const redirectHref = new URL(redirectPath, request.url).href
-  console.log(`${LOG} redirecting to:`, redirectHref)
+  if (!hasSession) {
+    const loginUrl = new URL('/login', requestUrl.origin)
+    loginUrl.searchParams.set('error', 'oauth')
+    return NextResponse.redirect(loginUrl)
+  }
 
-  return NextResponse.redirect(redirectHref)
+  return response
 }

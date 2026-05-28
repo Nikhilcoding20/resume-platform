@@ -13,11 +13,16 @@ export default function DashboardLayout({ children }) {
 
   useEffect(() => {
     let cancelled = false
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (cancelled) return
       if (event === 'INITIAL_SESSION') {
-        if (session?.user) {
-          setUser(session.user)
+        let activeSession = session
+        if (!activeSession?.user) {
+          const { data } = await supabase.auth.getSession()
+          activeSession = data.session
+        }
+        if (activeSession?.user) {
+          setUser(activeSession.user)
         } else {
           router.replace('/login')
         }

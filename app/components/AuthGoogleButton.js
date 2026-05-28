@@ -9,8 +9,8 @@
  *
  * Supabase Dashboard → Authentication → URL Configuration → Redirect URLs must include
  * every app URL you pass as redirectTo, e.g.:
- *   https://www.unemployedclub.com/auth/callback
- *   http://localhost:3000/auth/callback
+ *   https://www.unemployedclub.com/auth/callback?next=/dashboard
+ *   http://localhost:3000/auth/callback?next=/dashboard
  *
  * We send users to /auth/callback (server exchanges ?code= for a session), then redirect
  * to `next` (default /dashboard). Set NEXT_PUBLIC_SITE_URL (e.g. http://localhost:3000 or
@@ -26,19 +26,32 @@ import { supabase } from '@/lib/supabase'
  * Trailing slash on SITE_URL is stripped. If NEXT_PUBLIC_SITE_URL is unset, uses
  * `window.location.origin` (browser only; set the env in production).
  */
+const PRODUCTION_SITE_URL = 'https://www.unemployedclub.com'
+
+function normalizeSiteUrl(url) {
+  if (!url) return url
+  try {
+    const u = new URL(url)
+    if (u.hostname === 'unemployedclub.com') {
+      u.hostname = 'www.unemployedclub.com'
+    }
+    return u.origin
+  } catch {
+    return url.replace(/\/$/, '')
+  }
+}
+
 function buildOAuthRedirectTo(nextPath, { fromSignup = false } = {}) {
   const path = nextPath && typeof nextPath === 'string' && nextPath.startsWith('/') ? nextPath : '/dashboard'
   const fromEnv = process.env.NEXT_PUBLIC_SITE_URL?.trim().replace(/\/$/, '') || ''
   const originFallback = typeof window !== 'undefined' ? window.location.origin : ''
-  const siteUrl = fromEnv || originFallback
+  const siteUrl = normalizeSiteUrl(fromEnv || originFallback || PRODUCTION_SITE_URL)
 
-  if (!siteUrl) {
-    console.error(
-      '[AuthGoogleButton] Set NEXT_PUBLIC_SITE_URL (e.g. http://localhost:3000) or open from a browser.'
-    )
+  if (!fromEnv && !originFallback) {
+    console.warn('[AuthGoogleButton] NEXT_PUBLIC_SITE_URL unset — using', PRODUCTION_SITE_URL)
   }
 
-  // e.g. https://example.com/auth/callback?next=%2Fdashboard&from_signup=1
+  // e.g. https://www.unemployedclub.com/auth/callback?next=%2Fdashboard&from_signup=1
   const signupFlag = fromSignup ? '&from_signup=1' : ''
   const redirectTo = `${siteUrl}/auth/callback?next=${encodeURIComponent(path)}${signupFlag}`
   return redirectTo
