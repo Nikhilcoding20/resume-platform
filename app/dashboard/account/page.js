@@ -7,9 +7,32 @@ import { pushGtmEvent } from '@/lib/gtmDataLayer'
 import { supabase } from '@/lib/supabase'
 import { getActiveStripeSubscriptionPlan } from '@/lib/subscription'
 
-function planBadgeLabel(plan) {
-  if (!plan || plan === 'free') return 'Free Plan'
-  return 'Pro Plan'
+function planDisplayLabel(plan) {
+  if (plan === 'pro_monthly' || plan === 'pro_annual') return 'Pro'
+  return 'Free'
+}
+
+function DetailRow({ label, value, valueClassName = '' }) {
+  return (
+    <div className="flex flex-col gap-1 border-b border-[#eaeaf2] py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+      <span className="text-sm font-medium text-[#5c5c7a]">{label}</span>
+      <span className={`text-sm font-semibold text-[#1a1a2e] sm:text-right ${valueClassName}`}>{value}</span>
+    </div>
+  )
+}
+
+function SectionCard({ title, description, children }) {
+  return (
+    <section className="rounded-2xl border border-[#eaeaf2] bg-white p-6 shadow-[0_8px_34px_-12px_rgba(99,102,241,0.14)] sm:p-8">
+      {title && (
+        <div className="mb-6">
+          <h2 className="text-lg font-bold text-[#1a1a2e]">{title}</h2>
+          {description && <p className="mt-1 text-sm text-[#5c5c7a]">{description}</p>}
+        </div>
+      )}
+      {children}
+    </section>
+  )
 }
 
 function MembershipCard({ user, plan }) {
@@ -109,7 +132,7 @@ function MembershipCard({ user, plan }) {
               className="shrink-0 rounded-full px-3 py-1 text-xs font-semibold tracking-wide text-white"
               style={{ backgroundColor: 'rgba(255,255,255,0.22)' }}
             >
-              {planBadgeLabel(plan)}
+              {planDisplayLabel(plan) === 'Pro' ? 'Pro Plan' : 'Free Plan'}
             </span>
           </div>
 
@@ -178,6 +201,7 @@ export default function AccountPage() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [plan, setPlan] = useState('free')
+  const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
     async function load() {
@@ -197,6 +221,12 @@ export default function AccountPage() {
     load()
   }, [router])
 
+  async function handleSignOut() {
+    setSigningOut(true)
+    await supabase.auth.signOut()
+    router.replace('/')
+  }
+
   if (!user) {
     return (
       <div className="flex items-center justify-center min-h-[40vh]">
@@ -205,31 +235,80 @@ export default function AccountPage() {
     )
   }
 
-  return (
-    <div>
-      <h1 className="text-2xl font-extrabold mb-2 bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] bg-clip-text text-transparent">
-        My Account
-      </h1>
-      <p className="text-[#5c5c7a] mb-8">Your Unemployed Club membership card</p>
+  const fullName = user.user_metadata?.full_name || user.email?.split('@')[0] || 'Member'
+  const memberSince = user.created_at
+    ? new Date(user.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+    : '—'
+  const isPro = plan === 'pro_monthly' || plan === 'pro_annual'
 
-      <div className="flex flex-col items-start gap-8">
+  return (
+    <div className="mx-auto max-w-3xl">
+      <div className="mb-8">
+        <h1 className="text-2xl font-extrabold bg-gradient-to-r from-[#6366f1] via-[#7c3aed] to-[#06b6d4] bg-clip-text text-transparent">
+          My Account
+        </h1>
+        <p className="mt-1 text-[#5c5c7a]">Manage your membership and account settings</p>
+      </div>
+
+      <div className="flex flex-col gap-8">
         <MembershipCard user={user} plan={plan} />
+
+        <SectionCard title="Account Details" description="Your profile and membership information">
+          <DetailRow label="Name" value={fullName} />
+          <DetailRow label="Email" value={user.email || '—'} />
+          <DetailRow
+            label="Plan"
+            value={planDisplayLabel(plan)}
+            valueClassName={isPro ? 'text-[#6366f1]' : ''}
+          />
+          <DetailRow label="Member since" value={memberSince} />
+        </SectionCard>
+
+        <SectionCard title="Quick Actions" description="Jump to the tools you use most">
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+            <Link
+              href="/dashboard/start"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#eaeaf2] bg-[#f8f7ff] px-4 py-3 text-sm font-semibold text-[#1a1a2e] transition-colors hover:border-[#6366f1]/40 hover:bg-white"
+            >
+              Build Resume
+            </Link>
+            <Link
+              href="/dashboard/ats-checker"
+              className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#eaeaf2] bg-[#f8f7ff] px-4 py-3 text-sm font-semibold text-[#1a1a2e] transition-colors hover:border-[#06b6d4]/40 hover:bg-white"
+            >
+              Check ATS Score
+            </Link>
+            {!isPro && (
+              <Link
+                href="/dashboard/pricing"
+                className="inline-flex min-h-11 items-center justify-center rounded-xl btn-gradient ds-btn-glow px-4 py-3 text-sm font-semibold text-white transition-all"
+                onClick={() => pushGtmEvent('upgrade_clicked')}
+              >
+                Upgrade to Pro
+              </Link>
+            )}
+          </div>
+        </SectionCard>
 
         <div className="flex flex-wrap gap-3">
           <Link
             href="/dashboard/settings"
-            className="px-4 py-2 rounded-xl font-medium text-sm border border-[#eaeaf2] bg-white text-[#1a1a2e] hover:bg-[#f8f8ff] ds-card-interactive transition-colors"
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-[#eaeaf2] bg-white px-5 py-2.5 text-sm font-medium text-[#1a1a2e] shadow-sm transition-colors hover:bg-[#f8f8ff]"
           >
             Settings
           </Link>
-          <Link
-            href="/dashboard/pricing"
-            className="px-4 py-2 btn-gradient ds-btn-glow rounded-xl font-semibold text-sm text-white transition-all"
-            onClick={() => pushGtmEvent('upgrade_clicked')}
-          >
-            Upgrade to Pro
-          </Link>
         </div>
+
+        <SectionCard title="Danger Zone" description="Sign out of your account on this device">
+          <button
+            type="button"
+            onClick={handleSignOut}
+            disabled={signingOut}
+            className="inline-flex min-h-11 items-center justify-center rounded-xl border border-red-200 bg-white px-5 py-2.5 text-sm font-semibold text-red-600 transition-colors hover:border-red-300 hover:bg-red-50 disabled:opacity-60"
+          >
+            {signingOut ? 'Signing out…' : 'Sign Out'}
+          </button>
+        </SectionCard>
       </div>
     </div>
   )
