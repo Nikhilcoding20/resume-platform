@@ -282,19 +282,25 @@ function getStandardOnePagePdfOverrides(template) {
     margin: 0 0 4px 0 !important;
     line-height: 1.25 !important;
   }
-  body.${c} ul.resume-bullets.ats-bullets {
+  body.${c} .resume-bullets.ats-bullets {
     margin: 2px 0 2px 0 !important;
-    padding-left: 0.25in !important;
-    list-style: none !important;
   }
-  body.${c} ul.resume-bullets.ats-bullets li.ats-bullet-item {
-    display: block !important;
-    list-style: none !important;
-    padding-left: 0.14in !important;
-    text-indent: -0.14in !important;
-    margin-bottom: 2px !important;
+  body.${c} .ats-bullet-row {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 0.35em !important;
+    margin: 0 0 2px 0 !important;
+    padding-left: 0.25in !important;
     line-height: 1.3 !important;
     font-size: 10.5px !important;
+  }
+  body.${c} .ats-bullet-marker {
+    flex-shrink: 0 !important;
+    width: 0.35em !important;
+  }
+  body.${c} .ats-bullet-text {
+    flex: 1 !important;
+    min-width: 0 !important;
   }
   body.${c} ul {
     margin: 2px 0 2px 0 !important;
@@ -351,6 +357,23 @@ function getStandardOnePagePdfOverrides(template) {
 function pdfInjectionForTemplate(template) {
   if (template === 'modern') return MODERN_RESUME_PDF_OVERRIDES
   return getStandardOnePagePdfOverrides(template)
+}
+
+/** Inject PDF-only style blocks into <head> — never into body. */
+function injectPdfStylesIntoHead(html, ...styleBlocks) {
+  const styles = styleBlocks.filter(Boolean).join('\n')
+  if (!styles) return html
+  const headClose = html.match(/<\/head\s*>/i)
+  if (headClose) {
+    const idx = html.search(/<\/head\s*>/i)
+    return `${html.slice(0, idx)}${styles}${html.slice(idx)}`
+  }
+  const headOpen = html.match(/<head[^>]*>/i)
+  if (headOpen) {
+    const idx = headOpen.index + headOpen[0].length
+    return `${html.slice(0, idx)}${styles}${html.slice(idx)}`
+  }
+  return `<!DOCTYPE html><html><head>${styles}</head><body>${html}</body></html>`
 }
 
 
@@ -611,9 +634,10 @@ export async function POST(request) {
       filledHtml = filledHtml.replaceAll(placeholder, value)
     }
 
-    filledHtml = filledHtml.replace(
-      '</head>',
-      `${getPdfStyles(template)}${pdfInjectionForTemplate(template)}</head>`
+    filledHtml = injectPdfStylesIntoHead(
+      filledHtml,
+      getPdfStyles(template),
+      pdfInjectionForTemplate(template)
     )
 
     const filename = (() => {
