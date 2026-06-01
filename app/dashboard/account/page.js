@@ -5,14 +5,75 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { pushGtmEvent } from '@/lib/gtmDataLayer'
 import { supabase } from '@/lib/supabase'
-import { getActiveStripeSubscriptionPlan } from '@/lib/subscription'
+import { getActiveStripeSubscriptionPlan, getUserSubscription, isCurrentPeriodValid } from '@/lib/subscription'
+import { useStripeBilling } from '@/lib/useStripeBilling'
 
 function planDisplayLabel(plan) {
   if (plan === 'pro_monthly' || plan === 'pro_annual') return 'Pro'
   return 'Free'
 }
 
-function DetailRow({ label, value, valueClassName = '' }) {
+function formatPeriodEnd(iso) {
+  if (!iso) return '—'
+  const d = new Date(iso)
+  if (Number.isNaN(d.getTime())) return '—'
+  return d.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
+}
+
+function getBillingView(subscription) {
+  if (!subscription) return null
+  const { plan, status, current_period_end: periodEnd } = subscription
+  const isProPlan = plan === 'pro_monthly' || plan === 'pro_annual'
+  if (!isProPlan) return null
+
+  if (status === 'active') {
+    return { type: 'active', periodEnd }
+  }
+  if (status === 'cancelled' && isCurrentPeriodValid(periodEnd)) {
+    return { type: 'cancelled', periodEnd }
+  }
+  return null
+}
+
+function BillingSection({ subscription }) {
+  const { openPortal, manageLoading } = useStripeBilling()
+  const billing = getBillingView(subscription)
+  if (!billing) return null
+
+  if (billing.type === 'active') {
+    return (
+      <SectionCard title="Billing" description="Manage your subscription and payment method">
+        <p className="text-sm font-medium text-[#1a1a2e]">
+          Next payment due:{' '}
+          <span className="font-semibold">{formatPeriodEnd(billing.periodEnd)}</span>
+        </p>
+        <button
+          type="button"
+          onClick={openPortal}
+          disabled={manageLoading}
+          className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl border border-[#eaeaf2] bg-[#f8f7ff] px-5 py-2.5 text-sm font-semibold text-[#1a1a2e] transition-colors hover:border-[#6366f1]/40 hover:bg-white disabled:opacity-60"
+        >
+          {manageLoading ? 'Opening…' : 'Manage Billing'}
+        </button>
+      </SectionCard>
+    )
+  }
+
+  return (
+    <SectionCard title="Billing" description="Your subscription is ending soon">
+      <p className="text-sm font-semibold text-amber-600">
+        Your Pro access ends on: {formatPeriodEnd(billing.periodEnd)}
+      </p>
+      <Link
+        href="/dashboard/pricing"
+        className="mt-5 inline-flex min-h-11 items-center justify-center rounded-xl btn-gradient ds-btn-glow px-5 py-2.5 text-sm font-semibold text-white transition-all"
+        onClick={() => pushGtmEvent('upgrade_clicked')}
+      >
+        Resubscribe
+      </Link>
+    </SectionCard>
+  )
+}
   return (
     <div className="flex flex-col gap-1 border-b border-[#eaeaf2] py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <span className="text-sm font-medium text-[#5c5c7a]">{label}</span>
@@ -201,6 +262,7 @@ export default function AccountPage() {
   const router = useRouter()
   const [user, setUser] = useState(null)
   const [plan, setPlan] = useState('free')
+  const [subscription, setSubscription] = useState(null)
   const [signingOut, setSigningOut] = useState(false)
 
   useEffect(() => {
@@ -212,10 +274,15 @@ export default function AccountPage() {
       }
       setUser(user)
       try {
-        const active = await getActiveStripeSubscriptionPlan(supabase, user.id)
+        const [active, subRow] = await Promise.all([
+          getActiveStripeSubscriptionPlan(supabase, user.id),
+          getUserSubscription(supabase, user.id),
+        ])
         setPlan(active || 'free')
+        setSubscription(subRow)
       } catch {
         setPlan('free')
+        setSubscription(null)
       }
     }
     load()
@@ -263,6 +330,8 @@ export default function AccountPage() {
           />
           <DetailRow label="Member since" value={memberSince} />
         </SectionCard>
+
+        <BillingSection subscription={subscription} />
 
         <SectionCard title="Quick Actions" description="Jump to the tools you use most">
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
