@@ -138,6 +138,49 @@ function getStandardOnePagePdfOverrides(template) {
   if (!['ats', 'minimal', 'creative'].includes(template)) return ''
   const c = `tpl-${template}`
   let layoutExtra = ''
+  if (template === 'ats') {
+    layoutExtra = `
+  body.${c} .resume-header {
+    text-align: center !important;
+    margin-bottom: 12px !important;
+  }
+  body.${c} h1.resume-name {
+    font-size: 24pt !important;
+    text-align: center !important;
+    margin: 0 0 6pt 0 !important;
+    font-family: Georgia, Garamond, serif !important;
+  }
+  body.${c} .resume-contact {
+    text-align: center !important;
+    font-size: 10.5pt !important;
+  }
+  body.${c} .resume-section-heading.ats-heading {
+    font-size: 11pt !important;
+    text-transform: none !important;
+    margin: 10px 0 0 0 !important;
+    padding-bottom: 0 !important;
+    border: none !important;
+  }
+  body.${c} .ats-section-rule {
+    border-top: 0.5pt solid #000 !important;
+    margin: 3px 0 8px 0 !important;
+  }
+  body.${c} .resume-section-block {
+    margin-bottom: 12px !important;
+  }
+  body.${c} .experience-item {
+    margin-bottom: 6px !important;
+  }
+  body.${c} .ats-bullet-row {
+    margin-bottom: 2px !important;
+    padding-left: 0.15in !important;
+    font-size: 10.5px !important;
+  }
+  body.${c} .skill-group {
+    margin-bottom: 4px !important;
+    font-size: 10.5px !important;
+  }`
+  }
   if (template === 'minimal') {
     layoutExtra = `
   body.${c} > div {
