@@ -74,6 +74,8 @@ function BillingSection({ subscription }) {
     </SectionCard>
   )
 }
+
+function DetailRow({ label, value, valueClassName = '' }) {
   return (
     <div className="flex flex-col gap-1 border-b border-[#eaeaf2] py-4 last:border-b-0 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
       <span className="text-sm font-medium text-[#5c5c7a]">{label}</span>
