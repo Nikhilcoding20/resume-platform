@@ -15,7 +15,7 @@ import {
 } from '@/lib/resumeGeneration/normalizeResumeDocument'
 import { runResumeCritic } from '@/lib/resumeGeneration/criticResume'
 import {
-  PDF_STYLES,
+  getPdfStyles,
   PDF_MARGIN_IN,
   buildReplacements,
   normalizeClientResumeContentForRender,
@@ -599,7 +599,7 @@ export async function POST(request) {
 
     filledHtml = filledHtml.replace(
       '</head>',
-      `${PDF_STYLES}${pdfInjectionForTemplate(template)}</head>`
+      `${getPdfStyles(template)}${pdfInjectionForTemplate(template)}</head>`
     )
 
     const filename = (() => {

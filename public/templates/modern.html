@@ -4,44 +4,74 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resume - Modern</title>
-</head>
-<body style="margin: 0; padding: 0; font-family: Arial, Helvetica, sans-serif; font-size: 10px; line-height: 1.35; display: flex; min-height: 100vh; color: #333;">
-  <!-- Sidebar: name + contact + LinkedIn / portfolio only -->
-  <div style="width: 168px; background: #2563eb; color: #fff; padding: 18px 10px 14px; flex-shrink: 0;">
-    <h1 style="margin: 0 0 8px 0; font-size: 14px; font-weight: 700; line-height: 1.2; color: #fff;">{{name}}</h1>
-    <p style="margin: 0 0 5px 0; font-size: 10px; line-height: 1.35; color: rgba(255,255,255,0.95);">{{email}}</p>
-    <p style="margin: 0 0 5px 0; font-size: 10px; line-height: 1.35; color: rgba(255,255,255,0.95);">{{phone}}</p>
-    <p style="margin: 0 0 8px 0; font-size: 10px; line-height: 1.35; color: rgba(255,255,255,0.95);">{{location}}</p>
-    {{sidebar_urls}}
-  </div>
-
-  <div class="modern-main" style="flex: 1; padding: 18px 16px; background: #fff; color: #333; min-width: 0;">
-    <h2 style="margin: 0 0 5px 0; padding: 0; font-size: 12px; font-weight: 700; color: #2563eb; line-height: 1.2;">Summary</h2>
-    <p style="margin: 0 0 10px 0; font-size: 10px; line-height: 1.35;">{{summary}}</p>
-
-    <h2 style="margin: 0 0 5px 0; padding: 0; font-size: 12px; font-weight: 700; color: #2563eb; line-height: 1.2;">Experience</h2>
-    <div style="margin-bottom: 10px; font-size: 10px; line-height: 1.35;">{{experience}}</div>
-
-    <h2 style="margin: 0 0 5px 0; padding: 0; font-size: 12px; font-weight: 700; color: #2563eb; line-height: 1.2;">Skills</h2>
-    <div style="margin-bottom: 10px; font-size: 10px; line-height: 1.35;">{{skills}}</div>
-
-    {{education_block}}
-    {{certifications_block}}
-  </div>
-
-  <!-- After PDF-injected head styles so spacing overrides apply when generating PDFs -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
   <style>
-    .modern-main .experience-item {
-      margin-bottom: 8px !important;
+    body.tpl-modern {
+      margin: 0;
+      padding: 0;
+      font-family: Inter, Calibri, Arial, sans-serif;
+      font-size: 10pt;
+      line-height: 1.35;
+      color: #1a1a1a;
+      background: #fff;
     }
-    .modern-main .experience-item > p {
-      margin-bottom: 4px !important;
+    .modern-layout {
+      display: flex;
+      align-items: stretch;
+      min-height: 100vh;
     }
-    .modern-main > h2,
-    .modern-main .resume-education-block > h2,
-    .modern-main .resume-certifications-block > h2 {
-      margin-top: 6px !important;
+    .modern-sidebar {
+      width: 30%;
+      min-width: 168px;
+      max-width: 32%;
+      background: #1e3a5f;
+      color: #fff;
+      padding: 18pt 12pt;
+      flex-shrink: 0;
+      border-right: 1px solid #152a45;
+    }
+    .modern-sidebar .resume-name {
+      margin: 0 0 12pt 0;
+      font-size: 24pt;
+      font-weight: 700;
+      line-height: 1.15;
+      color: #ffffff;
+    }
+    .modern-sidebar .sidebar-label {
+      margin: 14pt 0 6pt 0;
+      font-size: 9pt;
+      font-weight: 700;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      color: rgba(255,255,255,0.85);
+    }
+    .modern-main {
+      flex: 1;
+      min-width: 0;
+      padding: 18pt 16pt;
+      background: #fff;
     }
   </style>
+</head>
+<body class="tpl-modern">
+  <div class="modern-layout">
+    <aside class="modern-sidebar">
+      <h1 class="resume-name">{{name}}</h1>
+      <p class="sidebar-label">Contact</p>
+      {{sidebar_contact}}
+      <p class="sidebar-label">Skills</p>
+      {{sidebar_skills}}
+      <p class="sidebar-label">Certifications</p>
+      {{sidebar_certifications}}
+    </aside>
+    <main class="modern-main">
+      {{summary_block}}
+      <div class="resume-experience-block resume-section">
+        <h2 class="resume-section-heading modern-heading" style="margin:0 0 6px 0;font-size:10.5pt;font-weight:700;text-transform:uppercase;color:#1e3a5f;border-bottom:2px solid #1e3a5f;padding-bottom:3px;">Experience</h2>
+        {{experience}}
+      </div>
+      {{education_block}}
+    </main>
+  </div>
 </body>
 </html>
