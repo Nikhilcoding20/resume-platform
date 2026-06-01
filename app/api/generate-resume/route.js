@@ -282,6 +282,20 @@ function getStandardOnePagePdfOverrides(template) {
     margin: 0 0 4px 0 !important;
     line-height: 1.25 !important;
   }
+  body.${c} ul.resume-bullets.ats-bullets {
+    margin: 2px 0 2px 0 !important;
+    padding-left: 0.25in !important;
+    list-style: none !important;
+  }
+  body.${c} ul.resume-bullets.ats-bullets li.ats-bullet-item {
+    display: block !important;
+    list-style: none !important;
+    padding-left: 0.14in !important;
+    text-indent: -0.14in !important;
+    margin-bottom: 2px !important;
+    line-height: 1.3 !important;
+    font-size: 10.5px !important;
+  }
   body.${c} ul {
     margin: 2px 0 2px 0 !important;
     padding-left: 14px !important;
