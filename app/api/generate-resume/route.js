@@ -143,7 +143,7 @@ function getStandardOnePagePdfOverrides(template) {
     layoutExtra = `
   body.${c} .resume-header {
     text-align: center !important;
-    margin-bottom: 6pt !important;
+    margin-bottom: 10pt !important;
   }
   body.${c} h1.resume-name {
     font-size: 24pt !important;
@@ -159,7 +159,7 @@ function getStandardOnePagePdfOverrides(template) {
   body.${c} .resume-section-heading.ats-heading {
     font-size: 11pt !important;
     text-transform: none !important;
-    margin: 8pt 0 0 0 !important;
+    margin: 10pt 0 0 0 !important;
     padding-bottom: 0 !important;
     border: none !important;
   }
@@ -168,15 +168,16 @@ function getStandardOnePagePdfOverrides(template) {
     margin: 0 0 4pt 0 !important;
   }
   body.${c} .resume-section-block {
-    margin-bottom: 8pt !important;
+    margin-bottom: 10pt !important;
   }
   body.${c} .experience-item {
-    margin-bottom: 5pt !important;
+    margin-bottom: 8pt !important;
   }
   body.${c} .ats-bullet-row {
     margin-bottom: 1.5pt !important;
     padding-left: 0.15in !important;
     font-size: 10px !important;
+    line-height: 1.4 !important;
   }
   body.${c} .skill-group {
     margin-bottom: 4px !important;
