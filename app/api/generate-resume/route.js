@@ -17,6 +17,7 @@ import { runResumeCritic } from '@/lib/resumeGeneration/criticResume'
 import {
   getPdfStyles,
   PDF_MARGIN_IN,
+  getPdfMarginIn,
   buildReplacements,
   normalizeClientResumeContentForRender,
 } from '@/lib/resumeGeneration/renderResumeHtml'
@@ -175,11 +176,14 @@ function getStandardOnePagePdfOverrides(template) {
   body.${c} .ats-bullet-row {
     margin-bottom: 1.5pt !important;
     padding-left: 0.15in !important;
-    font-size: 10.5px !important;
+    font-size: 10px !important;
   }
   body.${c} .skill-group {
     margin-bottom: 4px !important;
-    font-size: 10.5px !important;
+    font-size: 10px !important;
+  }
+  body.${c} p {
+    font-size: 10px !important;
   }`
   }
   if (template === 'minimal') {
@@ -282,17 +286,19 @@ function getStandardOnePagePdfOverrides(template) {
   }`
   }
 
+  const bodyFont = template === 'ats' ? '10px' : '10.5px'
+
   return `
 <style id="one-page-${template}-pdf-overrides">
   body.${c} {
-    font-size: 10.5px !important;
+    font-size: ${bodyFont} !important;
     line-height: 1.3 !important;
     margin: 0 !important;
-    padding: 12px 16px !important;
+    padding: ${template === 'ats' ? '0' : '12px 16px'} !important;
     box-sizing: border-box !important;
   }
   body.${c} h1 {
-    font-size: 14px !important;
+    font-size: ${template === 'ats' ? '24pt' : '14px'} !important;
     font-weight: bold !important;
     margin: 0 0 4px 0 !important;
     line-height: 1.2 !important;
@@ -309,7 +315,7 @@ function getStandardOnePagePdfOverrides(template) {
   body.${c} p {
     margin-bottom: 6px !important;
     line-height: 1.3 !important;
-    font-size: 10.5px !important;
+    font-size: ${bodyFont} !important;
   }
   body.${c} .contact-line {
     font-size: 10px !important;
@@ -336,7 +342,7 @@ function getStandardOnePagePdfOverrides(template) {
     margin: 0 0 2px 0 !important;
     padding-left: 0.25in !important;
     line-height: 1.3 !important;
-    font-size: 10.5px !important;
+    font-size: ${bodyFont} !important;
   }
   body.${c} .ats-bullet-marker {
     flex-shrink: 0 !important;
@@ -353,7 +359,7 @@ function getStandardOnePagePdfOverrides(template) {
   body.${c} li {
     margin-bottom: 1px !important;
     line-height: 1.3 !important;
-    font-size: 10.5px !important;
+    font-size: ${bodyFont} !important;
   }
   body.${c} .education-item .edu-row,
   body.${c} .education-item .edu-gpa,
@@ -380,7 +386,7 @@ function getStandardOnePagePdfOverrides(template) {
     margin-bottom: 4px !important;
   }
   body.${c} .skill-group {
-    font-size: 10.5px !important;
+    font-size: ${bodyFont} !important;
     line-height: 1.3 !important;
     margin-bottom: 6px !important;
   }
@@ -716,10 +722,10 @@ export async function POST(request) {
           format: 'A4',
           printBackground: true,
           margin: {
-            top: PDF_MARGIN_IN,
-            right: PDF_MARGIN_IN,
-            bottom: PDF_MARGIN_IN,
-            left: PDF_MARGIN_IN,
+            top: getPdfMarginIn(template),
+            right: getPdfMarginIn(template),
+            bottom: getPdfMarginIn(template),
+            left: getPdfMarginIn(template),
           },
         })
       } catch (pdfErr) {
