@@ -19,6 +19,7 @@ import {
   PDF_MARGIN_IN,
   getPdfMarginIn,
   buildReplacements,
+  fitContentForTemplate,
   normalizeClientResumeContentForRender,
 } from '@/lib/resumeGeneration/renderResumeHtml'
 
@@ -668,8 +669,12 @@ export async function POST(request) {
       document = await runResumeCritic(anthropic, document, profileForAi)
       ;({ document, skillGroups, flatSkills } = normalizeResumeDocument(document, profileForAi))
 
+      // Fit AFTER critic pass so restored bullets/skills cannot overflow page 1.
+      document = fitContentForTemplate(document, template)
+      ;({ document, skillGroups, flatSkills } = normalizeResumeDocument(document, profileForAi))
+
       contentOut = toLegacyContentOut(document, skillGroups, flatSkills)
-      replacements = buildReplacements(document, template)
+      replacements = buildReplacements(document, template, { skipFit: true })
     }
 
     const templatePath = join(process.cwd(), 'public', 'templates', `${template}.html`)
