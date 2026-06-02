@@ -142,7 +142,7 @@ function getStandardOnePagePdfOverrides(template) {
     layoutExtra = `
   body.${c} .resume-header {
     text-align: center !important;
-    margin-bottom: 12px !important;
+    margin-bottom: 6pt !important;
   }
   body.${c} h1.resume-name {
     font-size: 24pt !important;
@@ -152,27 +152,28 @@ function getStandardOnePagePdfOverrides(template) {
   }
   body.${c} .resume-contact {
     text-align: center !important;
-    font-size: 10.5pt !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
   }
   body.${c} .resume-section-heading.ats-heading {
     font-size: 11pt !important;
     text-transform: none !important;
-    margin: 10px 0 0 0 !important;
+    margin: 8pt 0 0 0 !important;
     padding-bottom: 0 !important;
     border: none !important;
   }
   body.${c} .ats-section-rule {
     border-top: 0.5pt solid #000 !important;
-    margin: 3px 0 8px 0 !important;
+    margin: 0 0 4pt 0 !important;
   }
   body.${c} .resume-section-block {
-    margin-bottom: 12px !important;
+    margin-bottom: 8pt !important;
   }
   body.${c} .experience-item {
-    margin-bottom: 6px !important;
+    margin-bottom: 5pt !important;
   }
   body.${c} .ats-bullet-row {
-    margin-bottom: 2px !important;
+    margin-bottom: 1.5pt !important;
     padding-left: 0.15in !important;
     font-size: 10.5px !important;
   }
