@@ -39,8 +39,17 @@ const MODERN_PDF_MARGINS = {
   left: '0in',
 }
 
+/** Minimal PDF: 0.6in top/bottom, 0.7in left/right (Puppeteer needs per-side values). */
+const MINIMAL_PDF_MARGINS = {
+  top: '0.6in',
+  right: '0.7in',
+  bottom: '0.6in',
+  left: '0.7in',
+}
+
 function pdfMarginsForTemplate(template, fitAdjustments = null) {
   if (template === 'modern') return MODERN_PDF_MARGINS
+  if (template === 'minimal') return MINIMAL_PDF_MARGINS
   const m = getPdfMarginIn(template, fitAdjustments)
   return { top: m, right: m, bottom: m, left: m }
 }
