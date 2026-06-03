@@ -143,49 +143,55 @@ function getStandardOnePagePdfOverrides(template) {
   if (template === 'ats') {
     layoutExtra = `
   body.${c} .resume-header {
-    text-align: center !important;
-    margin-bottom: 10pt !important;
+    text-align: left !important;
+    margin: 0 0 8pt 0 !important;
   }
   body.${c} h1.resume-name {
-    font-size: 24pt !important;
-    text-align: center !important;
-    margin: 0 0 6pt 0 !important;
-    font-family: Georgia, Garamond, serif !important;
+    font-size: 28pt !important;
+    text-align: left !important;
+    margin: 0 !important;
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+  }
+  body.${c} .ats-name-rule {
+    border-top: 0.5pt solid #000 !important;
+    margin: 4pt 0 6pt 0 !important;
   }
   body.${c} .resume-contact {
-    text-align: center !important;
-    white-space: nowrap !important;
+    text-align: left !important;
+    white-space: normal !important;
     margin: 0 !important;
+    font-size: 10pt !important;
+    font-weight: normal !important;
   }
   body.${c} .resume-section-heading.ats-heading {
     font-size: 11pt !important;
-    text-transform: none !important;
-    margin: 10pt 0 0 0 !important;
+    text-transform: uppercase !important;
+    margin: 0 !important;
     padding-bottom: 0 !important;
     border: none !important;
   }
   body.${c} .ats-section-rule {
     border-top: 0.5pt solid #000 !important;
-    margin: 0 0 4pt 0 !important;
+    margin: 2pt 0 6pt 0 !important;
   }
   body.${c} .resume-section-block {
-    margin-bottom: 10pt !important;
+    margin-bottom: 12pt !important;
   }
   body.${c} .experience-item {
-    margin-bottom: 8pt !important;
+    margin-bottom: 10pt !important;
   }
   body.${c} .ats-bullet-row {
-    margin-bottom: 1.5pt !important;
-    padding-left: 0.15in !important;
-    font-size: 10px !important;
+    margin-bottom: 3pt !important;
+    padding-left: 0.12in !important;
+    font-size: 10.5pt !important;
     line-height: 1.4 !important;
   }
   body.${c} .skill-group {
-    margin-bottom: 4px !important;
-    font-size: 10px !important;
+    margin-bottom: 4pt !important;
+    font-size: 10.5pt !important;
   }
   body.${c} p {
-    font-size: 10px !important;
+    font-size: 10.5pt !important;
   }`
   }
   if (template === 'minimal') {
@@ -288,7 +294,7 @@ function getStandardOnePagePdfOverrides(template) {
   }`
   }
 
-  const bodyFont = template === 'ats' ? '10px' : '10.5px'
+  const bodyFont = template === 'ats' ? '10.5pt' : '10.5px'
 
   return `
 <style id="one-page-${template}-pdf-overrides">
@@ -300,7 +306,7 @@ function getStandardOnePagePdfOverrides(template) {
     box-sizing: border-box !important;
   }
   body.${c} h1 {
-    font-size: ${template === 'ats' ? '24pt' : '14px'} !important;
+    font-size: ${template === 'ats' ? '28pt' : '14px'} !important;
     font-weight: bold !important;
     margin: 0 0 4px 0 !important;
     line-height: 1.2 !important;
