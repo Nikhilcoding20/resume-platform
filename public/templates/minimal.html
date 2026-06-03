@@ -1,53 +1,11 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="margin:0;padding:0;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resume - Minimal</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <style>
-    body.tpl-minimal {
-      margin: 0 auto;
-      padding: 0;
-      font-family: Inter, 'Helvetica Neue', Helvetica, Arial, sans-serif;
-      font-size: 10.5pt;
-      line-height: 1.45;
-      color: #1a1a1a;
-      background: #fff;
-      max-width: 8.5in;
-      box-sizing: border-box;
-    }
-    body.tpl-minimal .resume-name {
-      margin: 0 0 26pt 0;
-      font-size: 26pt;
-      font-weight: 300;
-      line-height: 1.1;
-      color: #1a1a1a;
-    }
-    body.tpl-minimal .resume-contact {
-      margin: 0 0 0 0;
-      font-size: 10pt;
-      color: #666666;
-      line-height: 1.4;
-    }
-  </style>
 </head>
-<body class="tpl-minimal">
-  <header style="margin-bottom: 0;">
-    <h1 class="resume-name">{{name}}</h1>
-    <p class="resume-contact">{{contact_line}}</p>
-    {{contact_urls_block}}
-  </header>
-
-  {{summary_block}}
-
-  <div class="resume-experience-block resume-section">
-    <h2 class="resume-section-heading minimal-heading" style="margin:18px 0 7px 0;font-size:9.5pt;font-weight:400;letter-spacing:0.18em;text-transform:uppercase;">Experience</h2>
-    {{experience}}
-  </div>
-
-  {{education_block}}
-  {{certifications_block}}
-  {{skills_block}}
+<body class="tpl-minimal" style="margin:0;padding:0;width:100%;background-color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:9.5pt;line-height:1.45;color:#2d2d2d;">
+  {{minimal_content}}
 </body>
 </html>

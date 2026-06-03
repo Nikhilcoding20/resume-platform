@@ -157,17 +157,24 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
   }
   if (template === 'minimal') {
     layoutExtra = `
-  body.${c} > div {
-    margin-bottom: 10px !important;
-    padding-top: 8px !important;
+  body.${c} {
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 9.5pt !important;
+    line-height: 1.45 !important;
+    color: #2d2d2d !important;
+    background: #ffffff !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  body.${c} > div:first-child {
-    margin-bottom: 8px !important;
-    padding-top: 0 !important;
-    border: none !important;
+  body.${c} h1 {
+    font-family: Georgia, 'Times New Roman', Times, serif !important;
+    font-size: 32pt !important;
+    font-weight: 700 !important;
   }
-  body.${c} > div:last-child {
-    margin-bottom: 0 !important;
+  body.${c} .minimal-job,
+  body.${c} .minimal-edu,
+  body.${c} .minimal-section-head {
+    page-break-inside: avoid !important;
   }`
   }
   if (template === 'creative') {
