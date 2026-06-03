@@ -34,95 +34,81 @@ function jsonError(message, status = 500) {
   return NextResponse.json({ error: message }, { status })
 }
 
-/** PDF-only overrides for modern template (global PDF_STYLES target 11px). */
+/** PDF-only overrides for modern two-column table layout (no flex/grid on text). */
 const MODERN_RESUME_PDF_OVERRIDES = `
 <style id="modern-resume-pdf-overrides">
-  body {
-    font-size: 10px !important;
+  body.tpl-modern {
+    font-family: Arial, Helvetica, sans-serif !important;
+    font-size: 10pt !important;
     line-height: 1.35 !important;
+    margin: 0 !important;
+    padding: 0 !important;
   }
-  body > div:first-child {
-    width: 168px !important;
-    max-width: 168px !important;
-    padding: 18px 10px 14px !important;
-    box-sizing: border-box !important;
+  body.tpl-modern table.modern-table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
   }
-  body > div:first-child h1 {
-    font-size: 14px !important;
-    line-height: 1.2 !important;
-    margin: 0 0 8px 0 !important;
+  body.tpl-modern td.modern-sidebar-cell {
+    width: 30% !important;
+    vertical-align: top !important;
+    background: #1e3a5f !important;
+    color: #ffffff !important;
+    padding: 16pt 12pt !important;
   }
-  body > div:first-child p {
-    font-size: 10px !important;
+  body.tpl-modern td.modern-main-cell {
+    width: 70% !important;
+    vertical-align: top !important;
+    background: #ffffff !important;
+    color: #1a1a1a !important;
+    padding: 16pt 14pt !important;
+  }
+  body.tpl-modern td.modern-sidebar-cell h1.resume-name {
+    font-size: 22pt !important;
+    line-height: 1.15 !important;
+    margin: 0 0 12pt 0 !important;
+    color: #ffffff !important;
+  }
+  body.tpl-modern td.modern-sidebar-cell p {
+    font-size: 9.5pt !important;
     line-height: 1.35 !important;
-    margin: 0 0 5px 0 !important;
+    margin: 0 0 5pt 0 !important;
+    color: #e2e8f0 !important;
   }
-  body > div:nth-child(2).modern-main {
-    padding: 18px 16px !important;
-    box-sizing: border-box !important;
+  body.tpl-modern td.modern-sidebar-cell p.sidebar-label {
+    font-size: 9pt !important;
+    font-weight: bold !important;
+    color: #ffffff !important;
+    margin: 12pt 0 4pt 0 !important;
   }
-  .modern-main > h2,
-  .modern-main .resume-education-block > h2,
-  .modern-main .resume-certifications-block > h2 {
-    font-size: 12px !important;
-    margin: 8px 0 4px 0 !important;
-    padding-bottom: 3px !important;
+  body.tpl-modern td.modern-main-cell h2.modern-heading,
+  body.tpl-modern td.modern-main-cell .resume-section-heading.modern-heading {
+    font-size: 10.5pt !important;
+    margin: 0 0 6pt 0 !important;
+    padding-bottom: 3pt !important;
     line-height: 1.2 !important;
-    color: #2563eb !important;
-    border-bottom-color: #2563eb !important;
+    color: #1e3a5f !important;
+    border-bottom: 2px solid #1e3a5f !important;
   }
-  .modern-main > p,
-  .modern-main .resume-education-block,
-  .modern-main .resume-certifications-block {
-    font-size: 10px !important;
+  body.tpl-modern td.modern-main-cell p,
+  body.tpl-modern td.modern-main-cell li {
+    font-size: 10pt !important;
+    line-height: 1.3 !important;
   }
-  .modern-main .experience-item {
-    margin-bottom: 4px !important;
+  body.tpl-modern td.modern-main-cell .experience-item {
+    margin-bottom: 8pt !important;
     page-break-inside: avoid !important;
   }
-  .modern-main .experience-item > p {
-    font-size: 10px !important;
-    font-weight: bold !important;
-    margin: 0 0 3px 0 !important;
-    line-height: 1.25 !important;
+  body.tpl-modern td.modern-main-cell .experience-item ul {
+    margin: 2pt 0 0 0 !important;
+    padding-left: 14pt !important;
   }
-  .modern-main .experience-item ul {
-    margin: 1px 0 2px 0 !important;
-    padding-left: 13px !important;
+  body.tpl-modern td.modern-main-cell .education-item {
+    margin-bottom: 8pt !important;
+    page-break-inside: avoid !important;
   }
-  .modern-main .experience-item li {
-    margin-bottom: 1px !important;
-    line-height: 1.25 !important;
-    font-size: 10px !important;
-  }
-  .modern-main .education-item .edu-row,
-  .modern-main .education-item .edu-gpa,
-  .modern-main .education-item ul.edu-honors,
-  .modern-main .education-item ul.edu-honors li,
-  .modern-main .cert-item p {
-    font-size: 10px !important;
-    line-height: 1.25 !important;
-    margin-bottom: 0 !important;
-  }
-  .modern-main .education-item .edu-gpa {
-    margin: 2px 0 0 0 !important;
-  }
-  .modern-main .education-item ul.edu-honors {
-    margin: 2px 0 0 0 !important;
-    padding-left: 13px !important;
-  }
-  .modern-main .education-item ul.edu-honors li {
-    margin-bottom: 1px !important;
-  }
-  .modern-main .cert-item p {
-    margin-bottom: 3px !important;
-  }
-  .modern-main .skill-group {
-    font-size: 10px !important;
-    line-height: 1.35 !important;
-  }
-  .modern-main .resume-section {
-    margin-bottom: 6px !important;
+  body.tpl-modern td.modern-main-cell .resume-summary-block {
+    margin-bottom: 10pt !important;
   }
 </style>
 `
