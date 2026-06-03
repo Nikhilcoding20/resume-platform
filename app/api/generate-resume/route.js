@@ -18,8 +18,10 @@ import {
   getPdfStyles,
   PDF_MARGIN_IN,
   getPdfMarginIn,
+  resolveAtsLayout,
   buildReplacements,
   fitContentForTemplate,
+  applyAtsContentCaps,
   normalizeClientResumeContentForRender,
 } from '@/lib/resumeGeneration/renderResumeHtml'
 
@@ -136,18 +138,19 @@ function usesOnePageCompactFormatters(template) {
  * PDF overrides for ATS, minimal, and creative (scoped by body.tpl-*).
  * Mirrors the intent of MODERN_RESUME_PDF_OVERRIDES: ~10–10.5px body, 12px section headings, tight line-height.
  */
-function getStandardOnePagePdfOverrides(template) {
+function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
   if (!['ats', 'minimal', 'creative'].includes(template)) return ''
   const c = `tpl-${template}`
   let layoutExtra = ''
   if (template === 'ats') {
+    const layout = resolveAtsLayout(fitAdjustments)
     layoutExtra = `
   body.${c} .resume-header {
     text-align: left !important;
     margin: 0 0 8pt 0 !important;
   }
   body.${c} h1.resume-name {
-    font-size: 28pt !important;
+    font-size: ${layout.namePt}pt !important;
     text-align: left !important;
     margin: 0 !important;
     font-family: Georgia, 'Times New Roman', Times, serif !important;
@@ -175,23 +178,23 @@ function getStandardOnePagePdfOverrides(template) {
     margin: 2pt 0 6pt 0 !important;
   }
   body.${c} .resume-section-block {
-    margin-bottom: 12pt !important;
+    margin-bottom: ${layout.sectionSpacing} !important;
   }
   body.${c} .experience-item {
-    margin-bottom: 10pt !important;
+    margin-bottom: ${layout.jobBlockSpacing} !important;
   }
   body.${c} .ats-bullet-row {
     margin-bottom: 3pt !important;
     padding-left: 0.12in !important;
-    font-size: 10.5pt !important;
-    line-height: 1.4 !important;
+    font-size: ${layout.bodyPt}pt !important;
+    line-height: ${layout.lineHeight} !important;
   }
   body.${c} .skill-group {
     margin-bottom: 4pt !important;
-    font-size: 10.5pt !important;
+    font-size: ${layout.bodyPt}pt !important;
   }
   body.${c} p {
-    font-size: 10.5pt !important;
+    font-size: ${layout.bodyPt}pt !important;
   }`
   }
   if (template === 'minimal') {
@@ -294,7 +297,8 @@ function getStandardOnePagePdfOverrides(template) {
   }`
   }
 
-  const bodyFont = template === 'ats' ? '10.5pt' : '10.5px'
+  const atsLayout = template === 'ats' ? resolveAtsLayout(fitAdjustments) : null
+  const bodyFont = template === 'ats' ? `${atsLayout.bodyPt}pt` : '10.5px'
 
   return `
 <style id="one-page-${template}-pdf-overrides">
@@ -306,7 +310,7 @@ function getStandardOnePagePdfOverrides(template) {
     box-sizing: border-box !important;
   }
   body.${c} h1 {
-    font-size: ${template === 'ats' ? '28pt' : '14px'} !important;
+    font-size: ${template === 'ats' ? `${atsLayout.namePt}pt` : '14px'} !important;
     font-weight: bold !important;
     margin: 0 0 4px 0 !important;
     line-height: 1.2 !important;
@@ -412,9 +416,9 @@ function getStandardOnePagePdfOverrides(template) {
 `
 }
 
-function pdfInjectionForTemplate(template) {
+function pdfInjectionForTemplate(template, fitAdjustments = null) {
   if (template === 'modern') return MODERN_RESUME_PDF_OVERRIDES
-  return getStandardOnePagePdfOverrides(template)
+  return getStandardOnePagePdfOverrides(template, fitAdjustments)
 }
 
 /** Inject PDF-only style blocks into <head> — never into body. */
@@ -610,11 +614,17 @@ export async function POST(request) {
 
     let replacements
     let contentOut
+    let document = null
 
     if (isRenderOnly) {
-      const { output, replacements: r } = normalizeClientResumeContentForRender(clientResumeContent, profile, template)
+      const { output, replacements: r, document: renderDoc } = normalizeClientResumeContentForRender(
+        clientResumeContent,
+        profile,
+        template
+      )
       contentOut = output
       replacements = r
+      document = renderDoc
     } else {
       const anthropic = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY })
 
@@ -677,7 +687,12 @@ export async function POST(request) {
 
       // Fit AFTER critic pass so restored bullets/skills cannot overflow page 1.
       document = fitContentForTemplate(document, template)
+      const atsFitAdjustments = document._fitAdjustments
       ;({ document, skillGroups, flatSkills } = normalizeResumeDocument(document, profileForAi))
+      if (template === 'ats') {
+        applyAtsContentCaps(document)
+        document._fitAdjustments = atsFitAdjustments
+      }
 
       contentOut = toLegacyContentOut(document, skillGroups, flatSkills)
       replacements = buildReplacements(document, template, { skipFit: true })
@@ -696,10 +711,11 @@ export async function POST(request) {
       filledHtml = filledHtml.replaceAll(placeholder, value)
     }
 
+    const pdfFitAdjustments = template === 'ats' && document ? document._fitAdjustments : null
     filledHtml = injectPdfStylesIntoHead(
       filledHtml,
-      getPdfStyles(template),
-      pdfInjectionForTemplate(template)
+      getPdfStyles(template, pdfFitAdjustments),
+      pdfInjectionForTemplate(template, pdfFitAdjustments)
     )
 
     const filename = (() => {
