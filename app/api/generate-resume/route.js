@@ -3,6 +3,7 @@ import { readFile } from 'fs/promises'
 import { join } from 'path'
 import Anthropic from '@anthropic-ai/sdk'
 import { launchChromiumForPdf } from '@/lib/launchChromiumForPdf'
+import { countPdfPages } from '@/lib/countPdfPages'
 import { createClient } from '@supabase/supabase-js'
 import { getUsage, canCreateResumeForUser } from '@/lib/checkUsage'
 import { persistGeneratedResumeServer } from '@/lib/persistGeneratedResumeServer'
@@ -19,6 +20,8 @@ import {
   PDF_MARGIN_IN,
   getPdfMarginIn,
   resolveAtsLayout,
+  getDefaultAtsFitAdjustments,
+  getTightAtsFitAdjustments,
   buildReplacements,
   fitContentForTemplate,
   applyAtsContentCaps,
@@ -175,7 +178,7 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
   }
   body.${c} .ats-section-rule {
     border-top: 0.5pt solid #000 !important;
-    margin: 2pt 0 6pt 0 !important;
+    margin: 2pt 0 ${layout.sectionRuleAfter} !important;
   }
   body.${c} .resume-section-block {
     margin-bottom: ${layout.sectionSpacing} !important;
@@ -184,17 +187,19 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
     margin-bottom: ${layout.jobBlockSpacing} !important;
   }
   body.${c} .ats-bullet-row {
-    margin-bottom: 3pt !important;
+    margin-bottom: ${layout.bulletGap} !important;
     padding-left: 0.12in !important;
-    font-size: ${layout.bodyPt}pt !important;
+    font-size: ${layout.compactPt}pt !important;
     line-height: ${layout.lineHeight} !important;
   }
   body.${c} .skill-group {
-    margin-bottom: 4pt !important;
-    font-size: ${layout.bodyPt}pt !important;
+    margin-bottom: 2pt !important;
+    font-size: ${layout.compactPt}pt !important;
+    line-height: ${layout.lineHeight} !important;
   }
-  body.${c} p {
-    font-size: ${layout.bodyPt}pt !important;
+  body.${c} .cert-item p {
+    font-size: ${layout.compactPt}pt !important;
+    line-height: ${layout.lineHeight} !important;
   }`
   }
   if (template === 'minimal') {
@@ -691,7 +696,7 @@ export async function POST(request) {
       ;({ document, skillGroups, flatSkills } = normalizeResumeDocument(document, profileForAi))
       if (template === 'ats') {
         applyAtsContentCaps(document)
-        document._fitAdjustments = atsFitAdjustments
+        document._fitAdjustments = atsFitAdjustments || getDefaultAtsFitAdjustments()
       }
 
       contentOut = toLegacyContentOut(document, skillGroups, flatSkills)
@@ -706,17 +711,52 @@ export async function POST(request) {
       return jsonError('Template file not found', 500)
     }
 
-    let filledHtml = templateHtml
-    for (const [placeholder, value] of Object.entries(replacements)) {
-      filledHtml = filledHtml.replaceAll(placeholder, value)
+    function fillTemplateWithReplacements(html, reps) {
+      let out = html
+      for (const [placeholder, value] of Object.entries(reps)) {
+        out = out.replaceAll(placeholder, value)
+      }
+      return out
     }
 
-    const pdfFitAdjustments = template === 'ats' && document ? document._fitAdjustments : null
-    filledHtml = injectPdfStylesIntoHead(
-      filledHtml,
-      getPdfStyles(template, pdfFitAdjustments),
-      pdfInjectionForTemplate(template, pdfFitAdjustments)
-    )
+    function htmlForPdf(reps, fitAdjustments) {
+      const filled = fillTemplateWithReplacements(templateHtml, reps)
+      return injectPdfStylesIntoHead(
+        filled,
+        getPdfStyles(template, fitAdjustments),
+        pdfInjectionForTemplate(template, fitAdjustments)
+      )
+    }
+
+    async function generatePdfBuffer(browser, html, fitAdjustments) {
+      const page = await browser.newPage()
+      try {
+        await page.setContent(html, {
+          waitUntil: 'networkidle0',
+          timeout: 10000,
+        })
+        return await page.pdf({
+          format: 'A4',
+          printBackground: true,
+          margin: {
+            top: getPdfMarginIn(template, fitAdjustments),
+            right: getPdfMarginIn(template, fitAdjustments),
+            bottom: getPdfMarginIn(template, fitAdjustments),
+            left: getPdfMarginIn(template, fitAdjustments),
+          },
+        })
+      } finally {
+        await page.close()
+      }
+    }
+
+    let pdfFitAdjustments = template === 'ats' && document ? document._fitAdjustments : null
+    if (template === 'ats' && document && !pdfFitAdjustments) {
+      pdfFitAdjustments = getDefaultAtsFitAdjustments()
+      document._fitAdjustments = pdfFitAdjustments
+    }
+
+    let filledHtml = htmlForPdf(replacements, pdfFitAdjustments)
 
     const filename = (() => {
       const name = (profile.full_name || '').trim()
@@ -738,24 +778,25 @@ export async function POST(request) {
     }
 
     try {
-      const page = await browser.newPage()
-      await page.setContent(filledHtml, {
-        waitUntil: 'networkidle0',
-        timeout: 10000,
-      })
-
       let pdfBuffer
       try {
-        pdfBuffer = await page.pdf({
-          format: 'A4',
-          printBackground: true,
-          margin: {
-            top: getPdfMarginIn(template),
-            right: getPdfMarginIn(template),
-            bottom: getPdfMarginIn(template),
-            left: getPdfMarginIn(template),
-          },
-        })
+        pdfBuffer = await generatePdfBuffer(browser, filledHtml, pdfFitAdjustments)
+
+        if (template === 'ats' && document) {
+          let pageCount = await countPdfPages(pdfBuffer)
+          if (pageCount > 1) {
+            console.log('[generate-resume] ATS PDF has', pageCount, 'pages; applying tight layout (0.35in margins, 1.15 line-height)')
+            pdfFitAdjustments = getTightAtsFitAdjustments()
+            document._fitAdjustments = pdfFitAdjustments
+            replacements = buildReplacements(document, template, { skipFit: true })
+            filledHtml = htmlForPdf(replacements, pdfFitAdjustments)
+            pdfBuffer = await generatePdfBuffer(browser, filledHtml, pdfFitAdjustments)
+            pageCount = await countPdfPages(pdfBuffer)
+            if (pageCount > 1) {
+              console.warn('[generate-resume] ATS PDF still has', pageCount, 'pages after tight layout')
+            }
+          }
+        }
       } catch (pdfErr) {
         console.error('[generate-resume] page.pdf() failed:', pdfErr)
         throw new Error('PDF generation failed')
