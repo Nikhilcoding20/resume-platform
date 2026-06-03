@@ -52,7 +52,8 @@ function jsonError(message, status = 500) {
 /** PDF overrides for Modern — inline styles carry layout; ensure backgrounds print. */
 const MODERN_RESUME_PDF_OVERRIDES = `
 <style id="modern-resume-pdf-overrides">
-  body.tpl-modern {
+  html, body.tpl-modern {
+    height: 100% !important;
     margin: 0 !important;
     padding: 0 !important;
     font-family: Arial, Helvetica, sans-serif !important;
@@ -61,8 +62,20 @@ const MODERN_RESUME_PDF_OVERRIDES = `
   }
   body.tpl-modern table {
     width: 100% !important;
+    height: 100% !important;
+    min-height: 11in !important;
     border-collapse: collapse !important;
     table-layout: fixed !important;
+  }
+  body.tpl-modern table > tbody > tr,
+  body.tpl-modern table > tr {
+    height: 100% !important;
+  }
+  body.tpl-modern td:first-child {
+    height: 100% !important;
+    min-height: 11in !important;
+    vertical-align: top !important;
+    background-color: #2d3748 !important;
   }
 </style>
 `
