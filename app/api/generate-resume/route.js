@@ -25,10 +25,25 @@ import {
   buildReplacements,
   fitContentForTemplate,
   applyAtsContentCaps,
+  applyModernContentCaps,
   normalizeClientResumeContentForRender,
 } from '@/lib/resumeGeneration/renderResumeHtml'
 
 const VALID_TEMPLATES = ['ats', 'modern', 'minimal', 'creative']
+
+/** Modern PDF: zero page margins; spacing comes from cell padding in the template. */
+const MODERN_PDF_MARGINS = {
+  top: '0in',
+  right: '0in',
+  bottom: '0in',
+  left: '0in',
+}
+
+function pdfMarginsForTemplate(template, fitAdjustments = null) {
+  if (template === 'modern') return MODERN_PDF_MARGINS
+  const m = getPdfMarginIn(template, fitAdjustments)
+  return { top: m, right: m, bottom: m, left: m }
+}
 
 function jsonError(message, status = 500) {
   return NextResponse.json({ error: message }, { status })
@@ -52,34 +67,43 @@ const MODERN_RESUME_PDF_OVERRIDES = `
   body.tpl-modern td.modern-sidebar-cell {
     width: 30% !important;
     vertical-align: top !important;
-    background: #1e3a5f !important;
-    color: #ffffff !important;
-    padding: 16pt 12pt !important;
+    background: #f4f5f8 !important;
+    padding: 20px !important;
+  }
+  body.tpl-modern table.sidebar-inner {
+    width: 100% !important;
+    height: 9.4in !important;
+    border-collapse: collapse !important;
+  }
+  body.tpl-modern td.sidebar-bottom {
+    vertical-align: bottom !important;
   }
   body.tpl-modern td.modern-main-cell {
     width: 70% !important;
     vertical-align: top !important;
     background: #ffffff !important;
     color: #1a1a1a !important;
-    padding: 16pt 14pt !important;
+    padding: 20px !important;
   }
   body.tpl-modern td.modern-sidebar-cell h1.resume-name {
     font-size: 22pt !important;
-    line-height: 1.15 !important;
-    margin: 0 0 12pt 0 !important;
-    color: #ffffff !important;
+    line-height: 1.1 !important;
+    margin: 0 0 10pt 0 !important;
+    color: #1a1a2e !important;
+    white-space: nowrap !important;
   }
   body.tpl-modern td.modern-sidebar-cell p {
     font-size: 9.5pt !important;
     line-height: 1.35 !important;
-    margin: 0 0 5pt 0 !important;
-    color: #e2e8f0 !important;
+    margin: 0 0 4pt 0 !important;
+    color: #1a1a1a !important;
   }
-  body.tpl-modern td.modern-sidebar-cell p.sidebar-label {
+  body.tpl-modern td.modern-sidebar-cell p.sidebar-label,
+  body.tpl-modern td.modern-sidebar-cell p.sidebar-skill-cat {
     font-size: 9pt !important;
     font-weight: bold !important;
-    color: #ffffff !important;
-    margin: 12pt 0 4pt 0 !important;
+    color: #1a1a2e !important;
+    margin: 10pt 0 4pt 0 !important;
   }
   body.tpl-modern td.modern-main-cell h2.modern-heading,
   body.tpl-modern td.modern-main-cell .resume-section-heading.modern-heading {
@@ -87,8 +111,8 @@ const MODERN_RESUME_PDF_OVERRIDES = `
     margin: 0 0 6pt 0 !important;
     padding-bottom: 3pt !important;
     line-height: 1.2 !important;
-    color: #1e3a5f !important;
-    border-bottom: 2px solid #1e3a5f !important;
+    color: #1a1a2e !important;
+    border-bottom: 2px solid #1a1a2e !important;
   }
   body.tpl-modern td.modern-main-cell p,
   body.tpl-modern td.modern-main-cell li {
@@ -99,9 +123,13 @@ const MODERN_RESUME_PDF_OVERRIDES = `
     margin-bottom: 8pt !important;
     page-break-inside: avoid !important;
   }
-  body.tpl-modern td.modern-main-cell .experience-item ul {
-    margin: 2pt 0 0 0 !important;
-    padding-left: 14pt !important;
+  body.tpl-modern td.modern-main-cell .modern-bullet-row {
+    font-size: 10pt !important;
+    line-height: 1.3 !important;
+    color: #1a1a1a !important;
+    margin: 0 0 2pt 0 !important;
+    padding-left: 10pt !important;
+    text-indent: -10pt !important;
   }
   body.tpl-modern td.modern-main-cell .education-item {
     margin-bottom: 8pt !important;
@@ -684,6 +712,9 @@ export async function POST(request) {
         applyAtsContentCaps(document)
         document._fitAdjustments = atsFitAdjustments || getDefaultAtsFitAdjustments()
       }
+      if (template === 'modern') {
+        applyModernContentCaps(document)
+      }
 
       contentOut = toLegacyContentOut(document, skillGroups, flatSkills)
       replacements = buildReplacements(document, template, { skipFit: true })
@@ -724,12 +755,7 @@ export async function POST(request) {
         return await page.pdf({
           format: 'A4',
           printBackground: true,
-          margin: {
-            top: getPdfMarginIn(template, fitAdjustments),
-            right: getPdfMarginIn(template, fitAdjustments),
-            bottom: getPdfMarginIn(template, fitAdjustments),
-            left: getPdfMarginIn(template, fitAdjustments),
-          },
+          margin: pdfMarginsForTemplate(template, fitAdjustments),
         })
       } finally {
         await page.close()

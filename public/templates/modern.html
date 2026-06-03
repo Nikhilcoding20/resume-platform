@@ -22,39 +22,62 @@
     td.modern-sidebar-cell {
       width: 30%;
       vertical-align: top;
-      background: #1e3a5f;
-      color: #ffffff;
-      padding: 16pt 12pt;
+      background: #f4f5f8;
+      padding: 20px;
     }
     td.modern-main-cell {
       width: 70%;
       vertical-align: top;
       background: #ffffff;
       color: #1a1a1a;
-      padding: 16pt 14pt;
+      padding: 20px;
     }
-    td.modern-sidebar-cell h1.resume-name {
-      margin: 0 0 12pt 0;
+    table.sidebar-inner {
+      width: 100%;
+      height: 9.4in;
+      border-collapse: collapse;
+    }
+    td.sidebar-top {
+      vertical-align: top;
+      height: 1%;
+    }
+    td.sidebar-bottom {
+      vertical-align: bottom;
+    }
+    h1.resume-name {
+      margin: 0 0 10pt 0;
       font-size: 22pt;
       font-weight: bold;
-      line-height: 1.15;
-      color: #ffffff;
+      line-height: 1.1;
+      color: #1a1a2e;
+      white-space: nowrap;
     }
-    td.modern-sidebar-cell p.sidebar-label {
-      margin: 12pt 0 4pt 0;
+    p.sidebar-label {
+      margin: 10pt 0 4pt 0;
       font-size: 9pt;
       font-weight: bold;
       text-transform: uppercase;
-      color: #ffffff;
+      color: #1a1a2e;
+    }
+    p.sidebar-skill-cat {
+      color: #1a1a2e;
     }
     td.modern-main-cell h2.modern-heading {
       margin: 0 0 6pt 0;
       font-size: 10.5pt;
       font-weight: bold;
       text-transform: uppercase;
-      color: #1e3a5f;
-      border-bottom: 2px solid #1e3a5f;
+      color: #1a1a2e;
+      border-bottom: 2px solid #1a1a2e;
       padding-bottom: 3px;
+    }
+    p.modern-bullet-row {
+      margin: 0 0 2pt 0;
+      padding-left: 10pt;
+      text-indent: -10pt;
+      font-size: 10pt;
+      color: #1a1a1a;
+      line-height: 1.3;
     }
   </style>
 </head>
@@ -62,13 +85,22 @@
   <table class="modern-table" cellpadding="0" cellspacing="0" border="0" width="100%">
     <tr>
       <td class="modern-sidebar-cell" valign="top">
-        <h1 class="resume-name">{{name}}</h1>
-        <p class="sidebar-label">Contact</p>
-        {{sidebar_contact}}
-        <p class="sidebar-label">Skills</p>
-        {{sidebar_skills}}
-        <p class="sidebar-label">Certifications</p>
-        {{sidebar_certifications}}
+        <table class="sidebar-inner" cellpadding="0" cellspacing="0" border="0" width="100%">
+          <tr>
+            <td class="sidebar-top" valign="top">
+              {{sidebar_name}}
+              <p class="sidebar-label">Contact</p>
+              {{sidebar_contact}}
+              <p class="sidebar-label">Skills</p>
+              {{sidebar_skills}}
+            </td>
+          </tr>
+          <tr>
+            <td class="sidebar-bottom" valign="bottom">
+              {{sidebar_certifications_block}}
+            </td>
+          </tr>
+        </table>
       </td>
       <td class="modern-main-cell" valign="top">
         {{summary_block}}
