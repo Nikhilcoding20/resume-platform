@@ -67,8 +67,8 @@ const MODERN_RESUME_PDF_OVERRIDES = `
   body.tpl-modern td.modern-sidebar-cell {
     width: 30% !important;
     vertical-align: top !important;
-    background: #f4f5f8 !important;
-    padding: 20px !important;
+    background: #f0f4f8 !important;
+    padding: 12px !important;
   }
   body.tpl-modern table.sidebar-inner {
     width: 100% !important;
@@ -125,9 +125,9 @@ const MODERN_RESUME_PDF_OVERRIDES = `
   }
   body.tpl-modern td.modern-main-cell .modern-bullet-row {
     font-size: 10pt !important;
-    line-height: 1.3 !important;
+    line-height: 1.35 !important;
     color: #1a1a1a !important;
-    margin: 0 0 2pt 0 !important;
+    margin: 0 0 4pt 0 !important;
     padding-left: 10pt !important;
     text-indent: -10pt !important;
   }
