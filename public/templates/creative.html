@@ -1,51 +1,20 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" style="margin:0;padding:0;">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Resume - Creative</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <style>
-    @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Source+Sans+3:wght@400;600&display=swap');
-    body.tpl-creative {
-      margin: 0 auto;
-      padding: 14pt 16pt;
-      font-family: 'Source Sans 3', 'Open Sans', Arial, sans-serif;
-      font-size: 10pt;
-      line-height: 1.4;
-      color: #1a1a1a;
-      background: #fff;
-      max-width: 8.5in;
-      box-sizing: border-box;
-    }
-    body.tpl-creative .resume-name {
-      margin: 0 0 8pt 0;
-      font-family: 'Playfair Display', Georgia, serif;
-      font-size: 36pt;
-      font-weight: 700;
-      line-height: 1.05;
-      color: #1e3a5f;
-    }
-    body.tpl-creative .resume-contact {
-      margin: 0 0 14pt 0;
-      font-size: 10pt;
-      color: #475569;
-      line-height: 1.4;
-    }
-  </style>
 </head>
-<body class="tpl-creative">
-  <header style="margin-bottom: 12pt;">
-    <h1 class="resume-name">{{name}}</h1>
-    <p class="resume-contact">{{contact_line}}</p>
-    {{contact_urls_block}}
+<body class="tpl-creative" style="margin:0;padding:0;width:100%;background-color:#ffffff;font-family:'Source Sans 3',Arial,Helvetica,sans-serif;font-size:9pt;line-height:1.3;color:#1a1a1a;">
+  <header class="creative-header" style="margin:0 0 8pt 0;">
+    <h1 class="resume-name" style="margin:0 0 6pt 0;font-family:'Playfair Display',Georgia,serif;font-size:28pt;font-weight:700;line-height:1.05;color:#1e3a5f;">{{name}}</h1>
+    <p class="resume-contact" style="margin:0;">{{contact_line}}</p>
   </header>
 
   {{summary_block}}
 
-  <div class="resume-experience-block resume-section">
-    <h2 class="resume-section-heading creative-heading" style="margin:0 0 10pt 0;font-size:12.5pt;font-weight:700;font-family:'Playfair Display',Georgia,serif;color:#1e3a5f;">Experience</h2>
-    {{experience}}
+  <div class="resume-experience-block resume-section" style="margin-bottom:6pt;">
+    {{experience_block}}
   </div>
 
   {{skills_block}}

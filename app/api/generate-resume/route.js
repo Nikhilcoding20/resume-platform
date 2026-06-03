@@ -25,6 +25,9 @@ import {
   getTightAtsFitAdjustments,
   getDefaultMinimalFitAdjustments,
   getTightMinimalFitAdjustments,
+  getDefaultCreativeFitAdjustments,
+  getTightCreativeFitAdjustments,
+  resolveCreativeLayout,
   buildReplacements,
   fitContentForTemplate,
   applyAtsContentCaps,
@@ -203,92 +206,62 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
   }`
   }
   if (template === 'creative') {
+    const layout = resolveCreativeLayout(fitAdjustments)
     layoutExtra = `
   body.${c} {
-    font-size: 10px !important;
-    line-height: 1.4 !important;
+    font-size: ${layout.bodyPt}pt !important;
+    line-height: ${layout.lineHeight} !important;
     padding: 0 !important;
-  }
-  body.${c} .creative-layout {
-    min-height: auto !important;
-  }
-  body.${c} .creative-left-header {
-    padding: 10px 12px !important;
-  }
-  body.${c} .creative-left-header h1 {
-    font-size: 14px !important;
     margin: 0 !important;
-    line-height: 1.2 !important;
   }
-  body.${c} .creative-left-header .creative-contact-line {
-    font-size: 10px !important;
-    margin: 6px 0 0 0 !important;
-    line-height: 1.4 !important;
+  body.${c} h1.resume-name {
+    font-size: 28pt !important;
+    margin: 0 0 6pt 0 !important;
+    line-height: 1.05 !important;
   }
-  body.${c} .creative-left-body {
-    padding: 8px 10px !important;
-  }
-  body.${c} .creative-col-right {
-    padding: 8px 12px !important;
-  }
-  body.${c} .creative-panel {
-    margin-bottom: 6px !important;
-    padding-left: 12px !important;
-  }
-  body.${c} .creative-col-right .resume-education-block,
-  body.${c} .creative-col-right .resume-certifications-block {
-    margin-bottom: 6px !important;
-    padding-left: 12px !important;
-  }
-  body.${c} p {
-    font-size: 10px !important;
-    line-height: 1.4 !important;
-  }
-  body.${c} li {
-    font-size: 10px !important;
-    line-height: 1.4 !important;
-  }
-  body.${c} .skill-group {
-    font-size: 10px !important;
-    line-height: 1.4 !important;
-  }
-  body.${c} .contact-line {
-    line-height: 1.4 !important;
-  }
-  body.${c} .education-item .edu-row,
-  body.${c} .education-item .edu-gpa,
-  body.${c} .education-item ul.edu-honors,
-  body.${c} .education-item ul.edu-honors li {
-    font-size: 10px !important;
-    line-height: 1.4 !important;
-  }
-  body.${c} .education-item .edu-gpa {
-    margin: 2px 0 0 0 !important;
-  }
-  body.${c} .education-item ul.edu-honors {
-    margin: 2px 0 0 0 !important;
-    padding-left: 14px !important;
-  }
-  body.${c} .education-item ul.edu-honors li {
-    margin-bottom: 1px !important;
-  }
-  body.${c} .cert-item p {
-    font-size: 10px !important;
-    line-height: 1.4 !important;
-  }
-  body.${c} .creative-h2 {
-    margin: 0 0 6px 0 !important;
+  body.${c} .creative-heading,
+  body.${c} .resume-education-block > h2,
+  body.${c} .resume-certifications-block > h2,
+  body.${c} .resume-skills-block > h2 {
+    white-space: nowrap !important;
+    letter-spacing: normal !important;
+    word-break: normal !important;
+    margin: 0 0 6pt 0 !important;
     padding-bottom: 0 !important;
   }
-  body.${c} .creative-col-right .resume-education-block > h2,
-  body.${c} .creative-col-right .resume-certifications-block > h2 {
-    margin: 0 0 6px 0 !important;
-    padding-bottom: 0 !important;
+  body.${c} .creative-contact-line,
+  body.${c} .resume-contact {
+    font-size: 9pt !important;
+    white-space: nowrap !important;
+    margin: 0 !important;
+  }
+  body.${c} .creative-skill-line {
+    font-size: ${layout.bodyPt}pt !important;
+    line-height: ${layout.lineHeight} !important;
+    margin-bottom: 4pt !important;
+  }
+  body.${c} .creative-job-card {
+    margin-bottom: ${layout.jobGap} !important;
+    page-break-inside: avoid !important;
+  }
+  body.${c} .resume-education-block,
+  body.${c} .resume-certifications-block,
+  body.${c} .resume-skills-block {
+    margin-bottom: ${layout.sectionGap} !important;
   }`
   }
 
   const atsLayout = template === 'ats' ? resolveAtsLayout(fitAdjustments) : null
-  const bodyFont = template === 'ats' ? `${atsLayout.bodyPt}pt` : '10.5px'
+  const creativeLayout = template === 'creative' ? resolveCreativeLayout(fitAdjustments) : null
+  const bodyFont =
+    template === 'ats'
+      ? `${atsLayout.bodyPt}pt`
+      : template === 'creative'
+        ? `${creativeLayout.bodyPt}pt`
+        : template === 'minimal'
+          ? '9.5pt'
+          : '10.5px'
+  const zeroPadTemplates = ['ats', 'minimal', 'creative']
 
   return `
 <style id="one-page-${template}-pdf-overrides">
@@ -296,7 +269,7 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
     font-size: ${bodyFont} !important;
     line-height: 1.3 !important;
     margin: 0 !important;
-    padding: ${template === 'ats' ? '0' : '12px 16px'} !important;
+    padding: ${zeroPadTemplates.includes(template) ? '0' : '12px 16px'} !important;
     box-sizing: border-box !important;
   }
   body.${c} h1 {
@@ -689,6 +662,9 @@ export async function POST(request) {
       if (template === 'minimal') {
         document._fitAdjustments = storedFitAdjustments || getDefaultMinimalFitAdjustments()
       }
+      if (template === 'creative') {
+        document._fitAdjustments = storedFitAdjustments || getDefaultCreativeFitAdjustments()
+      }
 
       contentOut = {
         ...toLegacyContentOut(document, skillGroups, flatSkills),
@@ -745,6 +721,9 @@ export async function POST(request) {
       document._fitAdjustments = pdfFitAdjustments
     } else if (template === 'minimal' && document) {
       pdfFitAdjustments = document._fitAdjustments || getDefaultMinimalFitAdjustments()
+      document._fitAdjustments = pdfFitAdjustments
+    } else if (template === 'creative' && document) {
+      pdfFitAdjustments = document._fitAdjustments || getDefaultCreativeFitAdjustments()
       document._fitAdjustments = pdfFitAdjustments
     }
 
@@ -811,6 +790,25 @@ export async function POST(request) {
             pageCount = await countPdfPages(pdfBuffer)
             if (pageCount > 1) {
               console.warn('[generate-resume] Minimal PDF still has', pageCount, 'pages after tight layout')
+            }
+          }
+        }
+
+        if (template === 'creative' && document) {
+          let pageCount = await countPdfPages(pdfBuffer)
+          if (pageCount > 1) {
+            console.log('[generate-resume] Creative PDF has', pageCount, 'pages; applying tight layout (0.25in margins, 8.5pt body)')
+            pdfFitAdjustments = getTightCreativeFitAdjustments()
+            document._fitAdjustments = pdfFitAdjustments
+            replacements = buildReplacements(document, template, { skipFit: true })
+            filledHtml = htmlForPdf(replacements, pdfFitAdjustments)
+            if (contentOut && typeof contentOut === 'object') {
+              contentOut.resumeText = htmlToPlainResumeText(filledHtml)
+            }
+            pdfBuffer = await generatePdfBuffer(browser, filledHtml, pdfFitAdjustments)
+            pageCount = await countPdfPages(pdfBuffer)
+            if (pageCount > 1) {
+              console.warn('[generate-resume] Creative PDF still has', pageCount, 'pages after tight layout')
             }
           }
         }
