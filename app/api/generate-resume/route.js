@@ -193,6 +193,9 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
   body.${c} .experience-item > p.minimal-job-title {
     font-weight: 400 !important;
   }
+  body.${c} .minimal-bullet-row {
+    margin-bottom: 0 !important;
+  }
   body.${c} .minimal-job,
   body.${c} .minimal-edu,
   body.${c} .minimal-section-head {
