@@ -20,13 +20,17 @@ import {
   PDF_MARGIN_IN,
   getPdfMarginIn,
   resolveAtsLayout,
+  resolveMinimalLayout,
   getDefaultAtsFitAdjustments,
   getTightAtsFitAdjustments,
+  getDefaultMinimalFitAdjustments,
+  getTightMinimalFitAdjustments,
   buildReplacements,
   fitContentForTemplate,
   applyAtsContentCaps,
   applyModernContentCaps,
   normalizeClientResumeContentForRender,
+  htmlToPlainResumeText,
 } from '@/lib/resumeGeneration/renderResumeHtml'
 
 const VALID_TEMPLATES = ['ats', 'modern', 'minimal', 'creative']
@@ -39,17 +43,9 @@ const MODERN_PDF_MARGINS = {
   left: '0in',
 }
 
-/** Minimal PDF: 0.6in top/bottom, 0.7in left/right (Puppeteer needs per-side values). */
-const MINIMAL_PDF_MARGINS = {
-  top: '0.6in',
-  right: '0.7in',
-  bottom: '0.6in',
-  left: '0.7in',
-}
-
+/** Minimal PDF margins are resolved from fit adjustments (0.45in default, 0.35in tight). */
 function pdfMarginsForTemplate(template, fitAdjustments = null) {
   if (template === 'modern') return MODERN_PDF_MARGINS
-  if (template === 'minimal') return MINIMAL_PDF_MARGINS
   const m = getPdfMarginIn(template, fitAdjustments)
   return { top: m, right: m, bottom: m, left: m }
 }
@@ -165,11 +161,12 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
   }`
   }
   if (template === 'minimal') {
+    const layout = resolveMinimalLayout(fitAdjustments)
     layoutExtra = `
   body.${c} {
     font-family: Arial, Helvetica, sans-serif !important;
-    font-size: 9.5pt !important;
-    line-height: 1.45 !important;
+    font-size: ${layout.bodyPt}pt !important;
+    line-height: ${layout.lineHeight} !important;
     color: #2d2d2d !important;
     background: #ffffff !important;
     -webkit-print-color-adjust: exact !important;
@@ -179,6 +176,22 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
     font-family: Georgia, 'Times New Roman', Times, serif !important;
     font-size: 32pt !important;
     font-weight: 700 !important;
+  }
+  body.${c} .minimal-header {
+    margin-bottom: ${layout.sectionGap} !important;
+  }
+  body.${c} .minimal-section-head {
+    margin-top: ${layout.sectionGap} !important;
+    margin-bottom: ${layout.sectionGap} !important;
+  }
+  body.${c} .minimal-job {
+    margin-bottom: ${layout.jobGap} !important;
+  }
+  body.${c} .minimal-bullet-row,
+  body.${c} .minimal-bullet-marker,
+  body.${c} .minimal-bullet-text,
+  body.${c} .experience-item > p.minimal-job-title {
+    font-weight: 400 !important;
   }
   body.${c} .minimal-job,
   body.${c} .minimal-edu,
@@ -312,7 +325,7 @@ function getStandardOnePagePdfOverrides(template, fitAdjustments = null) {
     margin-bottom: 4px !important;
     page-break-inside: avoid !important;
   }
-  body.${c} .experience-item > p {
+  body.${c}:not(.tpl-minimal) .experience-item > p {
     font-size: 10px !important;
     font-weight: bold !important;
     margin: 0 0 4px 0 !important;
@@ -661,17 +674,23 @@ export async function POST(request) {
 
       // Fit AFTER critic pass so restored bullets/skills cannot overflow page 1.
       document = fitContentForTemplate(document, template)
-      const atsFitAdjustments = document._fitAdjustments
+      const storedFitAdjustments = document._fitAdjustments
       ;({ document, skillGroups, flatSkills } = normalizeResumeDocument(document, profileForAi))
       if (template === 'ats') {
         applyAtsContentCaps(document)
-        document._fitAdjustments = atsFitAdjustments || getDefaultAtsFitAdjustments()
+        document._fitAdjustments = storedFitAdjustments || getDefaultAtsFitAdjustments()
       }
       if (template === 'modern') {
         applyModernContentCaps(document)
       }
+      if (template === 'minimal') {
+        document._fitAdjustments = storedFitAdjustments || getDefaultMinimalFitAdjustments()
+      }
 
-      contentOut = toLegacyContentOut(document, skillGroups, flatSkills)
+      contentOut = {
+        ...toLegacyContentOut(document, skillGroups, flatSkills),
+        resumeText: '',
+      }
       replacements = buildReplacements(document, template, { skipFit: true })
     }
 
@@ -708,7 +727,7 @@ export async function POST(request) {
           timeout: 10000,
         })
         return await page.pdf({
-          format: 'A4',
+          format: 'letter',
           printBackground: true,
           margin: pdfMarginsForTemplate(template, fitAdjustments),
         })
@@ -717,13 +736,19 @@ export async function POST(request) {
       }
     }
 
-    let pdfFitAdjustments = template === 'ats' && document ? document._fitAdjustments : null
-    if (template === 'ats' && document && !pdfFitAdjustments) {
-      pdfFitAdjustments = getDefaultAtsFitAdjustments()
+    let pdfFitAdjustments = null
+    if (template === 'ats' && document) {
+      pdfFitAdjustments = document._fitAdjustments || getDefaultAtsFitAdjustments()
+      document._fitAdjustments = pdfFitAdjustments
+    } else if (template === 'minimal' && document) {
+      pdfFitAdjustments = document._fitAdjustments || getDefaultMinimalFitAdjustments()
       document._fitAdjustments = pdfFitAdjustments
     }
 
     let filledHtml = htmlForPdf(replacements, pdfFitAdjustments)
+    if (contentOut && typeof contentOut === 'object') {
+      contentOut.resumeText = htmlToPlainResumeText(filledHtml)
+    }
 
     const filename = (() => {
       const name = (profile.full_name || '').trim()
@@ -757,10 +782,32 @@ export async function POST(request) {
             document._fitAdjustments = pdfFitAdjustments
             replacements = buildReplacements(document, template, { skipFit: true })
             filledHtml = htmlForPdf(replacements, pdfFitAdjustments)
+            if (contentOut && typeof contentOut === 'object') {
+              contentOut.resumeText = htmlToPlainResumeText(filledHtml)
+            }
             pdfBuffer = await generatePdfBuffer(browser, filledHtml, pdfFitAdjustments)
             pageCount = await countPdfPages(pdfBuffer)
             if (pageCount > 1) {
               console.warn('[generate-resume] ATS PDF still has', pageCount, 'pages after tight layout')
+            }
+          }
+        }
+
+        if (template === 'minimal' && document) {
+          let pageCount = await countPdfPages(pdfBuffer)
+          if (pageCount > 1) {
+            console.log('[generate-resume] Minimal PDF has', pageCount, 'pages; applying tight layout (0.35in margins)')
+            pdfFitAdjustments = getTightMinimalFitAdjustments()
+            document._fitAdjustments = pdfFitAdjustments
+            replacements = buildReplacements(document, template, { skipFit: true })
+            filledHtml = htmlForPdf(replacements, pdfFitAdjustments)
+            if (contentOut && typeof contentOut === 'object') {
+              contentOut.resumeText = htmlToPlainResumeText(filledHtml)
+            }
+            pdfBuffer = await generatePdfBuffer(browser, filledHtml, pdfFitAdjustments)
+            pageCount = await countPdfPages(pdfBuffer)
+            if (pageCount > 1) {
+              console.warn('[generate-resume] Minimal PDF still has', pageCount, 'pages after tight layout')
             }
           }
         }

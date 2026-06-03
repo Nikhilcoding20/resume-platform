@@ -125,6 +125,9 @@ const COMPLETE_PROGRESS_DURATION_MS = 450
 
 function buildResumeText(content) {
   if (!content) return ''
+  if (typeof content.resumeText === 'string' && content.resumeText.trim()) {
+    return content.resumeText.trim()
+  }
   const {
     name,
     email,
@@ -375,8 +378,8 @@ export default function GeneratingPage() {
   const progressValueRef = useRef(0)
   const pdfPreviewRef = useRef(null)
   const [pdfPreviewScale, setPdfPreviewScale] = useState(1)
-  const A4_PDF_WIDTH = 595
-  const A4_PDF_HEIGHT = 850
+  const PDF_PAGE_WIDTH = 612
+  const PDF_PAGE_HEIGHT = 792
   const resumeGeneratedTrackedRef = useRef(false)
 
   useEffect(() => {
@@ -394,7 +397,7 @@ export default function GeneratingPage() {
     const el = pdfPreviewRef.current
     const updateScale = () => {
       const w = el.offsetWidth
-      setPdfPreviewScale(w > 0 ? w / A4_PDF_WIDTH : 1)
+      setPdfPreviewScale(w > 0 ? w / PDF_PAGE_WIDTH : 1)
     }
     updateScale()
     const ro = new ResizeObserver(updateScale)
@@ -1118,22 +1121,22 @@ export default function GeneratingPage() {
               <div
                 ref={pdfPreviewRef}
                 className="w-full overflow-hidden rounded-xl shadow-lg shadow-slate-200/60 border border-slate-200/80 bg-white"
-                style={{ height: A4_PDF_HEIGHT * pdfPreviewScale }}
+                style={{ height: PDF_PAGE_HEIGHT * pdfPreviewScale }}
               >
                 {pdfBlobUrl && (
                   <div
                     className="origin-top-left"
                     style={{
-                      width: A4_PDF_WIDTH,
-                      height: A4_PDF_HEIGHT,
+                      width: PDF_PAGE_WIDTH,
+                      height: PDF_PAGE_HEIGHT,
                       transform: `scale(${pdfPreviewScale})`,
                     }}
                   >
                     <iframe
                       src={pdfBlobUrl}
                       title="Resume preview"
-                      width={A4_PDF_WIDTH}
-                      height={A4_PDF_HEIGHT}
+                      width={PDF_PAGE_WIDTH}
+                      height={PDF_PAGE_HEIGHT}
                       className="block border-0"
                     />
                   </div>
