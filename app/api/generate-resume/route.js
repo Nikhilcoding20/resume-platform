@@ -49,94 +49,20 @@ function jsonError(message, status = 500) {
   return NextResponse.json({ error: message }, { status })
 }
 
-/** PDF-only overrides for modern two-column table layout (no flex/grid on text). */
+/** PDF overrides for Modern — inline styles carry layout; ensure backgrounds print. */
 const MODERN_RESUME_PDF_OVERRIDES = `
 <style id="modern-resume-pdf-overrides">
   body.tpl-modern {
-    font-family: Arial, Helvetica, sans-serif !important;
-    font-size: 10pt !important;
-    line-height: 1.35 !important;
     margin: 0 !important;
     padding: 0 !important;
+    font-family: Arial, Helvetica, sans-serif !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
   }
-  body.tpl-modern table.modern-table {
+  body.tpl-modern table {
     width: 100% !important;
     border-collapse: collapse !important;
     table-layout: fixed !important;
-  }
-  body.tpl-modern td.modern-sidebar-cell {
-    width: 30% !important;
-    vertical-align: top !important;
-    background: #f0f4f8 !important;
-    padding: 12px !important;
-  }
-  body.tpl-modern table.sidebar-inner {
-    width: 100% !important;
-    height: 9.4in !important;
-    border-collapse: collapse !important;
-  }
-  body.tpl-modern td.sidebar-bottom {
-    vertical-align: bottom !important;
-  }
-  body.tpl-modern td.modern-main-cell {
-    width: 70% !important;
-    vertical-align: top !important;
-    background: #ffffff !important;
-    color: #1a1a1a !important;
-    padding: 20px !important;
-  }
-  body.tpl-modern td.modern-sidebar-cell h1.resume-name {
-    font-size: 22pt !important;
-    line-height: 1.1 !important;
-    margin: 0 0 10pt 0 !important;
-    color: #1a1a2e !important;
-    white-space: nowrap !important;
-  }
-  body.tpl-modern td.modern-sidebar-cell p {
-    font-size: 9.5pt !important;
-    line-height: 1.35 !important;
-    margin: 0 0 4pt 0 !important;
-    color: #1a1a1a !important;
-  }
-  body.tpl-modern td.modern-sidebar-cell p.sidebar-label,
-  body.tpl-modern td.modern-sidebar-cell p.sidebar-skill-cat {
-    font-size: 9pt !important;
-    font-weight: bold !important;
-    color: #1a1a2e !important;
-    margin: 10pt 0 4pt 0 !important;
-  }
-  body.tpl-modern td.modern-main-cell h2.modern-heading,
-  body.tpl-modern td.modern-main-cell .resume-section-heading.modern-heading {
-    font-size: 10.5pt !important;
-    margin: 0 0 6pt 0 !important;
-    padding-bottom: 3pt !important;
-    line-height: 1.2 !important;
-    color: #1a1a2e !important;
-    border-bottom: 2px solid #1a1a2e !important;
-  }
-  body.tpl-modern td.modern-main-cell p,
-  body.tpl-modern td.modern-main-cell li {
-    font-size: 10pt !important;
-    line-height: 1.3 !important;
-  }
-  body.tpl-modern td.modern-main-cell .experience-item {
-    margin-bottom: 8pt !important;
-    page-break-inside: avoid !important;
-  }
-  body.tpl-modern td.modern-main-cell .modern-bullet-row {
-    font-size: 10pt !important;
-    line-height: 1.35 !important;
-    color: #1a1a1a !important;
-    margin: 0 0 4pt 0 !important;
-    padding-left: 10pt !important;
-    text-indent: -10pt !important;
-  }
-  body.tpl-modern td.modern-main-cell .education-item {
-    margin-bottom: 8pt !important;
-    page-break-inside: avoid !important;
-  }
-  body.tpl-modern td.modern-main-cell .resume-summary-block {
-    margin-bottom: 10pt !important;
   }
 </style>
 `
