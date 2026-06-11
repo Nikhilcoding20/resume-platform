@@ -53,6 +53,24 @@ export default async function sitemap() {
       priority: 0.9,
     },
     {
+      url: `${siteUrl}/ats-checker`,
+      lastModified: now,
+      changeFrequency: weekly,
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/cover-letter-generator`,
+      lastModified: now,
+      changeFrequency: weekly,
+      priority: 0.9,
+    },
+    {
+      url: `${siteUrl}/interview-prep`,
+      lastModified: now,
+      changeFrequency: weekly,
+      priority: 0.9,
+    },
+    {
       url: `${siteUrl}/contact`,
       lastModified: now,
       changeFrequency: weekly,

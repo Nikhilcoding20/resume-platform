@@ -4,6 +4,9 @@ Allow: /
 Allow: /pricing
 Allow: /about
 Allow: /resume-builder
+Allow: /ats-checker
+Allow: /cover-letter-generator
+Allow: /interview-prep
 Allow: /contact
 Allow: /privacy
 Allow: /terms
