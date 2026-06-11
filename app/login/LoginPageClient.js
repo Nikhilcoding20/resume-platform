@@ -15,7 +15,19 @@ function LoginContent() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState(null)
+  const [googleOnlyHint, setGoogleOnlyHint] = useState(false)
   const [loading, setLoading] = useState(false)
+
+  async function isGoogleOnlyAccount(normalizedEmail) {
+    const res = await fetch('/api/auth/check-google-account', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: normalizedEmail }),
+    })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) return false
+    return Boolean(data.googleOnly)
+  }
 
   useEffect(() => {
     const oauthErr = searchParams.get('error')
@@ -37,13 +49,25 @@ function LoginContent() {
   async function handleSubmit(e) {
     e.preventDefault()
     setError(null)
+    setGoogleOnlyHint(false)
     setLoading(true)
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    setLoading(false)
+    const normalizedEmail = email.trim().toLowerCase()
+    const { error } = await supabase.auth.signInWithPassword({ email: normalizedEmail, password })
     if (error) {
+      const isInvalidCredentials = /invalid login credentials|invalid email or password/i.test(error.message)
+      if (isInvalidCredentials && normalizedEmail) {
+        const googleOnly = await isGoogleOnlyAccount(normalizedEmail)
+        setLoading(false)
+        if (googleOnly) {
+          setGoogleOnlyHint(true)
+          return
+        }
+      }
+      setLoading(false)
       setError(error.message)
       return
     }
+    setLoading(false)
     const redirectTo = redirectAts ? '/dashboard/ats-checker?from=homepage' : '/dashboard'
     router.push(redirectTo)
   }
@@ -70,7 +94,27 @@ function LoginContent() {
           <p className="text-[#5c5c7a] text-sm mt-1">Sign in to your Unemployed Club account</p>
         </div>
 
-        {error && (
+        {googleOnlyHint && (
+          <div className="px-8 pt-2" role="status">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-center text-sm text-amber-900">
+              <p>
+                Looks like you signed up with Google. Please use the Continue with Google button to sign in.
+              </p>
+              <div className="mt-3">
+                <AuthGoogleButton
+                  disabled={loading}
+                  onError={(msg) => {
+                    setGoogleOnlyHint(false)
+                    setError(msg)
+                  }}
+                  nextPath={oauthNextPath}
+                />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {error && !googleOnlyHint && (
           <div className="px-8 pt-2" role="alert">
             <p className="text-center text-sm text-red-600">{error}</p>
           </div>
@@ -90,7 +134,11 @@ function LoginContent() {
               id="email"
               type="email"
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value)
+                setGoogleOnlyHint(false)
+                setError(null)
+              }}
               required
               className="w-full px-4 py-2.5 rounded-xl border border-[#eaeaf2] text-[#1a1a2e] placeholder:text-[#9ca3af] focus:ring-2 focus:ring-[#6366f1]/25 focus:border-[#6366f1] outline-none transition-all"
               placeholder="you@example.com"
